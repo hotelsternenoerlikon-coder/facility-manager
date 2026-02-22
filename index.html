@@ -206,16 +206,25 @@
   }
   .fab:active { transform: scale(0.93); }
 
-  /* ===== MOBILE TOPBAR ===== */
   .mobile-topbar {
-    display: none; background: var(--text); color: #fff; padding: 0 16px;
-    height: 52px; align-items: center; justify-content: space-between;
-    position: sticky; top: 0; z-index: 50;
+    display: none;
+    background: var(--text); color: #fff;
+    padding: 0 16px;
     padding-top: env(safe-area-inset-top);
+    height: calc(52px + env(safe-area-inset-top));
+    align-items: center; justify-content: space-between;
+    position: fixed; top: 0; left: 0; right: 0; z-index: 150;
+    width: 100%;
   }
   .mobile-topbar-title { font-size: 15px; font-weight: 600; }
   .mobile-topbar-right { display: flex; align-items: center; gap: 10px; }
   .mobile-user-avatar { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; border: 1.5px solid rgba(255,255,255,0.3); }
+  .mobile-back-btn { background: none; border: none; color: rgba(255,255,255,0.8); font-size: 22px; cursor: pointer; padding: 4px 8px 4px 0; line-height: 1; display: none; }
+
+  /* When mobile topbar is shown, push content down */
+  @media (max-width: 768px) {
+    .main { padding-top: calc(52px + env(safe-area-inset-top)); }
+  }
 
   /* ===== MOBILE CARDS (replace tables on mobile) ===== */
   .mobile-card-list { display: flex; flex-direction: column; gap: 10px; }
@@ -232,16 +241,17 @@
   /* ===== RESPONSIVE BREAKPOINTS ===== */
   @media (max-width: 768px) {
     /* Hide desktop elements */
-    .sidebar { display: none; }
-    .topbar { display: none; }
+    .sidebar { display: none !important; }
+    .topbar { display: none !important; }
 
     /* Show mobile elements */
-    .mobile-nav { display: flex; }
-    .mobile-topbar { display: flex; }
-    .fab { display: flex; }
+    .mobile-nav { display: flex !important; }
+    .mobile-topbar { display: flex !important; }
+    .fab { display: flex !important; }
 
-    /* Layout */
-    .main { margin-left: 0; padding-bottom: calc(72px + env(safe-area-inset-bottom)); }
+    /* Layout - critical: remove sidebar margin */
+    .main { margin-left: 0 !important; padding-bottom: calc(72px + env(safe-area-inset-bottom)); }
+    .layout { display: block; }
     .page { padding: 14px; }
 
     /* KPI grid: 2 columns on mobile */
@@ -254,7 +264,7 @@
     .grid-2, .grid-3, .device-grid { grid-template-columns: 1fr; gap: 10px; }
 
     /* Tables: hidden on mobile, replaced by mobile cards */
-    .table-wrap { display: none; }
+    .table-wrap { display: none !important; }
     .mobile-card-list { display: flex; }
 
     /* Calendar: simplified */
@@ -263,18 +273,19 @@
     .cal-day-num { font-size: 11px; }
     .cal-event { font-size: 9px; padding: 1px 3px; }
 
-    /* Modals: full screen on mobile */
+    /* Modals: full screen bottom sheet on mobile */
     .modal-overlay { align-items: flex-end; padding: 0; }
     .modal {
-      width: 100%; max-width: 100%; border-radius: 20px 20px 0 0;
+      width: 100% !important; max-width: 100% !important;
+      border-radius: 20px 20px 0 0;
       max-height: 92vh; margin: 0;
     }
     .modal-body { padding: 16px; }
     .modal-header { padding: 16px 16px 12px; }
     .modal-footer { padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); }
 
-    /* Forms: larger touch targets */
-    .form-input, .form-select, .form-textarea { padding: 10px 12px; font-size: 16px; /* prevents iOS zoom */ }
+    /* Forms: larger touch targets, prevent iOS zoom */
+    .form-input, .form-select, .form-textarea { padding: 10px 12px; font-size: 16px; }
     .form-group { margin-bottom: 14px; }
 
     /* Buttons: larger on mobile */
@@ -292,16 +303,14 @@
     .login-box { width: 90vw; padding: 28px 24px; }
 
     /* Card headers on mobile */
-    .card-header { flex-direction: column; align-items: flex-start; gap: 8px; }
+    .card-header { flex-wrap: wrap; gap: 8px; }
 
-    /* Dashboard dash cards: smaller */
     .mb-16, .mb-24 { margin-bottom: 12px; }
   }
 
   @media (max-width: 480px) {
-    .kpi-grid { grid-template-columns: 1fr 1fr; }
     .kpi-value { font-size: 20px; }
-    .page { padding: 12px; }
+    .page { padding: 10px; }
   }
 </style>
 </head>
@@ -332,11 +341,14 @@
 
   <!-- MOBILE TOPBAR -->
   <div class="mobile-topbar">
-    <div class="mobile-topbar-title" id="mobile-page-title">Dashboard</div>
+    <div style="display:flex;align-items:center;gap:4px;">
+      <button class="mobile-back-btn" id="mobile-back-btn" onclick="goBack()">‹</button>
+      <div class="mobile-topbar-title" id="mobile-page-title">Dashboard</div>
+    </div>
     <div class="mobile-topbar-right">
-      <div class="sync-label" style="color:rgba(255,255,255,0.5)"><span class="sync-dot" id="sync-dot-mobile" style="background:var(--yellow)"></span></div>
+      <div><span class="sync-dot" id="sync-dot-mobile" style="background:var(--yellow)"></span></div>
       <img class="mobile-user-avatar" id="user-avatar-mobile" src="" alt="" style="display:none">
-      <button onclick="fbSignOutMobile()" style="background:none;border:none;color:rgba(255,255,255,0.5);font-size:18px;cursor:pointer;padding:4px;">⏏️</button>
+      <button onclick="fbSignOutMobile()" style="background:none;border:none;color:rgba(255,255,255,0.6);font-size:13px;cursor:pointer;padding:4px;">Abmelden</button>
     </div>
   </div>
 
@@ -927,6 +939,18 @@ window.state = { tickets:[], wartungen:[], geraete:[], partner:[], notfaelle:[],
 
 const pageLabels = {dashboard:'Dashboard',tickets:'Tickets & Störungen',wartung:'Wartungsaufträge',kalender:'Wartungskalender',geraete:'Geräte & Anlagen',dokumente:'Dokumente',partner:'Partnerfirmen',notfall:'Notfallkontakte',aktivitaet:'Aktivitätslog',mehr:'Mehr'};
 
+// Pages reachable directly from bottom nav (no back button needed)
+const mainPages = new Set(['dashboard','tickets','geraete','notfall','mehr']);
+let pageHistory = ['dashboard'];
+
+window.goBack = () => {
+  if(pageHistory.length > 1) {
+    pageHistory.pop();
+    const prev = pageHistory[pageHistory.length-1];
+    showPage(prev, null, true);
+  }
+};
+
 // FAB actions per page
 const fabActions = {
   tickets: () => openModal('modal-ticket'),
@@ -941,26 +965,43 @@ window.handleFab = () => { const fn = fabActions[window._currentPage]; if(fn) fn
 
 window.fbSignOutMobile = () => { if(window._fbSignOut) window._fbSignOut(); };
 
-function showPage(name) {
+function showPage(name, navBtn, isBack) {
   window._currentPage = name;
+
+  // Track history
+  if(!isBack) {
+    if(pageHistory[pageHistory.length-1] !== name) pageHistory.push(name);
+    if(pageHistory.length > 10) pageHistory = pageHistory.slice(-10);
+  }
+
   document.querySelectorAll('.page').forEach(p=>p.classList.add('page-hidden'));
   const pg = document.getElementById('page-'+name);
   if(pg) pg.classList.remove('page-hidden');
 
   // Desktop sidebar
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
-  document.querySelectorAll('.nav-item').forEach(n=>{ if(n.getAttribute('onclick')===`showPage('${name}')`) n.classList.add('active'); });
+  document.querySelectorAll('.nav-item').forEach(n=>{ if(n.getAttribute('onclick')&&n.getAttribute('onclick').includes(`'${name}'`)) n.classList.add('active'); });
 
-  // Mobile bottom nav
+  // Mobile bottom nav highlight
   document.querySelectorAll('.mobile-nav-item').forEach(n=>n.classList.remove('active'));
-  document.querySelectorAll(`.mobile-nav-item[data-page="${name}"]`).forEach(n=>n.classList.add('active'));
+  const activeNav = document.querySelector(`.mobile-nav-item[data-page="${name}"]`);
+  if(activeNav) activeNav.classList.add('active');
+  else if(mainPages.has('mehr')) {
+    // highlight "Mehr" for sub-pages
+    const mehrBtn = document.querySelector('.mobile-nav-item[data-page="mehr"]');
+    if(mehrBtn) mehrBtn.classList.add('active');
+  }
+
+  // Back button: show on sub-pages (not main nav pages)
+  const backBtn = document.getElementById('mobile-back-btn');
+  if(backBtn) backBtn.style.display = (!mainPages.has(name) && pageHistory.length > 1) ? 'block' : 'none';
 
   // Titles
   const title = pageLabels[name]||name;
   document.getElementById('page-title').textContent = title;
   const mt = document.getElementById('mobile-page-title'); if(mt) mt.textContent = title;
 
-  // FAB visibility
+  // FAB: show only on pages with add action
   const fab = document.getElementById('fab-btn');
   if(fab) fab.style.display = fabActions[name] ? 'flex' : 'none';
 
