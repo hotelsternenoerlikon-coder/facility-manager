@@ -73,6 +73,8 @@
   .btn-secondary { background: var(--surface); border: 1px solid var(--border2); color: var(--text2); }
   .btn-secondary:hover { background: var(--bg); }
   .btn-sm { padding: 5px 12px; font-size: 12.5px; }
+  .btn-edit { background: var(--accent-light); border: 1px solid #bfdbfe; color: var(--accent); }
+  .btn-edit:hover { background: #bfdbfe; }
 
   .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); }
   .card-header { padding: 18px 20px 14px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
@@ -295,10 +297,16 @@
     <!-- KALENDER -->
     <div class="page page-hidden" id="page-kalender">
       <div class="section-header mb-24">
-        <div style="display:flex;align-items:center;gap:16px;">
-          <button class="btn btn-secondary btn-sm" onclick="changeMonth(-1)">← Zurück</button>
-          <span id="cal-title" style="font-size:15px;font-weight:600;min-width:160px;text-align:center;"></span>
-          <button class="btn btn-secondary btn-sm" onclick="changeMonth(1)">Weiter →</button>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <button class="btn btn-secondary btn-sm" onclick="changeMonth(-1)">←</button>
+          <select id="cal-month-select" onchange="state.calMonth=parseInt(this.value);renderCalendar()" style="border:1px solid var(--border2);border-radius:7px;padding:6px 10px;font-size:13.5px;background:var(--surface);font-family:'DM Sans',sans-serif;cursor:pointer;">
+            <option value="0">Januar</option><option value="1">Februar</option><option value="2">März</option>
+            <option value="3">April</option><option value="4">Mai</option><option value="5">Juni</option>
+            <option value="6">Juli</option><option value="7">August</option><option value="8">September</option>
+            <option value="9">Oktober</option><option value="10">November</option><option value="11">Dezember</option>
+          </select>
+          <select id="cal-year-select" onchange="state.calYear=parseInt(this.value);renderCalendar()" style="border:1px solid var(--border2);border-radius:7px;padding:6px 10px;font-size:13.5px;background:var(--surface);font-family:'DM Sans',sans-serif;cursor:pointer;"></select>
+          <button class="btn btn-secondary btn-sm" onclick="changeMonth(1)">→</button>
         </div>
         <button class="btn btn-primary" onclick="openModal('modal-wartung')">+ Wartung planen</button>
       </div>
@@ -377,7 +385,7 @@
   <div class="modal">
     <div class="modal-header"><span class="modal-title">Gerät / Anlage hinzufügen</span><button class="modal-close" onclick="closeModal('modal-geraet')">×</button></div>
     <div class="modal-body">
-      <div class="grid-2"><div class="form-group"><label class="form-label">Bezeichnung *</label><input class="form-input" id="g-name"></div><div class="form-group"><label class="form-label">Kategorie *</label><select class="form-select" id="g-kategorie"><option value="aufzug">🛗 Aufzug</option><option value="heizung">🔥 Heizung/HVAC</option><option value="klima">❄️ Klimaanlage</option><option value="elektro">⚡ Elektro/USV</option><option value="brandschutz">🧯 Brandschutz</option><option value="sicherheit">🔒 Sicherheitssystem</option><option value="sanitaer">🚿 Sanitär</option><option value="it">💻 IT-Infrastruktur</option><option value="solar">☀️ Solar/PV</option><option value="sonstiges">🔧 Sonstiges</option></select></div></div>
+      <div class="grid-2"><div class="form-group"><label class="form-label">Bezeichnung *</label><input class="form-input" id="g-name"></div><div class="form-group"><label class="form-label">Kategorie *</label><select class="form-select" id="g-kategorie"><option value="aufzug">🛗 Aufzug</option><option value="heizung">🔥 Heizung/HVAC</option><option value="klima">❄️ Klimaanlage</option><option value="elektro">⚡ Elektro/USV</option><option value="brandschutz">🧯 Brandschutz</option><option value="sicherheit">🔒 Sicherheitssystem</option><option value="sanitaer">🚿 Sanitär</option><option value="kueche">🍳 Küchengeräte</option><option value="it">💻 IT-Infrastruktur</option><option value="solar">☀️ Solar/PV</option><option value="sonstiges">🔧 Sonstiges</option></select></div></div>
       <div class="grid-2"><div class="form-group"><label class="form-label">Hersteller</label><input class="form-input" id="g-hersteller"></div><div class="form-group"><label class="form-label">Seriennummer</label><input class="form-input" id="g-seriennummer"></div></div>
       <div class="grid-2"><div class="form-group"><label class="form-label">Installationsdatum</label><input class="form-input" type="date" id="g-baujahr"></div><div class="form-group"><label class="form-label">Standort / Raum</label><input class="form-input" id="g-standort"></div></div>
       <div class="grid-2"><div class="form-group"><label class="form-label">Nächste Wartung</label><input class="form-input" type="date" id="g-naechste-wartung"></div><div class="form-group"><label class="form-label">Zuständige Partnerfirma</label><select class="form-select" id="g-partner"><option value="">– auswählen –</option></select></div></div>
@@ -496,15 +504,21 @@ document.getElementById('btn-save-ticket').onclick = async () => {
   if (!betreff) { alert('Bitte einen Betreff eingeben.'); return; }
   const gId = document.getElementById('t-geraet').value;
   const pId = document.getElementById('t-partner').value;
-  await addDoc(collection(db,'tickets'), {
+  const data = {
     betreff, prioritaet: document.getElementById('t-prioritaet').value,
     geraetId: gId, geraetName: window.state.geraete.find(g=>g.id===gId)?.name||'',
     partnerId: pId, partnerName: window.state.partner.find(p=>p.id===pId)?.name||'',
     beschreibung: document.getElementById('t-beschreibung').value,
-    ersteller: currentUser?.displayName||currentUser?.email||'',
-    status: 'offen', createdAt: serverTimestamp()
-  });
-  await addLog(`Ticket erstellt: "${betreff}" (${currentUser?.displayName||''})`, '#dc2626');
+  };
+  if(window._editId && window._editType==='tickets'){
+    await updateDoc(doc(db,'tickets',window._editId), data);
+    await addLog(`Ticket "${betreff}" bearbeitet`, '#2563eb');
+  } else {
+    data.ersteller = currentUser?.displayName||currentUser?.email||'';
+    data.status = 'offen'; data.createdAt = serverTimestamp();
+    await addDoc(collection(db,'tickets'), data);
+    await addLog(`Ticket erstellt: "${betreff}" (${currentUser?.displayName||''})`, '#dc2626');
+  }
   closeModal('modal-ticket');
 };
 
@@ -514,16 +528,22 @@ document.getElementById('btn-save-wartung').onclick = async () => {
   if (!bez||!datum) { alert('Bitte Bezeichnung und Datum ausfüllen.'); return; }
   const gId = document.getElementById('w-geraet').value;
   const pId = document.getElementById('w-partner').value;
-  await addDoc(collection(db,'wartungen'), {
+  const data = {
     bezeichnung: bez, typ: document.getElementById('w-typ').value,
     geraetId: gId, geraetName: window.state.geraete.find(g=>g.id===gId)?.name||'',
     partnerId: pId, partnerName: window.state.partner.find(p=>p.id===pId)?.name||'',
     datum, intervall: document.getElementById('w-intervall').value,
     notizen: document.getElementById('w-notizen').value,
     status: new Date(datum) < new Date() ? 'faellig' : 'geplant',
-    createdAt: serverTimestamp()
-  });
-  await addLog(`Wartung erstellt: "${bez}" am ${datum}`, '#d97706');
+  };
+  if(window._editId && window._editType==='wartungen'){
+    await updateDoc(doc(db,'wartungen',window._editId), data);
+    await addLog(`Wartung "${bez}" bearbeitet`, '#d97706');
+  } else {
+    data.createdAt = serverTimestamp();
+    await addDoc(collection(db,'wartungen'), data);
+    await addLog(`Wartung erstellt: "${bez}" am ${datum}`, '#d97706');
+  }
   closeModal('modal-wartung');
 };
 
@@ -531,7 +551,7 @@ document.getElementById('btn-save-geraet').onclick = async () => {
   const name = document.getElementById('g-name').value.trim();
   if (!name) { alert('Bitte eine Bezeichnung eingeben.'); return; }
   const pId = document.getElementById('g-partner').value;
-  await addDoc(collection(db,'geraete'), {
+  const data = {
     name, kategorie: document.getElementById('g-kategorie').value,
     hersteller: document.getElementById('g-hersteller').value,
     seriennummer: document.getElementById('g-seriennummer').value,
@@ -540,16 +560,22 @@ document.getElementById('btn-save-geraet').onclick = async () => {
     naechsteWartung: document.getElementById('g-naechste-wartung').value,
     partnerId: pId, partnerName: window.state.partner.find(p=>p.id===pId)?.name||'',
     notizen: document.getElementById('g-notizen').value,
-    status: 'aktiv', createdAt: serverTimestamp()
-  });
-  await addLog(`Gerät "${name}" hinzugefügt`, '#16a34a');
+  };
+  if(window._editId && window._editType==='geraete'){
+    await updateDoc(doc(db,'geraete',window._editId), data);
+    await addLog(`Gerät "${name}" bearbeitet`, '#16a34a');
+  } else {
+    data.status = 'aktiv'; data.createdAt = serverTimestamp();
+    await addDoc(collection(db,'geraete'), data);
+    await addLog(`Gerät "${name}" hinzugefügt`, '#16a34a');
+  }
   closeModal('modal-geraet');
 };
 
 document.getElementById('btn-save-partner').onclick = async () => {
   const name = document.getElementById('p-name').value.trim();
   if (!name) { alert('Firmennamen eingeben.'); return; }
-  await addDoc(collection(db,'partner'), {
+  const data = {
     name, bereich: document.getElementById('p-bereich').value,
     kontakt: document.getElementById('p-kontakt').value,
     telefon: document.getElementById('p-telefon').value,
@@ -557,9 +583,15 @@ document.getElementById('btn-save-partner').onclick = async () => {
     vertrag: document.getElementById('p-vertrag').value,
     adresse: document.getElementById('p-adresse').value,
     notizen: document.getElementById('p-notizen').value,
-    createdAt: serverTimestamp()
-  });
-  await addLog(`Partnerfirma "${name}" hinzugefügt`, '#2563eb');
+  };
+  if(window._editId && window._editType==='partner'){
+    await updateDoc(doc(db,'partner',window._editId), data);
+    await addLog(`Partnerfirma "${name}" bearbeitet`, '#2563eb');
+  } else {
+    data.createdAt = serverTimestamp();
+    await addDoc(collection(db,'partner'), data);
+    await addLog(`Partnerfirma "${name}" hinzugefügt`, '#2563eb');
+  }
   closeModal('modal-partner');
 };
 
@@ -567,13 +599,19 @@ document.getElementById('btn-save-notfall').onclick = async () => {
   const name = document.getElementById('n-name').value.trim();
   const telefon = document.getElementById('n-telefon').value.trim();
   if (!name||!telefon) { alert('Name und Telefon ausfüllen.'); return; }
-  await addDoc(collection(db,'notfaelle'), {
+  const data = {
     name, kategorie: document.getElementById('n-kategorie').value,
     telefon, erreichbar: document.getElementById('n-erreichbar').value,
     notizen: document.getElementById('n-notizen').value,
-    createdAt: serverTimestamp()
-  });
-  await addLog(`Notfallkontakt "${name}" hinzugefügt`, '#dc2626');
+  };
+  if(window._editId && window._editType==='notfaelle'){
+    await updateDoc(doc(db,'notfaelle',window._editId), data);
+    await addLog(`Notfallkontakt "${name}" bearbeitet`, '#dc2626');
+  } else {
+    data.createdAt = serverTimestamp();
+    await addDoc(collection(db,'notfaelle'), data);
+    await addLog(`Notfallkontakt "${name}" hinzugefügt`, '#dc2626');
+  }
   closeModal('modal-notfall');
 };
 
@@ -581,14 +619,20 @@ document.getElementById('btn-save-dokument').onclick = async () => {
   const name = document.getElementById('d-name').value.trim();
   if (!name) { alert('Bezeichnung eingeben.'); return; }
   const gId = document.getElementById('d-geraet').value;
-  await addDoc(collection(db,'dokumente'), {
+  const data = {
     name, typ: document.getElementById('d-typ').value,
     geraetId: gId, geraetName: window.state.geraete.find(g=>g.id===gId)?.name||'',
     datum: document.getElementById('d-datum').value,
     notiz: document.getElementById('d-notiz').value,
-    createdAt: serverTimestamp()
-  });
-  await addLog(`Dokument "${name}" erfasst`, '#5a5850');
+  };
+  if(window._editId && window._editType==='dokumente'){
+    await updateDoc(doc(db,'dokumente',window._editId), data);
+    await addLog(`Dokument "${name}" bearbeitet`, '#5a5850');
+  } else {
+    data.createdAt = serverTimestamp();
+    await addDoc(collection(db,'dokumente'), data);
+    await addLog(`Dokument "${name}" erfasst`, '#5a5850');
+  }
   closeModal('modal-dokument');
 };
 
@@ -611,6 +655,80 @@ window.deleteItem = async (col, id) => {
   await deleteDoc(doc(db,col,id));
   await addLog(`Eintrag gelöscht (${col})`, '#9a9890');
 };
+
+// ---- EDIT ----
+window.editItem = (type, id) => {
+  const item = window.state[type].find(i=>i.id===id);
+  if(!item) return;
+  window._editId = id;
+  window._editType = type;
+  populateSelects();
+
+  if(type==='tickets'){
+    document.getElementById('t-betreff').value=item.betreff||'';
+    document.getElementById('t-prioritaet').value=item.prioritaet||'mittel';
+    document.getElementById('t-geraet').value=item.geraetId||'';
+    document.getElementById('t-partner').value=item.partnerId||'';
+    document.getElementById('t-beschreibung').value=item.beschreibung||'';
+    document.getElementById('modal-ticket').querySelector('.modal-title').textContent='Ticket bearbeiten';
+    document.getElementById('btn-save-ticket').textContent='Änderungen speichern';
+    document.getElementById('modal-ticket').classList.remove('hidden');
+  } else if(type==='wartungen'){
+    document.getElementById('w-bezeichnung').value=item.bezeichnung||'';
+    document.getElementById('w-typ').value=item.typ||'wartung';
+    document.getElementById('w-geraet').value=item.geraetId||'';
+    document.getElementById('w-partner').value=item.partnerId||'';
+    document.getElementById('w-datum').value=item.datum||'';
+    document.getElementById('w-intervall').value=item.intervall||'einmalig';
+    document.getElementById('w-notizen').value=item.notizen||'';
+    document.getElementById('modal-wartung').querySelector('.modal-title').textContent='Wartungsauftrag bearbeiten';
+    document.getElementById('btn-save-wartung').textContent='Änderungen speichern';
+    document.getElementById('modal-wartung').classList.remove('hidden');
+  } else if(type==='geraete'){
+    document.getElementById('g-name').value=item.name||'';
+    document.getElementById('g-kategorie').value=item.kategorie||'sonstiges';
+    document.getElementById('g-hersteller').value=item.hersteller||'';
+    document.getElementById('g-seriennummer').value=item.seriennummer||'';
+    document.getElementById('g-baujahr').value=item.baujahr||'';
+    document.getElementById('g-standort').value=item.standort||'';
+    document.getElementById('g-naechste-wartung').value=item.naechsteWartung||'';
+    document.getElementById('g-partner').value=item.partnerId||'';
+    document.getElementById('g-notizen').value=item.notizen||'';
+    document.getElementById('modal-geraet').querySelector('.modal-title').textContent='Gerät bearbeiten';
+    document.getElementById('btn-save-geraet').textContent='Änderungen speichern';
+    document.getElementById('modal-geraet').classList.remove('hidden');
+  } else if(type==='partner'){
+    document.getElementById('p-name').value=item.name||'';
+    document.getElementById('p-bereich').value=item.bereich||'';
+    document.getElementById('p-kontakt').value=item.kontakt||'';
+    document.getElementById('p-telefon').value=item.telefon||'';
+    document.getElementById('p-email').value=item.email||'';
+    document.getElementById('p-vertrag').value=item.vertrag||'';
+    document.getElementById('p-adresse').value=item.adresse||'';
+    document.getElementById('p-notizen').value=item.notizen||'';
+    document.getElementById('modal-partner').querySelector('.modal-title').textContent='Partnerfirma bearbeiten';
+    document.getElementById('btn-save-partner').textContent='Änderungen speichern';
+    document.getElementById('modal-partner').classList.remove('hidden');
+  } else if(type==='notfaelle'){
+    document.getElementById('n-name').value=item.name||'';
+    document.getElementById('n-kategorie').value=item.kategorie||'';
+    document.getElementById('n-telefon').value=item.telefon||'';
+    document.getElementById('n-erreichbar').value=item.erreichbar||'24/7';
+    document.getElementById('n-notizen').value=item.notizen||'';
+    document.getElementById('modal-notfall').querySelector('.modal-title').textContent='Notfallkontakt bearbeiten';
+    document.getElementById('btn-save-notfall').textContent='Änderungen speichern';
+    document.getElementById('modal-notfall').classList.remove('hidden');
+  } else if(type==='dokumente'){
+    document.getElementById('d-name').value=item.name||'';
+    document.getElementById('d-typ').value=item.typ||'';
+    document.getElementById('d-geraet').value=item.geraetId||'';
+    document.getElementById('d-datum').value=item.datum||'';
+    document.getElementById('d-notiz').value=item.notiz||'';
+    document.getElementById('modal-dokument').querySelector('.modal-title').textContent='Dokument bearbeiten';
+    document.getElementById('btn-save-dokument').textContent='Änderungen speichern';
+    document.getElementById('modal-dokument').classList.remove('hidden');
+  }
+};
 </script>
 
 <script>
@@ -628,7 +746,18 @@ function showPage(name) {
 }
 
 function openModal(id) { populateSelects(); document.getElementById(id).classList.remove('hidden'); }
-function closeModal(id) { document.getElementById(id).classList.add('hidden'); document.querySelectorAll(`#${id} input,#${id} textarea`).forEach(e=>e.value=''); document.querySelectorAll(`#${id} select`).forEach(e=>e.selectedIndex=0); }
+function closeModal(id) {
+  document.getElementById(id).classList.add('hidden');
+  document.querySelectorAll(`#${id} input,#${id} textarea`).forEach(e=>e.value='');
+  document.querySelectorAll(`#${id} select`).forEach(e=>e.selectedIndex=0);
+  window._editId=null; window._editType=null;
+  // Reset titles and button labels
+  const titleMap={'modal-ticket':'Neues Ticket / Störungsmeldung','modal-wartung':'Wartungsauftrag erfassen','modal-geraet':'Gerät / Anlage hinzufügen','modal-partner':'Partnerfirma hinzufügen','modal-notfall':'Notfallkontakt hinzufügen','modal-dokument':'Dokument erfassen'};
+  const btnMap={'modal-ticket':'btn-save-ticket','modal-wartung':'btn-save-wartung','modal-geraet':'btn-save-geraet','modal-partner':'btn-save-partner','modal-notfall':'btn-save-notfall','modal-dokument':'btn-save-dokument'};
+  const saveLabelMap={'modal-ticket':'Ticket erstellen','modal-wartung':'Auftrag erstellen','modal-geraet':'Gerät speichern','modal-partner':'Firma speichern','modal-notfall':'Kontakt speichern','modal-dokument':'Speichern'};
+  if(titleMap[id]) document.querySelector(`#${id} .modal-title`).textContent=titleMap[id];
+  if(btnMap[id]) document.getElementById(btnMap[id]).textContent=saveLabelMap[id];
+}
 
 function populateSelects() {
   const g = state.geraete.map(g=>`<option value="${g.id}">${g.name}</option>`).join('');
@@ -642,7 +771,7 @@ const pBadge={kritisch:'badge-red',hoch:'badge-orange',mittel:'badge-yellow',nie
 const pLabel={kritisch:'🔴 Kritisch',hoch:'🟠 Hoch',mittel:'🟡 Mittel',niedrig:'🟢 Niedrig'};
 const sBadge={offen:'badge-red',in_bearbeitung:'badge-yellow',erledigt:'badge-green',geplant:'badge-blue',faellig:'badge-orange',abgeschlossen:'badge-green'};
 const sLabel={offen:'Offen',in_bearbeitung:'In Bearbeitung',erledigt:'Erledigt',geplant:'Geplant',faellig:'Fällig',abgeschlossen:'Abgeschlossen'};
-const kIcons={aufzug:'🛗',heizung:'🔥',klima:'❄️',elektro:'⚡',brandschutz:'🧯',sicherheit:'🔒',sanitaer:'🚿',it:'💻',solar:'☀️',sonstiges:'🔧'};
+const kIcons={aufzug:'🛗',heizung:'🔥',klima:'❄️',elektro:'⚡',brandschutz:'🧯',sicherheit:'🔒',sanitaer:'🚿',kueche:'🍳',it:'💻',solar:'☀️',sonstiges:'🔧'};
 
 function fDate(d){if(!d)return'–';try{return new Date(d+'T00:00:00').toLocaleDateString('de-DE');}catch(e){return d;}}
 function fTs(ts){if(!ts)return'–';try{const d=ts.toDate?ts.toDate():new Date(ts);return d.toLocaleDateString('de-DE')+' '+d.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});}catch(e){return'–';}}
@@ -676,7 +805,7 @@ function renderTickets() {
   if(state.ticketFilter!=='alle') data=data.filter(t=>t.status===state.ticketFilter);
   if(state.ticketSearch) data=data.filter(t=>t.betreff.toLowerCase().includes(state.ticketSearch.toLowerCase()));
   const tb=document.getElementById('tickets-table');
-  tb.innerHTML=data.length?data.map(t=>`<tr><td><span style="font-weight:500;">${t.betreff}</span>${t.beschreibung?`<div style="font-size:12px;color:var(--text3);">${t.beschreibung.substring(0,60)}${t.beschreibung.length>60?'...':''}</div>`:''}</td><td>${t.geraetName||'–'}</td><td><span class="badge ${pBadge[t.prioritaet]}">${pLabel[t.prioritaet]}</span></td><td><select onchange="updateTicketStatus('${t.id}',this.value)" style="border:1px solid var(--border2);border-radius:5px;padding:3px 8px;font-size:12px;background:var(--surface);"><option value="offen" ${t.status==='offen'?'selected':''}>Offen</option><option value="in_bearbeitung" ${t.status==='in_bearbeitung'?'selected':''}>In Bearbeitung</option><option value="erledigt" ${t.status==='erledigt'?'selected':''}>Erledigt</option></select></td><td style="font-size:12px;color:var(--text3);">${t.ersteller||'–'}</td><td style="font-family:'DM Mono',monospace;font-size:11px;">${fTs(t.createdAt)}</td><td>${t.partnerName||'–'}</td><td><button class="btn btn-secondary btn-sm" onclick="deleteItem('tickets','${t.id}')">🗑️</button></td></tr>`).join(''):`<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">🎫</div><p>Keine Tickets gefunden</p></div></td></tr>`;
+  tb.innerHTML=data.length?data.map(t=>`<tr><td><span style="font-weight:500;">${t.betreff}</span>${t.beschreibung?`<div style="font-size:12px;color:var(--text3);">${t.beschreibung.substring(0,60)}${t.beschreibung.length>60?'...':''}</div>`:''}</td><td>${t.geraetName||'–'}</td><td><span class="badge ${pBadge[t.prioritaet]}">${pLabel[t.prioritaet]}</span></td><td><select onchange="updateTicketStatus('${t.id}',this.value)" style="border:1px solid var(--border2);border-radius:5px;padding:3px 8px;font-size:12px;background:var(--surface);"><option value="offen" ${t.status==='offen'?'selected':''}>Offen</option><option value="in_bearbeitung" ${t.status==='in_bearbeitung'?'selected':''}>In Bearbeitung</option><option value="erledigt" ${t.status==='erledigt'?'selected':''}>Erledigt</option></select></td><td style="font-size:12px;color:var(--text3);">${t.ersteller||'–'}</td><td style="font-family:'DM Mono',monospace;font-size:11px;">${fTs(t.createdAt)}</td><td>${t.partnerName||'–'}</td><td style="white-space:nowrap;"><button class="btn btn-sm btn-edit" onclick="editItem('tickets','${t.id}')">✏️</button> <button class="btn btn-secondary btn-sm" onclick="deleteItem('tickets','${t.id}')">🗑️</button></td></tr>`).join(''):`<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">🎫</div><p>Keine Tickets gefunden</p></div></td></tr>`;
 }
 
 function renderWartungen() {
@@ -685,7 +814,7 @@ function renderWartungen() {
   else if(state.wartungFilter!=='alle') data=data.filter(w=>w.status===state.wartungFilter);
   data.sort((a,b)=>new Date(a.datum)-new Date(b.datum));
   const tb=document.getElementById('wartung-table');
-  tb.innerHTML=data.length?data.map(w=>`<tr><td><span style="font-weight:500;">${w.bezeichnung}</span></td><td>${w.geraetName||'–'}</td><td><span class="badge badge-gray">${w.typ}</span></td><td style="font-family:'DM Mono',monospace;font-size:12px;${new Date(w.datum)<new Date()&&w.status!=='abgeschlossen'?'color:var(--red);font-weight:600;':''}">${fDate(w.datum)}</td><td>${w.partnerName||'–'}</td><td><select onchange="updateWartungStatus('${w.id}',this.value)" style="border:1px solid var(--border2);border-radius:5px;padding:3px 8px;font-size:12px;background:var(--surface);"><option value="geplant" ${w.status==='geplant'?'selected':''}>Geplant</option><option value="faellig" ${w.status==='faellig'?'selected':''}>Fällig</option><option value="abgeschlossen" ${w.status==='abgeschlossen'?'selected':''}>Abgeschlossen</option></select></td><td><button class="btn btn-secondary btn-sm" onclick="deleteItem('wartungen','${w.id}')">🗑️</button></td></tr>`).join(''):`<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">🔧</div><p>Keine Wartungsaufträge</p></div></td></tr>`;
+  tb.innerHTML=data.length?data.map(w=>`<tr><td><span style="font-weight:500;">${w.bezeichnung}</span></td><td>${w.geraetName||'–'}</td><td><span class="badge badge-gray">${w.typ}</span></td><td style="font-family:'DM Mono',monospace;font-size:12px;${new Date(w.datum)<new Date()&&w.status!=='abgeschlossen'?'color:var(--red);font-weight:600;':''}">${fDate(w.datum)}</td><td>${w.partnerName||'–'}</td><td><select onchange="updateWartungStatus('${w.id}',this.value)" style="border:1px solid var(--border2);border-radius:5px;padding:3px 8px;font-size:12px;background:var(--surface);"><option value="geplant" ${w.status==='geplant'?'selected':''}>Geplant</option><option value="faellig" ${w.status==='faellig'?'selected':''}>Fällig</option><option value="abgeschlossen" ${w.status==='abgeschlossen'?'selected':''}>Abgeschlossen</option></select></td><td style="white-space:nowrap;"><button class="btn btn-sm btn-edit" onclick="editItem('wartungen','${w.id}')">✏️</button> <button class="btn btn-secondary btn-sm" onclick="deleteItem('wartungen','${w.id}')">🗑️</button></td></tr>`).join(''):`<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">🔧</div><p>Keine Wartungsaufträge</p></div></td></tr>`;
 }
 
 function renderGeraete() {
@@ -693,22 +822,22 @@ function renderGeraete() {
   if(state.geraeteFilter==='aktiv') data=data.filter(g=>g.status==='aktiv');
   else if(state.geraeteFilter==='stoerung') data=data.filter(g=>g.status==='stoerung');
   const grid=document.getElementById('geraete-grid');
-  grid.innerHTML=data.length?data.map(g=>`<div class="device-card"><div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:8px;"><div style="font-size:28px;">${kIcons[g.kategorie]||'🔧'}</div><select onchange="changeGeraetStatus('${g.id}',this.value)" style="border:1px solid var(--border2);border-radius:5px;padding:2px 6px;font-size:11.5px;background:var(--surface);"><option value="aktiv" ${g.status==='aktiv'?'selected':''}>✅ Aktiv</option><option value="stoerung" ${g.status==='stoerung'?'selected':''}>🔴 Störung</option><option value="wartung" ${g.status==='wartung'?'selected':''}>🟡 Wartung</option><option value="ausser_betrieb" ${g.status==='ausser_betrieb'?'selected':''}>⚫ Außer Betrieb</option></select></div><div style="font-weight:600;font-size:14px;margin-bottom:4px;">${g.name}</div><div style="font-size:12px;color:var(--text3);margin-bottom:6px;">${g.standort||'–'}</div>${g.hersteller?`<div style="font-size:12px;color:var(--text3);margin-bottom:4px;">🏭 ${g.hersteller}${g.seriennummer?' · SN: '+g.seriennummer:''}</div>`:''}${g.naechsteWartung?`<div style="font-size:12px;color:${new Date(g.naechsteWartung)<new Date()?'var(--red)':'var(--text3)'};margin-bottom:4px;">🔧 Wartung: ${fDate(g.naechsteWartung)}</div>`:''}${g.partnerName?`<div style="font-size:12px;color:var(--text3);margin-bottom:4px;">🤝 ${g.partnerName}</div>`:''}${g.notizen?`<div style="font-size:11.5px;color:var(--text3);border-top:1px solid var(--border);padding-top:8px;margin-top:6px;">${g.notizen}</div>`:''}<div style="display:flex;justify-content:flex-end;margin-top:10px;"><button class="btn btn-secondary btn-sm" onclick="deleteItem('geraete','${g.id}')">🗑️</button></div></div>`).join(''):`<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">⚙️</div><p>Noch keine Geräte erfasst</p></div>`;
+  grid.innerHTML=data.length?data.map(g=>`<div class="device-card"><div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:8px;"><div style="font-size:28px;">${kIcons[g.kategorie]||'🔧'}</div><select onchange="changeGeraetStatus('${g.id}',this.value)" style="border:1px solid var(--border2);border-radius:5px;padding:2px 6px;font-size:11.5px;background:var(--surface);"><option value="aktiv" ${g.status==='aktiv'?'selected':''}>✅ Aktiv</option><option value="stoerung" ${g.status==='stoerung'?'selected':''}>🔴 Störung</option><option value="wartung" ${g.status==='wartung'?'selected':''}>🟡 Wartung</option><option value="ausser_betrieb" ${g.status==='ausser_betrieb'?'selected':''}>⚫ Außer Betrieb</option></select></div><div style="font-weight:600;font-size:14px;margin-bottom:4px;">${g.name}</div><div style="font-size:12px;color:var(--text3);margin-bottom:6px;">${g.standort||'–'}</div>${g.hersteller?`<div style="font-size:12px;color:var(--text3);margin-bottom:4px;">🏭 ${g.hersteller}${g.seriennummer?' · SN: '+g.seriennummer:''}</div>`:''}${g.naechsteWartung?`<div style="font-size:12px;color:${new Date(g.naechsteWartung)<new Date()?'var(--red)':'var(--text3)'};margin-bottom:4px;">🔧 Wartung: ${fDate(g.naechsteWartung)}</div>`:''}${g.partnerName?`<div style="font-size:12px;color:var(--text3);margin-bottom:4px;">🤝 ${g.partnerName}</div>`:''}${g.notizen?`<div style="font-size:11.5px;color:var(--text3);border-top:1px solid var(--border);padding-top:8px;margin-top:6px;">${g.notizen}</div>`:''}<div style="display:flex;justify-content:flex-end;gap:6px;margin-top:10px;"><button class="btn btn-sm btn-edit" onclick="editItem('geraete','${g.id}')">✏️ Bearbeiten</button><button class="btn btn-secondary btn-sm" onclick="deleteItem('geraete','${g.id}')">🗑️</button></div></div>`).join(''):`<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">⚙️</div><p>Noch keine Geräte erfasst</p></div>`;
 }
 
 function renderPartner() {
   const grid=document.getElementById('partner-grid');
-  grid.innerHTML=state.partner.length?state.partner.map(p=>`<div class="card"><div class="card-body"><div style="font-weight:600;font-size:15px;margin-bottom:4px;">${p.name}</div><div style="margin-bottom:12px;"><span class="badge badge-blue">${p.bereich}</span></div>${p.kontakt?`<div style="font-size:13px;margin-bottom:4px;">👤 ${p.kontakt}</div>`:''}${p.telefon?`<div style="font-size:13px;margin-bottom:4px;">📞 <a href="tel:${p.telefon}" style="color:var(--accent);text-decoration:none;">${p.telefon}</a></div>`:''}${p.email?`<div style="font-size:13px;margin-bottom:4px;">📧 <a href="mailto:${p.email}" style="color:var(--accent);text-decoration:none;">${p.email}</a></div>`:''}${p.adresse?`<div style="font-size:12.5px;color:var(--text3);margin-bottom:4px;">📍 ${p.adresse}</div>`:''}${p.vertrag?`<div style="font-size:11.5px;color:var(--text3);font-family:'DM Mono',monospace;margin-bottom:8px;">Vertrag: ${p.vertrag}</div>`:''}${p.notizen?`<div style="font-size:12px;color:var(--text3);border-top:1px solid var(--border);padding-top:8px;margin-top:4px;">${p.notizen}</div>`:''}<div style="display:flex;justify-content:flex-end;margin-top:10px;"><button class="btn btn-secondary btn-sm" onclick="deleteItem('partner','${p.id}')">🗑️</button></div></div></div>`).join(''):`<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">🏭</div><p>Noch keine Partnerfirmen erfasst</p></div>`;
+  grid.innerHTML=state.partner.length?state.partner.map(p=>`<div class="card"><div class="card-body"><div style="font-weight:600;font-size:15px;margin-bottom:4px;">${p.name}</div><div style="margin-bottom:12px;"><span class="badge badge-blue">${p.bereich}</span></div>${p.kontakt?`<div style="font-size:13px;margin-bottom:4px;">👤 ${p.kontakt}</div>`:''}${p.telefon?`<div style="font-size:13px;margin-bottom:4px;">📞 <a href="tel:${p.telefon}" style="color:var(--accent);text-decoration:none;">${p.telefon}</a></div>`:''}${p.email?`<div style="font-size:13px;margin-bottom:4px;">📧 <a href="mailto:${p.email}" style="color:var(--accent);text-decoration:none;">${p.email}</a></div>`:''}${p.adresse?`<div style="font-size:12.5px;color:var(--text3);margin-bottom:4px;">📍 ${p.adresse}</div>`:''}${p.vertrag?`<div style="font-size:11.5px;color:var(--text3);font-family:'DM Mono',monospace;margin-bottom:8px;">Vertrag: ${p.vertrag}</div>`:''}${p.notizen?`<div style="font-size:12px;color:var(--text3);border-top:1px solid var(--border);padding-top:8px;margin-top:4px;">${p.notizen}</div>`:''}<div style="display:flex;justify-content:flex-end;gap:6px;margin-top:10px;"><button class="btn btn-sm btn-edit" onclick="editItem('partner','${p.id}')">✏️ Bearbeiten</button><button class="btn btn-secondary btn-sm" onclick="deleteItem('partner','${p.id}')">🗑️</button></div></div></div>`).join(''):`<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">🏭</div><p>Noch keine Partnerfirmen erfasst</p></div>`;
 }
 
 function renderNotfall() {
   const grid=document.getElementById('notfall-grid');
-  grid.innerHTML=state.notfaelle.length?state.notfaelle.map(n=>`<div class="card" style="border-left:3px solid var(--red);"><div class="card-body"><div style="font-weight:600;font-size:15px;margin-bottom:6px;">${n.name}</div><div style="margin-bottom:12px;"><span class="badge badge-red">${n.kategorie}</span> <span class="badge badge-gray">${n.erreichbar}</span></div><div style="font-size:20px;font-weight:700;margin-bottom:8px;">📞 <a href="tel:${n.telefon}" style="color:var(--red);text-decoration:none;">${n.telefon}</a></div>${n.notizen?`<div style="font-size:12px;color:var(--text3);">${n.notizen}</div>`:''}<div style="display:flex;justify-content:flex-end;margin-top:10px;"><button class="btn btn-secondary btn-sm" onclick="deleteItem('notfaelle','${n.id}')">🗑️</button></div></div></div>`).join(''):`<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">🚨</div><p>Noch keine Notfallkontakte</p></div>`;
+  grid.innerHTML=state.notfaelle.length?state.notfaelle.map(n=>`<div class="card" style="border-left:3px solid var(--red);"><div class="card-body"><div style="font-weight:600;font-size:15px;margin-bottom:6px;">${n.name}</div><div style="margin-bottom:12px;"><span class="badge badge-red">${n.kategorie}</span> <span class="badge badge-gray">${n.erreichbar}</span></div><div style="font-size:20px;font-weight:700;margin-bottom:8px;">📞 <a href="tel:${n.telefon}" style="color:var(--red);text-decoration:none;">${n.telefon}</a></div>${n.notizen?`<div style="font-size:12px;color:var(--text3);">${n.notizen}</div>`:''}<div style="display:flex;justify-content:flex-end;gap:6px;margin-top:10px;"><button class="btn btn-sm btn-edit" onclick="editItem('notfaelle','${n.id}')">✏️ Bearbeiten</button><button class="btn btn-secondary btn-sm" onclick="deleteItem('notfaelle','${n.id}')">🗑️</button></div></div></div>`).join(''):`<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">🚨</div><p>Noch keine Notfallkontakte</p></div>`;
 }
 
 function renderDokumente() {
   const tb=document.getElementById('dokumente-table');
-  tb.innerHTML=state.dokumente.length?state.dokumente.map(d=>`<tr><td><span style="font-weight:500;">📄 ${d.name}</span></td><td><span class="badge badge-gray">${d.typ}</span></td><td>${d.geraetName||'–'}</td><td style="font-family:'DM Mono',monospace;font-size:12px;">${d.datum?fDate(d.datum):'–'}</td><td style="color:var(--text3);font-size:12.5px;">${d.notiz||'–'}</td><td><button class="btn btn-secondary btn-sm" onclick="deleteItem('dokumente','${d.id}')">🗑️</button></td></tr>`).join(''):`<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">📄</div><p>Noch keine Dokumente</p></div></td></tr>`;
+  tb.innerHTML=state.dokumente.length?state.dokumente.map(d=>`<tr><td><span style="font-weight:500;">📄 ${d.name}</span></td><td><span class="badge badge-gray">${d.typ}</span></td><td>${d.geraetName||'–'}</td><td style="font-family:'DM Mono',monospace;font-size:12px;">${d.datum?fDate(d.datum):'–'}</td><td style="color:var(--text3);font-size:12.5px;">${d.notiz||'–'}</td><td style="white-space:nowrap;"><button class="btn btn-sm btn-edit" onclick="editItem('dokumente','${d.id}')">✏️</button> <button class="btn btn-secondary btn-sm" onclick="deleteItem('dokumente','${d.id}')">🗑️</button></td></tr>`).join(''):`<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">📄</div><p>Noch keine Dokumente</p></div></td></tr>`;
 }
 
 function renderAktivitaet() {
@@ -725,8 +854,18 @@ function filterGeraete(f,btn){state.geraeteFilter=f;btn.closest('.tabs').querySe
 
 function renderCalendar() {
   const year=state.calYear,month=state.calMonth;
-  const months=['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
-  document.getElementById('cal-title').textContent=months[month]+' '+year;
+  // Populate year dropdown (current year ±5)
+  const ySel=document.getElementById('cal-year-select');
+  if(ySel){
+    const curY=new Date().getFullYear();
+    if(!ySel.options.length||parseInt(ySel.options[0].value)!==curY-5){
+      ySel.innerHTML='';
+      for(let y=curY-5;y<=curY+5;y++) ySel.innerHTML+=`<option value="${y}">${y}</option>`;
+    }
+    ySel.value=year;
+  }
+  const mSel=document.getElementById('cal-month-select');
+  if(mSel) mSel.value=month;
   document.getElementById('cal-header').innerHTML=['Mo','Di','Mi','Do','Fr','Sa','So'].map(d=>`<div class="cal-day-label">${d}</div>`).join('');
   const first=new Date(year,month,1),last=new Date(year,month+1,0),today=new Date();
   let sdow=first.getDay();if(sdow===0)sdow=7;
