@@ -26,6 +26,12 @@
 
   .login-screen { position: fixed; inset: 0; background: var(--text); display: flex; align-items: center; justify-content: center; z-index: 999; flex-direction: column; gap: 24px; }
   .login-screen.hidden { display: none; }
+  .pending-screen { position: fixed; inset: 0; background: var(--text); display: none; align-items: center; justify-content: center; z-index: 999; flex-direction: column; gap: 24px; }
+  .pending-screen.visible { display: flex; }
+  .pending-box { background: #fff; border-radius: 16px; padding: 40px 48px; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.3); width: 420px; max-width: 90vw; }
+  .rejected-screen { position: fixed; inset: 0; background: var(--text); display: none; align-items: center; justify-content: center; z-index: 999; flex-direction: column; gap: 24px; }
+  .rejected-screen.visible { display: flex; }
+  .rejected-box { background: #fff; border-radius: 16px; padding: 40px 48px; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.3); width: 420px; max-width: 90vw; }
   .login-box { background: #fff; border-radius: 16px; padding: 40px 48px; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.3); width: 380px; }
   .login-logo { font-size: 40px; margin-bottom: 12px; }
   .login-title { font-size: 22px; font-weight: 600; margin-bottom: 6px; }
@@ -321,12 +327,33 @@
   <div class="login-box">
     <div class="login-logo">🏢</div>
     <div class="login-title">FacilityOS</div>
-    <div class="login-sub">Gebäudemanagement · Bitte anmelden um fortzufahren</div>
+    <div class="login-sub">Gebäudemanagement · Hotel</div>
     <button class="btn-google" id="btn-google-login">
       <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google">
       Mit Google anmelden
     </button>
-    <div class="login-hint">Nur autorisierte Google-Accounts haben Zugriff</div>
+    <div class="login-hint">Nur autorisierte Mitarbeiter haben Zugriff</div>
+  </div>
+</div>
+
+<!-- WARTET AUF GENEHMIGUNG -->
+<div class="pending-screen" id="pending-screen">
+  <div class="pending-box">
+    <div style="font-size:48px;margin-bottom:16px;">⏳</div>
+    <div style="font-size:20px;font-weight:600;margin-bottom:8px;">Zugang beantragt</div>
+    <div style="font-size:13.5px;color:#5a5850;margin-bottom:8px;">Deine Anfrage wurde an die Administratoren gesendet. Du erhältst Zugang sobald dein Konto genehmigt wurde.</div>
+    <div id="pending-email" style="font-size:12px;color:#9a9890;margin-bottom:24px;font-family:monospace;"></div>
+    <button onclick="fbSignOutPending()" style="width:100%;padding:10px;border-radius:8px;border:1px solid #e2e0d8;background:#f4f3ef;font-size:13.5px;cursor:pointer;">Mit anderem Konto anmelden</button>
+  </div>
+</div>
+
+<!-- ABGELEHNT -->
+<div class="rejected-screen" id="rejected-screen">
+  <div class="rejected-box">
+    <div style="font-size:48px;margin-bottom:16px;">🚫</div>
+    <div style="font-size:20px;font-weight:600;margin-bottom:8px;">Zugang verweigert</div>
+    <div style="font-size:13.5px;color:#5a5850;margin-bottom:24px;">Dein Konto wurde nicht genehmigt. Bitte wende dich an einen Administrator.</div>
+    <button onclick="fbSignOutPending()" style="width:100%;padding:10px;border-radius:8px;border:1px solid #e2e0d8;background:#f4f3ef;font-size:13.5px;cursor:pointer;">Abmelden</button>
   </div>
 </div>
 
@@ -404,6 +431,7 @@
       <div class="nav-section">
         <div class="nav-label">System</div>
         <button class="nav-item" onclick="showPage('aktivitaet')"><span class="nav-icon">📋</span> Aktivitätslog</button>
+        <button class="nav-item" id="nav-benutzer" onclick="showPage('benutzer')" style="display:none"><span class="nav-icon">👥</span> Benutzerverwaltung <span class="nav-badge" id="access-req-badge" style="display:none">0</span></button>
       </div>
     </nav>
     <div style="padding:16px 20px;border-top:1px solid rgba(255,255,255,0.08);font-size:12px;color:rgba(255,255,255,0.3);">
@@ -556,7 +584,27 @@
       <div class="card"><div class="card-header"><span class="card-title">Vollständiger Aktivitätslog</span><span style="font-size:11.5px;color:var(--text3);" id="log-count"></span></div><div class="card-body" id="aktivitaet-full" style="max-height:600px;overflow-y:auto;"></div></div>
     </div>
 
-    <!-- MEHR (mobile only) -->
+    <!-- BENUTZERVERWALTUNG (nur Admins) -->
+    <div class="page page-hidden" id="page-benutzer">
+      <div class="grid-2" style="gap:20px;">
+        <div class="card">
+          <div class="card-header"><span class="card-title">⏳ Zugriffsanfragen</span><span id="req-count" style="font-size:11.5px;color:var(--text3);"></span></div>
+          <div id="access-requests-list"><div class="card-body"><div class="empty-state"><div class="empty-icon">✅</div><p>Keine offenen Anfragen</p></div></div></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><span class="card-title">✅ Genehmigte Nutzer</span></div>
+          <div id="approved-users-list"><div class="card-body"><div class="empty-state"><div class="empty-icon">👥</div><p>Noch keine genehmigten Nutzer</p></div></div></div>
+        </div>
+      </div>
+      <div class="card" style="margin-top:16px;border-left:3px solid var(--accent);">
+        <div class="card-body">
+          <div style="font-weight:600;margin-bottom:8px;">ℹ️ Admin-Verwaltung über Firebase Console</div>
+          <div style="font-size:13px;color:var(--text2);line-height:1.7;">
+            Um einen Nutzer zum <strong>Admin</strong> zu machen: Firebase Console → Firestore → Collection <code style="background:var(--bg);padding:1px 5px;border-radius:4px;">admins</code> → Dokument mit der E-Mail-Adresse als ID hinzufügen → Feld <code style="background:var(--bg);padding:1px 5px;border-radius:4px;">role: "admin"</code> setzen.
+          </div>
+        </div>
+      </div>
+    </div>
     <div class="page page-hidden" id="page-mehr">
       <div style="display:flex;flex-direction:column;gap:10px;">
         <button class="mobile-mehr-item" onclick="showPage('wartung')">🔧<span>Wartungsaufträge</span><span style="margin-left:auto;color:var(--text3);">›</span></button>
@@ -565,6 +613,7 @@
         <button class="mobile-mehr-item" onclick="showPage('dokumente')">📄<span>Dokumente</span><span style="margin-left:auto;color:var(--text3);">›</span></button>
         <button class="mobile-mehr-item" onclick="showPage('partner')">🏭<span>Partnerfirmen</span><span style="margin-left:auto;color:var(--text3);">›</span></button>
         <button class="mobile-mehr-item" onclick="showPage('aktivitaet')">📋<span>Aktivitätslog</span><span style="margin-left:auto;color:var(--text3);">›</span></button>
+        <button class="mobile-mehr-item" id="mehr-benutzer" onclick="showPage('benutzer')" style="display:none">👥<span>Benutzerverwaltung</span><span style="margin-left:auto;color:var(--text3);">›</span></button>
         <div style="margin-top:8px;">
           <button onclick="fbSignOutMobile()" style="width:100%;padding:14px;border-radius:10px;border:1px solid var(--red);background:var(--red-light);color:var(--red);font-size:14px;font-weight:500;cursor:pointer;">⏏️ Abmelden</button>
         </div>
@@ -689,7 +738,7 @@
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
-import { getFirestore, collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, query, orderBy } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+import { getFirestore, collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, getDoc, setDoc, serverTimestamp, query, orderBy } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut as fbSignOut } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
 
 const firebaseConfig = {
@@ -711,25 +760,176 @@ let currentUser = null;
 // Auth
 document.getElementById('btn-google-login').onclick = () => signInWithPopup(auth, provider).catch(e => alert('Anmeldung fehlgeschlagen: ' + e.message));
 document.getElementById('btn-logout').onclick = () => fbSignOut(auth);
+window.fbSignOutPending = () => fbSignOut(auth);
 
-onAuthStateChanged(auth, user => {
+// ---- ACCESS CONTROL ----
+async function checkUserAccess(user) {
+  const emailKey = user.email.replace(/\./g, '_');
+
+  // 1. Check if admin
+  const adminDoc = await getDoc(doc(db, 'admins', emailKey));
+  if (adminDoc.exists()) return 'admin';
+
+  // 2. Check approved users
+  const approvedDoc = await getDoc(doc(db, 'approvedUsers', emailKey));
+  if (approvedDoc.exists()) {
+    const data = approvedDoc.data();
+    if (data.status === 'approved') return 'approved';
+    if (data.status === 'rejected') return 'rejected';
+  }
+
+  // 3. New user – create access request
+  const reqRef = doc(db, 'accessRequests', emailKey);
+  const existing = await getDoc(reqRef);
+  if (!existing.exists()) {
+    await setDoc(reqRef, {
+      email: user.email,
+      name: user.displayName || '',
+      photoURL: user.photoURL || '',
+      status: 'pending',
+      createdAt: serverTimestamp()
+    });
+    // Send email notification via EmailJS
+    sendAccessRequestEmail(user);
+  } else if (existing.data().status === 'rejected') {
+    return 'rejected';
+  }
+  return 'pending';
+}
+
+async function sendAccessRequestEmail(user) {
+  try {
+    // EmailJS – kostenlos bis 200 E-Mails/Monat
+    // Setup: https://www.emailjs.com → Service ID + Template ID + Public Key eintragen
+    const EMAILJS_SERVICE_ID  = 'DEIN_SERVICE_ID';   // ← hier eintragen
+    const EMAILJS_TEMPLATE_ID = 'DEIN_TEMPLATE_ID';  // ← hier eintragen
+    const EMAILJS_PUBLIC_KEY  = 'DEIN_PUBLIC_KEY';    // ← hier eintragen
+    const ADMIN_EMAIL         = 'admin@hotel.ch';     // ← Admin E-Mail hier eintragen
+
+    if (EMAILJS_SERVICE_ID === 'DEIN_SERVICE_ID') return; // nicht konfiguriert
+
+    await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        service_id: EMAILJS_SERVICE_ID,
+        template_id: EMAILJS_TEMPLATE_ID,
+        user_id: EMAILJS_PUBLIC_KEY,
+        template_params: {
+          to_email: ADMIN_EMAIL,
+          user_name: user.displayName || 'Unbekannt',
+          user_email: user.email,
+          message: `Neue Zugriffsanfrage für FacilityOS von ${user.displayName} (${user.email})`
+        }
+      })
+    });
+  } catch(e) { console.log('EmailJS nicht konfiguriert:', e); }
+}
+
+onAuthStateChanged(auth, async user => {
+  // Hide all screens first
+  document.getElementById('login-screen').classList.add('hidden');
+  document.getElementById('pending-screen').classList.remove('visible');
+  document.getElementById('rejected-screen').classList.remove('visible');
+
   if (user) {
     currentUser = user;
-    document.getElementById('login-screen').classList.add('hidden');
-    document.getElementById('user-name').textContent = user.displayName || user.email;
-    if (user.photoURL) {
-      const av = document.getElementById('user-avatar'); av.src = user.photoURL; av.style.display = '';
-      const avm = document.getElementById('user-avatar-mobile'); if(avm){avm.src=user.photoURL;avm.style.display='';}
+    document.getElementById('loading-overlay').classList.remove('hidden');
+
+    const access = await checkUserAccess(user);
+
+    if (access === 'admin' || access === 'approved') {
+      // ✅ Grant access
+      document.getElementById('user-name').textContent = user.displayName || user.email;
+      if (user.photoURL) {
+        const av = document.getElementById('user-avatar'); av.src = user.photoURL; av.style.display = '';
+        const avm = document.getElementById('user-avatar-mobile'); if(avm){avm.src=user.photoURL;avm.style.display='';}
+      }
+      window._fbSignOut = () => fbSignOut(auth);
+      window._isAdmin = (access === 'admin');
+      // Show admin UI elements
+      if (access === 'admin') {
+        const nb = document.getElementById('nav-benutzer'); if(nb) nb.style.display='';
+        const mb = document.getElementById('mehr-benutzer'); if(mb) mb.style.display='';
+        startAdminListeners();
+      }
+      startListeners();
+    } else if (access === 'pending') {
+      // ⏳ Show waiting screen
+      document.getElementById('loading-overlay').classList.add('hidden');
+      document.getElementById('pending-email').textContent = user.email;
+      document.getElementById('pending-screen').classList.add('visible');
+    } else if (access === 'rejected') {
+      // 🚫 Show rejected screen
+      document.getElementById('loading-overlay').classList.add('hidden');
+      document.getElementById('rejected-screen').classList.add('visible');
     }
-    // Expose signOut for mobile button
-    window._fbSignOut = () => fbSignOut(auth);
-    startListeners();
   } else {
     currentUser = null;
     document.getElementById('login-screen').classList.remove('hidden');
     document.getElementById('loading-overlay').classList.add('hidden');
   }
 });
+
+// ---- ADMIN: Listen to access requests ----
+function startAdminListeners() {
+  onSnapshot(query(collection(db, 'accessRequests'), orderBy('createdAt', 'desc')), snap => {
+    const requests = snap.docs.map(d => ({id: d.id, ...d.data()}));
+    const pending = requests.filter(r => r.status === 'pending');
+
+    // Badge
+    const badge = document.getElementById('access-req-badge');
+    if (badge) { badge.textContent = pending.length; badge.style.display = pending.length > 0 ? '' : 'none'; }
+    document.getElementById('req-count').textContent = pending.length + ' offen';
+
+    // Requests list
+    const el = document.getElementById('access-requests-list');
+    el.innerHTML = pending.length ? pending.map(r => `
+      <div style="display:flex;align-items:center;gap:12px;padding:14px 20px;border-bottom:1px solid var(--border);">
+        ${r.photoURL ? `<img src="${r.photoURL}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;">` : '<div style="width:36px;height:36px;border-radius:50%;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:18px;">👤</div>'}
+        <div style="flex:1;">
+          <div style="font-weight:600;font-size:13.5px;">${r.name || '–'}</div>
+          <div style="font-size:12px;color:var(--text3);">${r.email}</div>
+        </div>
+        <div style="display:flex;gap:6px;">
+          <button class="btn btn-sm" style="background:var(--green-light);color:var(--green);border:1px solid #86efac;" onclick="approveUser('${r.id}','${r.email}','${r.name}')">✅ Genehmigen</button>
+          <button class="btn btn-sm" style="background:var(--red-light);color:var(--red);border:1px solid #fca5a5;" onclick="rejectUser('${r.id}')">🚫 Ablehnen</button>
+        </div>
+      </div>`).join('') : '<div class="card-body"><div class="empty-state"><div class="empty-icon">✅</div><p>Keine offenen Anfragen</p></div></div>';
+  });
+
+  onSnapshot(query(collection(db, 'approvedUsers'), orderBy('createdAt', 'desc')), snap => {
+    const users = snap.docs.map(d => ({id: d.id, ...d.data()}));
+    const el = document.getElementById('approved-users-list');
+    el.innerHTML = users.length ? users.map(u => `
+      <div style="display:flex;align-items:center;gap:12px;padding:12px 20px;border-bottom:1px solid var(--border);">
+        <div style="font-size:20px;">👤</div>
+        <div style="flex:1;">
+          <div style="font-weight:500;font-size:13.5px;">${u.name || u.email}</div>
+          <div style="font-size:12px;color:var(--text3);">${u.email}</div>
+        </div>
+        <button class="btn btn-sm btn-secondary" onclick="revokeUser('${u.id}','${u.email}')">Zugang entziehen</button>
+      </div>`).join('') : '<div class="card-body"><div class="empty-state"><div class="empty-icon">👥</div><p>Noch keine genehmigten Nutzer</p></div></div>';
+  });
+}
+
+window.approveUser = async (emailKey, email, name) => {
+  await setDoc(doc(db, 'approvedUsers', emailKey), { email, name, status: 'approved', createdAt: serverTimestamp() });
+  await updateDoc(doc(db, 'accessRequests', emailKey), { status: 'approved' });
+  await addLog(`Nutzer "${name||email}" genehmigt`, '#16a34a');
+};
+
+window.rejectUser = async (emailKey) => {
+  if(!confirm('Diesen Nutzer wirklich ablehnen?')) return;
+  await updateDoc(doc(db, 'accessRequests', emailKey), { status: 'rejected' });
+  await addLog(`Zugriffsanfrage abgelehnt (${emailKey.replace(/_/g,'.')})`, '#dc2626');
+};
+
+window.revokeUser = async (emailKey, email) => {
+  if(!confirm(`Zugang von ${email} wirklich entziehen?`)) return;
+  await deleteDoc(doc(db, 'approvedUsers', emailKey));
+  await addLog(`Zugang entzogen: ${email}`, '#dc2626');
+};
 
 // Firestore
 function col(name) { return query(collection(db, name), orderBy('createdAt', 'desc')); }
@@ -1080,7 +1280,7 @@ window.editItem = (type, id) => {
 <script>
 window.state = { tickets:[], wartungen:[], geraete:[], partner:[], notfaelle:[], dokumente:[], bereiche:[], log:[], ticketFilter:'alle', wartungFilter:'alle', geraeteFilter:'alle', bereicheFilter:'alle', calMonth:new Date().getMonth(), calYear:new Date().getFullYear(), ticketSearch:'' };
 
-const pageLabels = {dashboard:'Dashboard',tickets:'Tickets & Störungen',wartung:'Wartungsaufträge',kalender:'Wartungskalender',geraete:'Geräte & Anlagen',bereiche:'Hotelbereiche',dokumente:'Dokumente',partner:'Partnerfirmen',notfall:'Notfallkontakte',aktivitaet:'Aktivitätslog',mehr:'Mehr'};
+const pageLabels = {dashboard:'Dashboard',tickets:'Tickets & Störungen',wartung:'Wartungsaufträge',kalender:'Wartungskalender',geraete:'Geräte & Anlagen',bereiche:'Hotelbereiche',dokumente:'Dokumente',partner:'Partnerfirmen',notfall:'Notfallkontakte',aktivitaet:'Aktivitätslog',benutzer:'Benutzerverwaltung',mehr:'Mehr'};
 
 // Pages reachable directly from bottom nav (no back button needed)
 const mainPages = new Set(['dashboard','tickets','geraete','notfall','mehr']);
