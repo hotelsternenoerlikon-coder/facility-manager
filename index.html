@@ -991,6 +991,8 @@ document.getElementById('btn-save-bereich').onclick = async () => {
   closeModal('modal-bereich');
 };
 
+// ---- EDIT ----
+window.editItem = (type, id) => {
   const item = window.state[type].find(i=>i.id===id);
   if(!item) return;
   window._editId = id;
