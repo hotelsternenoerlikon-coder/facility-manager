@@ -116,6 +116,7 @@
   .badge-red { background: var(--red-light); color: var(--red); }
   .badge-yellow { background: var(--yellow-light); color: var(--yellow); }
   .badge-blue { background: var(--accent-light); color: var(--accent); }
+  .badge-violet { background: #f3e8ff; color: #7c3aed; }
   .badge-orange { background: var(--orange-light); color: var(--orange); }
   .badge-gray { background: #f1f0eb; color: var(--text2); }
 
@@ -740,9 +741,10 @@
   <div class="modal">
     <div class="modal-header"><span class="modal-title">Gerät / Anlage hinzufügen</span><button class="modal-close" onclick="closeModal('modal-geraet')">×</button></div>
     <div class="modal-body">
-      <div class="grid-2"><div class="form-group"><label class="form-label">Bezeichnung *</label><input class="form-input" id="g-name"></div><div class="form-group"><label class="form-label">Kategorie *</label><select class="form-select" id="g-kategorie"><option value="aufzug">🛗 Aufzug</option><option value="heizung">🔥 Heizung/HVAC</option><option value="klima">❄️ Klimaanlage</option><option value="elektro">⚡ Elektro/USV</option><option value="brandschutz">🧯 Brandschutz</option><option value="sicherheit">🔒 Sicherheitssystem</option><option value="sanitaer">🚿 Sanitär</option><option value="kueche">🍳 Küchengeräte</option><option value="it">💻 IT-Infrastruktur</option><option value="solar">☀️ Solar/PV</option><option value="sonstiges">🔧 Sonstiges</option></select></div></div>
+      <div class="grid-2"><div class="form-group"><label class="form-label">Bezeichnung *</label><input class="form-input" id="g-name"></div><div class="form-group"><label class="form-label">Kategorie *</label><select class="form-select" id="g-kategorie"><option value="aufzug">🛗 Aufzug</option><option value="heizung">🔥 Heizung/HVAC</option><option value="klima">❄️ Klimaanlage</option><option value="lueftung">💨 Lüftungstechnik</option><option value="elektro">⚡ Elektro/USV</option><option value="brandschutz">🧯 Brandschutz</option><option value="sicherheit">🔒 Sicherheitssystem</option><option value="sanitaer">🚿 Sanitär</option><option value="kueche">🍳 Küchengeräte</option><option value="it">💻 IT-Infrastruktur</option><option value="solar">☀️ Solar/PV</option><option value="sonstiges">🔧 Sonstiges</option></select></div></div>
       <div class="grid-2"><div class="form-group"><label class="form-label">Hersteller</label><input class="form-input" id="g-hersteller"></div><div class="form-group"><label class="form-label">Seriennummer</label><input class="form-input" id="g-seriennummer"></div></div>
-      <div class="grid-2"><div class="form-group"><label class="form-label">Installationsdatum</label><input class="form-input" type="date" id="g-baujahr"></div><div class="form-group"><label class="form-label">Standort / Raum</label><input class="form-input" id="g-standort"></div></div>
+      <div class="grid-2"><div class="form-group"><label class="form-label">Installationsdatum</label><input class="form-input" type="date" id="g-baujahr"></div><div class="form-group"><label class="form-label">Hotelbereich *</label><select class="form-select" id="g-bereich"><option value="">– auswählen –</option></select></div></div>
+      <div class="grid-2"><div class="form-group"><label class="form-label">Raum / Detail</label><input class="form-input" id="g-raum" placeholder="z.B. Zimmer 312, Technikraum, Keller"></div><div class="form-group"><label class="form-label">&nbsp;</label><input type="hidden" id="g-standort"></div></div>
       <div class="grid-2"><div class="form-group"><label class="form-label">Nächste Wartung</label><input class="form-input" type="date" id="g-naechste-wartung"></div><div class="form-group"><label class="form-label">Zuständige Partnerfirma</label><select class="form-select" id="g-partner"><option value="">– auswählen –</option></select></div></div>
       <div class="form-group"><label class="form-label">Notizen</label><textarea class="form-textarea" id="g-notizen"></textarea></div>
     </div>
@@ -857,13 +859,13 @@ async function checkUserAccess(user) {
 
   // 1. Check if admin
   const adminDoc = await getDoc(doc(db, 'admins', emailKey));
-  if (adminDoc.exists()) return 'admin';
+  if (adminDoc.exists()) { window._userRole = 'admin'; return 'admin'; }
 
   // 2. Check approved users
   const approvedDoc = await getDoc(doc(db, 'approvedUsers', emailKey));
   if (approvedDoc.exists()) {
     const data = approvedDoc.data();
-    if (data.status === 'approved') return 'approved';
+    if (data.status === 'approved') { window._userRole = data.role || 'reception'; return 'approved'; }
     if (data.status === 'rejected') return 'rejected';
   }
 
@@ -983,8 +985,12 @@ function startAdminListeners() {
           <div style="font-weight:600;font-size:13.5px;">${r.name || '–'}</div>
           <div style="font-size:12px;color:var(--text3);">${r.email}</div>
         </div>
-        <div style="display:flex;gap:6px;">
-          <button class="btn btn-sm" style="background:var(--green-light);color:var(--green);border:1px solid #86efac;" onclick="approveUser('${r.id}','${r.email}','${r.name}')">✅ Genehmigen</button>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <select id="role-${r.id}" style="border:1px solid var(--border2);border-radius:6px;padding:6px 8px;font-size:12px;background:var(--surface);">
+            <option value="reception">Reception</option>
+            <option value="hauswart">Hauswart</option>
+          </select>
+          <button class="btn btn-sm" style="background:var(--green-light);color:var(--green);border:1px solid #86efac;" onclick="approveUser('${r.id}','${r.email}','${r.name}',document.getElementById('role-${r.id}').value)">✅ Genehmigen</button>
           <button class="btn btn-sm" style="background:var(--red-light);color:var(--red);border:1px solid #fca5a5;" onclick="rejectUser('${r.id}')">🚫 Ablehnen</button>
         </div>
       </div>`).join('') : '<div class="card-body"><div class="empty-state"><div class="empty-icon">✅</div><p>Keine offenen Anfragen</p></div></div>';
@@ -997,10 +1003,18 @@ function startAdminListeners() {
       <div style="display:flex;align-items:center;gap:12px;padding:12px 20px;border-bottom:1px solid var(--border);">
         <div style="font-size:20px;">👤</div>
         <div style="flex:1;">
-          <div style="font-weight:500;font-size:13.5px;">${u.name || u.email}</div>
+          <div style="font-weight:500;font-size:13.5px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <span>${u.name || u.email}</span>
+            <span class="badge badge-gray" style="text-transform:capitalize;">${(u.role||'reception').replace('hauswart','Hauswart').replace('reception','Reception')}</span>
+          </div>
           <div style="font-size:12px;color:var(--text3);">${u.email}</div>
         </div>
-        <div style="display:flex;gap:6px;">
+        <div style="display:flex;gap:6px;align-items:center;">
+          <select onchange="setUserRole('${u.id}',this.value)" style="border:1px solid var(--border2);border-radius:6px;padding:6px 8px;font-size:12px;background:var(--surface);">
+            <option value="reception" ${(u.role||'reception')==='reception'?'selected':''}>Reception</option>
+            <option value="hauswart" ${(u.role||'reception')==='hauswart'?'selected':''}>Hauswart</option>
+          </select>
+
           <button class="btn btn-sm" style="background:var(--accent-light);color:var(--accent);border:1px solid #bfdbfe;" onclick="makeAdmin('${u.id}','${u.email}','${u.name||u.email}')">🛡️ Admin machen</button>
           <button class="btn btn-sm btn-secondary" onclick="revokeUser('${u.id}','${u.email}')">Zugang entziehen</button>
         </div>
@@ -1035,8 +1049,8 @@ window.removeAdmin = async (emailKey, email) => {
   await addLog(`Admin-Rechte entzogen: ${email}`, '#dc2626');
 };
 
-window.approveUser = async (emailKey, email, name) => {
-  await setDoc(doc(db, 'approvedUsers', emailKey), { email, name, status: 'approved', createdAt: serverTimestamp() });
+window.approveUser = async (emailKey, email, name, role='reception') => {
+  await setDoc(doc(db, 'approvedUsers', emailKey), { email, name, role: role||'reception', status: 'approved', createdAt: serverTimestamp() });
   await updateDoc(doc(db, 'accessRequests', emailKey), { status: 'approved' });
   await addLog(`Nutzer "${name||email}" genehmigt`, '#16a34a');
 };
@@ -1051,6 +1065,17 @@ window.revokeUser = async (emailKey, email) => {
   if(!confirm(`Zugang von ${email} wirklich entziehen?`)) return;
   await deleteDoc(doc(db, 'approvedUsers', emailKey));
   await addLog(`Zugang entzogen: ${email}`, '#dc2626');
+};
+
+
+window.setUserRole = async (emailKey, role) => {
+  try{
+    await updateDoc(doc(db,'approvedUsers', emailKey), { role: role||'reception' });
+    await addLog(`Rolle aktualisiert: ${emailKey.replace(/_/g,'.')} → ${role}`, '#2563eb');
+  }catch(e){
+    console.error(e);
+    alert('Rolle konnte nicht geändert werden: ' + e.message);
+  }
 };
 
 // Expose Firebase functions for import
@@ -1215,7 +1240,11 @@ document.getElementById('btn-save-geraet').onclick = async () => {
     hersteller: document.getElementById('g-hersteller').value,
     seriennummer: document.getElementById('g-seriennummer').value,
     baujahr: document.getElementById('g-baujahr').value,
-    standort: document.getElementById('g-standort').value,
+    bereichId: document.getElementById('g-bereich')?.value || '',
+    bereichName: window.state.bereiche.find(b=>b.id=== (document.getElementById('g-bereich')?.value||''))?.name || '',
+    raum: document.getElementById('g-raum')?.value || '',
+    standort: document.getElementById('g-standort')?.value || '', // legacy
+
     naechsteWartung: document.getElementById('g-naechste-wartung').value,
     partnerId: pId, partnerName: window.state.partner.find(p=>p.id===pId)?.name||'',
     notizen: document.getElementById('g-notizen').value,
@@ -1419,6 +1448,8 @@ window.editItem = (type, id) => {
     document.getElementById('g-hersteller').value=item.hersteller||'';
     document.getElementById('g-seriennummer').value=item.seriennummer||'';
     document.getElementById('g-baujahr').value=item.baujahr||'';
+    document.getElementById('g-bereich').value=item.bereichId||'';
+    document.getElementById('g-raum').value=item.raum||'';
     document.getElementById('g-standort').value=item.standort||'';
     document.getElementById('g-naechste-wartung').value=item.naechsteWartung||'';
     document.getElementById('g-partner').value=item.partnerId||'';
@@ -1580,30 +1611,39 @@ function closeModal(id) {
 }
 
 function populateSelects() {
-  const g = state.geraete.map(g=>`<option value="${g.id}">${g.name}${g.standort?' ('+g.standort+')':''}</option>`).join('');
+  const g = state.geraete.map(g=>{
+    const loc = (g.bereichName||g.standort||'') + (g.raum?' / '+g.raum:'');
+    return `<option value="${g.id}">${g.name}${loc?' ('+loc+')':''}</option>`;
+  }).join('');
   const p = state.partner.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
   const b = state.bereiche.map(b=>`<option value="${b.id}">${b.name}</option>`).join('');
   ['t-geraet','w-geraet','d-geraet'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML='<option value="">– auswählen –</option>'+g;});
   ['t-partner','w-partner'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML='<option value="">– auswählen –</option>'+p;});
   const gp=document.getElementById('g-partner');if(gp)gp.innerHTML='<option value="">– auswählen –</option>'+p;
   const tb=document.getElementById('t-bereich');if(tb)tb.innerHTML='<option value="">– auswählen –</option>'+b;
+  const gb=document.getElementById('g-bereich');if(gb)gb.innerHTML='<option value="">– auswählen –</option>'+b;
 }
 
 // Auto-fill Bereich when Gerät is selected in ticket modal
 window.onTicketGeraetChange = function(geraetId) {
   if(!geraetId) return;
   const geraet = state.geraete.find(g=>g.id===geraetId);
-  if(!geraet||!geraet.standort) return;
-  // Try to match standort to a bereich name
-  const match = state.bereiche.find(b=>b.name.toLowerCase()===geraet.standort.toLowerCase()||geraet.standort.toLowerCase().includes(b.name.toLowerCase()));
-  const bereichSel = document.getElementById('t-bereich');
-  if(match && bereichSel) {
-    bereichSel.value = match.id;
-    bereichSel.disabled = true;
-    bereichSel.title = 'Wird automatisch vom Gerät-Standort übernommen';
-  } else if(bereichSel) {
-    bereichSel.disabled = false;
-    bereichSel.title = '';
+  if(!geraet) return;
+
+  // Prefer direct reference to hotelbereich
+  if(geraet.bereichId){
+    const tb=document.getElementById('t-bereich');
+    if(tb) tb.value = geraet.bereichId;
+    return;
+  }
+
+  // Legacy fallback: try to match standort text to a bereich name
+  if(!geraet.standort) return;
+  const s = String(geraet.standort).toLowerCase();
+  const match = state.bereiche.find(b=>String(b.name||'').toLowerCase()===s || s.includes(String(b.name||'').toLowerCase()));
+  if(match){
+    const tb=document.getElementById('t-bereich');
+    if(tb) tb.value = match.id;
   }
 };
 
@@ -1652,7 +1692,7 @@ function renderTickets() {
   if(state.ticketFilter!=='alle') data=data.filter(t=>t.status===state.ticketFilter);
   if(state.ticketSearch) data=data.filter(t=>t.betreff.toLowerCase().includes(state.ticketSearch.toLowerCase()));
   const tb=document.getElementById('tickets-table');
-  tb.innerHTML=data.length?data.map(t=>`<tr><td><span style="font-weight:500;">${t.betreff}</span>${t.beschreibung?`<div style="font-size:12px;color:var(--text3);">${t.beschreibung.substring(0,60)}${t.beschreibung.length>60?'...':''}</div>`:''}</td><td>${t.geraetName||'–'}</td><td>${t.bereichName?`<span class="badge badge-blue">${t.bereichName}</span>`:'–'}</td><td><span class="badge ${pBadge[t.prioritaet]}">${pLabel[t.prioritaet]}</span></td><td><select onchange="updateTicketStatus('${t.id}',this.value)" style="border:1px solid var(--border2);border-radius:5px;padding:3px 8px;font-size:12px;background:var(--surface);"><option value="offen" ${t.status==='offen'?'selected':''}>Offen</option><option value="in_bearbeitung" ${t.status==='in_bearbeitung'?'selected':''}>In Bearbeitung</option><option value="erledigt" ${t.status==='erledigt'?'selected':''}>Erledigt</option></select></td><td style="font-size:12px;color:var(--text3);">${t.ersteller||t.gemeldet||'–'}</td><td>${t.partnerName||'–'}</td><td style="white-space:nowrap;"><button class="btn btn-sm btn-edit" onclick="editItem('tickets','${t.id}')">✏️</button> <button class="btn btn-secondary btn-sm" onclick="deleteItem('tickets','${t.id}')">🗑️</button></td></tr>`).join(''):`<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">🎫</div><p>Keine Tickets gefunden</p></div></td></tr>`;
+  tb.innerHTML=data.length?data.map(t=>`<tr><td><span style="font-weight:500;">${t.betreff}</span>${t.autoGenerated?` <span class="badge badge-violet">🤖 Automatisch aus Wartung</span>`:''}${t.beschreibung?`<div style="font-size:12px;color:var(--text3);">${t.beschreibung.substring(0,60)}${t.beschreibung.length>60?'...':''}</div>`:''}</td><td>${t.geraetName||'–'}</td><td>${t.bereichName?`<span class="badge badge-blue">${t.bereichName}</span>`:'–'}</td><td><span class="badge ${pBadge[t.prioritaet]}">${pLabel[t.prioritaet]}</span></td><td><select onchange="updateTicketStatus('${t.id}',this.value)" style="border:1px solid var(--border2);border-radius:5px;padding:3px 8px;font-size:12px;background:var(--surface);"><option value="offen" ${t.status==='offen'?'selected':''}>Offen</option><option value="in_bearbeitung" ${t.status==='in_bearbeitung'?'selected':''}>In Bearbeitung</option><option value="erledigt" ${t.status==='erledigt'?'selected':''}>Erledigt</option></select></td><td style="font-size:12px;color:var(--text3);">${t.ersteller||t.gemeldet||'–'}</td><td>${t.partnerName||'–'}</td><td style="white-space:nowrap;"><button class="btn btn-sm btn-edit" onclick="editItem('tickets','${t.id}')">✏️</button> <button class="btn btn-secondary btn-sm" onclick="deleteItem('tickets','${t.id}')">🗑️</button></td></tr>`).join(''):`<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">🎫</div><p>Keine Tickets gefunden</p></div></td></tr>`;
 }
 
 function renderWartungen() {
@@ -1669,7 +1709,7 @@ function renderGeraete() {
   if(state.geraeteFilter==='aktiv') data=data.filter(g=>g.status==='aktiv');
   else if(state.geraeteFilter==='stoerung') data=data.filter(g=>g.status==='stoerung');
   const grid=document.getElementById('geraete-grid');
-  grid.innerHTML=data.length?data.map(g=>`<div class="device-card"><div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:8px;"><div style="font-size:28px;">${kIcons[g.kategorie]||'🔧'}</div><select onchange="changeGeraetStatus('${g.id}',this.value)" style="border:1px solid var(--border2);border-radius:5px;padding:2px 6px;font-size:11.5px;background:var(--surface);"><option value="aktiv" ${g.status==='aktiv'?'selected':''}>✅ Aktiv</option><option value="stoerung" ${g.status==='stoerung'?'selected':''}>🔴 Störung</option><option value="wartung" ${g.status==='wartung'?'selected':''}>🟡 Wartung</option><option value="ausser_betrieb" ${g.status==='ausser_betrieb'?'selected':''}>⚫ Außer Betrieb</option></select></div><div style="font-weight:600;font-size:14px;margin-bottom:4px;">${g.name}</div><div style="font-size:12px;color:var(--text3);margin-bottom:6px;">${g.standort||'–'}</div>${g.hersteller?`<div style="font-size:12px;color:var(--text3);margin-bottom:4px;">🏭 ${g.hersteller}${g.seriennummer?' · SN: '+g.seriennummer:''}</div>`:''}${g.naechsteWartung?`<div style="font-size:12px;color:${new Date(g.naechsteWartung)<new Date()?'var(--red)':'var(--text3)'};margin-bottom:4px;">🔧 Wartung: ${fDate(g.naechsteWartung)}</div>`:''}${g.partnerName?`<div style="font-size:12px;color:var(--text3);margin-bottom:4px;">🤝 ${g.partnerName}</div>`:''}${g.notizen?`<div style="font-size:11.5px;color:var(--text3);border-top:1px solid var(--border);padding-top:8px;margin-top:6px;">${g.notizen}</div>`:''}<div style="display:flex;justify-content:flex-end;gap:6px;margin-top:10px;"><button class="btn btn-sm btn-edit" onclick="editItem('geraete','${g.id}')">✏️ Bearbeiten</button><button class="btn btn-secondary btn-sm" onclick="deleteItem('geraete','${g.id}')">🗑️</button></div></div>`).join(''):`<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">⚙️</div><p>Noch keine Geräte erfasst</p></div>`;
+  grid.innerHTML=data.length?data.map(g=>`<div class="device-card"><div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:8px;"><div style="font-size:28px;">${kIcons[g.kategorie]||'🔧'}</div><select onchange="changeGeraetStatus('${g.id}',this.value)" style="border:1px solid var(--border2);border-radius:5px;padding:2px 6px;font-size:11.5px;background:var(--surface);"><option value="aktiv" ${g.status==='aktiv'?'selected':''}>✅ Aktiv</option><option value="stoerung" ${g.status==='stoerung'?'selected':''}>🔴 Störung</option><option value="wartung" ${g.status==='wartung'?'selected':''}>🟡 Wartung</option><option value="ausser_betrieb" ${g.status==='ausser_betrieb'?'selected':''}>⚫ Außer Betrieb</option></select></div><div style="font-weight:600;font-size:14px;margin-bottom:4px;">${g.name}</div><div style="font-size:12px;color:var(--text3);margin-bottom:6px;">${(g.bereichName||g.standort||'–') + (g.raum?' / '+g.raum:'')}</div>${g.hersteller?`<div style="font-size:12px;color:var(--text3);margin-bottom:4px;">🏭 ${g.hersteller}${g.seriennummer?' · SN: '+g.seriennummer:''}</div>`:''}${g.naechsteWartung?`<div style="font-size:12px;color:${new Date(g.naechsteWartung)<new Date()?'var(--red)':'var(--text3)'};margin-bottom:4px;">🔧 Wartung: ${fDate(g.naechsteWartung)}</div>`:''}${g.partnerName?`<div style="font-size:12px;color:var(--text3);margin-bottom:4px;">🤝 ${g.partnerName}</div>`:''}${g.notizen?`<div style="font-size:11.5px;color:var(--text3);border-top:1px solid var(--border);padding-top:8px;margin-top:6px;">${g.notizen}</div>`:''}<div style="display:flex;justify-content:flex-end;gap:6px;margin-top:10px;"><button class="btn btn-sm btn-edit" onclick="editItem('geraete','${g.id}')">✏️ Bearbeiten</button><button class="btn btn-secondary btn-sm" onclick="deleteItem('geraete','${g.id}')">🗑️</button></div></div>`).join(''):`<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">⚙️</div><p>Noch keine Geräte erfasst</p></div>`;
 }
 
 function formatUrl(u){
@@ -1721,6 +1761,7 @@ function renderTicketsMobile() {
     </div>
     <div class="mobile-card-meta">
       <span class="badge ${sBadge[t.status]}">${sLabel[t.status]}</span>
+      ${t.autoGenerated?`<span class="badge badge-violet">🤖 Automatisch aus Wartung</span>`:''}
       ${t.geraetName?`<span class="badge badge-gray">⚙️ ${t.geraetName}</span>`:''}
       ${t.partnerName?`<span class="badge badge-gray">🏭 ${t.partnerName}</span>`:''}
     </div>
