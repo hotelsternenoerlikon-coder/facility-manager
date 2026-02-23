@@ -393,6 +393,7 @@
       <div class="nav-section">
         <div class="nav-label">Bestand</div>
         <button class="nav-item" onclick="showPage('geraete')"><span class="nav-icon">⚙️</span> Geräte & Anlagen</button>
+        <button class="nav-item" onclick="showPage('bereiche')"><span class="nav-icon">🏨</span> Hotelbereiche</button>
         <button class="nav-item" onclick="showPage('dokumente')"><span class="nav-icon">📄</span> Dokumente</button>
       </div>
       <div class="nav-section">
@@ -426,10 +427,10 @@
     <!-- DASHBOARD -->
     <div class="page" id="page-dashboard">
       <div class="kpi-grid">
-        <div class="kpi-card kpi-accent"><div class="kpi-label">Geräte gesamt</div><div class="kpi-value" id="kpi-geraete">–</div><div class="kpi-sub">in Betrieb: <span id="kpi-geraete-ok">–</span></div></div>
-        <div class="kpi-card kpi-red"><div class="kpi-label">Offene Tickets</div><div class="kpi-value" id="kpi-tickets">–</div><div class="kpi-sub">davon kritisch: <span id="kpi-tickets-krit">–</span></div></div>
-        <div class="kpi-card kpi-yellow"><div class="kpi-label">Wartungen (30 Tage)</div><div class="kpi-value" id="kpi-wartungen">–</div><div class="kpi-sub">fällig: <span id="kpi-wartungen-faellig">–</span></div></div>
-        <div class="kpi-card kpi-green"><div class="kpi-label">Partnerfirmen</div><div class="kpi-value" id="kpi-partner">–</div><div class="kpi-sub">aktiv & verfügbar</div></div>
+        <div class="kpi-card kpi-accent" onclick="showPage('geraete')" style="cursor:pointer;" title="Geräte anzeigen"><div class="kpi-label">Geräte gesamt</div><div class="kpi-value" id="kpi-geraete">–</div><div class="kpi-sub">in Betrieb: <span id="kpi-geraete-ok">–</span></div></div>
+        <div class="kpi-card kpi-red" onclick="showPage('tickets')" style="cursor:pointer;" title="Tickets anzeigen"><div class="kpi-label">Offene Tickets</div><div class="kpi-value" id="kpi-tickets">–</div><div class="kpi-sub">davon kritisch: <span id="kpi-tickets-krit">–</span></div></div>
+        <div class="kpi-card kpi-yellow" onclick="showPage('wartung')" style="cursor:pointer;" title="Wartungen anzeigen"><div class="kpi-label">Wartungen (30 Tage)</div><div class="kpi-value" id="kpi-wartungen">–</div><div class="kpi-sub">fällig: <span id="kpi-wartungen-faellig">–</span></div></div>
+        <div class="kpi-card kpi-green" onclick="showPage('partner')" style="cursor:pointer;" title="Partner anzeigen"><div class="kpi-label">Partnerfirmen</div><div class="kpi-value" id="kpi-partner">–</div><div class="kpi-sub">aktiv & verfügbar</div></div>
       </div>
       <div class="grid-2 mb-16">
         <div class="card"><div class="card-header"><span class="card-title">⚠️ Kritische Tickets</span><button class="btn btn-secondary btn-sm" onclick="showPage('tickets')">Alle ansehen</button></div><div class="card-body" id="dash-tickets"><div class="empty-state"><div class="empty-icon">✅</div><p>Keine offenen Tickets</p></div></div></div>
@@ -454,7 +455,7 @@
       </div>
       <div class="card">
         <div class="card-header"><span class="card-title">Tickets & Störungsmeldungen</span><div class="search-wrap"><span class="search-icon">🔍</span><input class="search-input" placeholder="Suchen..." oninput="state.ticketSearch=this.value;renderTickets()"></div></div>
-        <div class="table-wrap"><table><thead><tr><th>Betreff</th><th>Gerät</th><th>Priorität</th><th>Status</th><th>Erstellt von</th><th>Erstellt am</th><th>Zugewiesen</th><th></th></tr></thead><tbody id="tickets-table"></tbody></table></div>
+        <div class="table-wrap"><table><thead><tr><th>Betreff</th><th>Gerät</th><th>Bereich</th><th>Priorität</th><th>Status</th><th>Erstellt von</th><th>Zugewiesen</th><th></th></tr></thead><tbody id="tickets-table"></tbody></table></div>
         <div class="mobile-card-list" id="tickets-mobile"></div>
       </div>
     </div>
@@ -467,6 +468,7 @@
           <button class="tab" onclick="filterWartung('geplant',this)">Geplant</button>
           <button class="tab" onclick="filterWartung('faellig',this)">Fällig</button>
           <button class="tab" onclick="filterWartung('abgeschlossen',this)">Abgeschlossen</button>
+          <button class="tab" onclick="filterWartung('storniert',this)">Storniert</button>
         </div>
         <button class="btn btn-primary" onclick="openModal('modal-wartung')">+ Neuer Wartungsauftrag</button>
       </div>
@@ -516,6 +518,24 @@
       <div class="card"><div class="card-header"><span class="card-title">Dokumente & Handbücher</span></div><div class="table-wrap"><table><thead><tr><th>Bezeichnung</th><th>Typ</th><th>Gerät</th><th>Datum</th><th>Notiz</th><th></th></tr></thead><tbody id="dokumente-table"></tbody></table></div><div class="mobile-card-list" id="dokumente-mobile" style="padding:12px;"></div></div>
     </div>
 
+    <!-- HOTELBEREICHE -->
+    <div class="page page-hidden" id="page-bereiche">
+      <div class="section-header mb-24">
+        <div class="tabs">
+          <button class="tab active" onclick="filterBereiche('alle',this)">Alle</button>
+          <button class="tab" onclick="filterBereiche('zimmer',this)">Zimmer</button>
+          <button class="tab" onclick="filterBereiche('seminar',this)">Seminar</button>
+          <button class="tab" onclick="filterBereiche('restaurant',this)">Restaurant/Bar</button>
+          <button class="tab" onclick="filterBereiche('allgemein',this)">Allgemein</button>
+          <button class="tab" onclick="filterBereiche('kueche',this)">Küche</button>
+          <button class="tab" onclick="filterBereiche('technik',this)">Technik</button>
+          <button class="tab" onclick="filterBereiche('aussen',this)">Aussen</button>
+        </div>
+        <button class="btn btn-primary" onclick="openModal('modal-bereich')">+ Bereich hinzufügen</button>
+      </div>
+      <div class="grid-3" id="bereiche-grid"><div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">🏨</div><p>Noch keine Bereiche erfasst</p></div></div>
+    </div>
+
     <!-- PARTNER -->
     <div class="page page-hidden" id="page-partner">
       <div class="section-header mb-24"><span></span><button class="btn btn-primary" onclick="openModal('modal-partner')">+ Partnerfirma hinzufügen</button></div>
@@ -541,6 +561,7 @@
       <div style="display:flex;flex-direction:column;gap:10px;">
         <button class="mobile-mehr-item" onclick="showPage('wartung')">🔧<span>Wartungsaufträge</span><span style="margin-left:auto;color:var(--text3);">›</span></button>
         <button class="mobile-mehr-item" onclick="showPage('kalender')">📅<span>Wartungskalender</span><span style="margin-left:auto;color:var(--text3);">›</span></button>
+        <button class="mobile-mehr-item" onclick="showPage('bereiche')">🏨<span>Hotelbereiche</span><span style="margin-left:auto;color:var(--text3);">›</span></button>
         <button class="mobile-mehr-item" onclick="showPage('dokumente')">📄<span>Dokumente</span><span style="margin-left:auto;color:var(--text3);">›</span></button>
         <button class="mobile-mehr-item" onclick="showPage('partner')">🏭<span>Partnerfirmen</span><span style="margin-left:auto;color:var(--text3);">›</span></button>
         <button class="mobile-mehr-item" onclick="showPage('aktivitaet')">📋<span>Aktivitätslog</span><span style="margin-left:auto;color:var(--text3);">›</span></button>
@@ -558,7 +579,11 @@
     <div class="modal-header"><span class="modal-title">Neues Ticket / Störungsmeldung</span><button class="modal-close" onclick="closeModal('modal-ticket')">×</button></div>
     <div class="modal-body">
       <div class="grid-2"><div class="form-group"><label class="form-label">Betreff *</label><input class="form-input" id="t-betreff" placeholder="Kurze Beschreibung"></div><div class="form-group"><label class="form-label">Priorität *</label><select class="form-select" id="t-prioritaet"><option value="kritisch">🔴 Kritisch</option><option value="hoch">🟠 Hoch</option><option value="mittel" selected>🟡 Mittel</option><option value="niedrig">🟢 Niedrig</option></select></div></div>
-      <div class="grid-2"><div class="form-group"><label class="form-label">Gerät / Bereich</label><select class="form-select" id="t-geraet"><option value="">– auswählen –</option></select></div><div class="form-group"><label class="form-label">Zugewiesen an</label><select class="form-select" id="t-partner"><option value="">– auswählen –</option></select></div></div>
+      <div class="grid-2">
+        <div class="form-group"><label class="form-label">Gerät / Anlage</label><select class="form-select" id="t-geraet" onchange="onTicketGeraetChange(this.value)"><option value="">– auswählen –</option></select></div>
+        <div class="form-group"><label class="form-label">Hotelbereich</label><select class="form-select" id="t-bereich"><option value="">– auswählen –</option></select></div>
+      </div>
+      <div class="grid-2"><div class="form-group"><label class="form-label">Zugewiesen an</label><select class="form-select" id="t-partner"><option value="">– auswählen –</option></select></div><div class="form-group"><label class="form-label">Gemeldet von</label><input class="form-input" id="t-gemeldet" placeholder="Name / Abteilung"></div></div>
       <div class="form-group"><label class="form-label">Beschreibung</label><textarea class="form-textarea" id="t-beschreibung" placeholder="Detaillierte Beschreibung..."></textarea></div>
     </div>
     <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('modal-ticket')">Abbrechen</button><button class="btn btn-primary" id="btn-save-ticket">Ticket erstellen</button></div>
@@ -630,6 +655,38 @@
   </div>
 </div>
 
+<div class="modal-overlay hidden" id="modal-bereich">
+  <div class="modal">
+    <div class="modal-header"><span class="modal-title">Hotelbereich hinzufügen</span><button class="modal-close" onclick="closeModal('modal-bereich')">×</button></div>
+    <div class="modal-body">
+      <div class="grid-2">
+        <div class="form-group"><label class="form-label">Bezeichnung *</label><input class="form-input" id="b-name" placeholder="z.B. Zimmer 101, Seminarraum A"></div>
+        <div class="form-group"><label class="form-label">Kategorie *</label>
+          <select class="form-select" id="b-kategorie" onchange="onBereichKatChange(this.value)">
+            <option value="zimmer">🛏️ Zimmer</option>
+            <option value="seminar">🎓 Seminarraum</option>
+            <option value="restaurant">🍽️ Restaurant / Bar</option>
+            <option value="kueche">🍳 Küche</option>
+            <option value="allgemein">🏛️ Allgemeinbereich</option>
+            <option value="technik">🔧 Technikraum</option>
+            <option value="aussen">🌿 Aussenbereich</option>
+          </select>
+        </div>
+      </div>
+      <div id="zimmer-nummer-group" class="form-group" style="display:none">
+        <label class="form-label">Zimmernummer</label>
+        <input class="form-input" id="b-zimmernummer" placeholder="z.B. 101">
+      </div>
+      <div class="grid-2">
+        <div class="form-group"><label class="form-label">Etage / Lage</label><input class="form-input" id="b-etage" placeholder="z.B. 1. OG, Erdgeschoss"></div>
+        <div class="form-group"><label class="form-label">Kapazität / Grösse</label><input class="form-input" id="b-kapazitaet" placeholder="z.B. 2 Pers., 80m²"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Notizen</label><textarea class="form-textarea" id="b-notizen"></textarea></div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('modal-bereich')">Abbrechen</button><button class="btn btn-primary" id="btn-save-bereich">Bereich speichern</button></div>
+  </div>
+</div>
+
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
 import { getFirestore, collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, query, orderBy } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
@@ -678,7 +735,7 @@ onAuthStateChanged(auth, user => {
 function col(name) { return query(collection(db, name), orderBy('createdAt', 'desc')); }
 
 let loadedCount = 0;
-function checkLoaded() { loadedCount++; if (loadedCount >= 7) document.getElementById('loading-overlay').classList.add('hidden'); }
+function checkLoaded() { loadedCount++; if (loadedCount >= 8) document.getElementById('loading-overlay').classList.add('hidden'); }
 
 function startListeners() {
   loadedCount = 0;
@@ -690,6 +747,7 @@ function startListeners() {
   onSnapshot(col('partner'), s => { window.state.partner = s.docs.map(d=>({id:d.id,...d.data()})); renderAll(); checkLoaded(); }, ()=>checkLoaded());
   onSnapshot(col('notfaelle'), s => { window.state.notfaelle = s.docs.map(d=>({id:d.id,...d.data()})); renderAll(); checkLoaded(); }, ()=>checkLoaded());
   onSnapshot(col('dokumente'), s => { window.state.dokumente = s.docs.map(d=>({id:d.id,...d.data()})); renderAll(); checkLoaded(); }, ()=>checkLoaded());
+  onSnapshot(col('bereiche'), s => { window.state.bereiche = s.docs.map(d=>({id:d.id,...d.data()})); renderAll(); checkLoaded(); }, ()=>checkLoaded());
   onSnapshot(col('log'), s => { window.state.log = s.docs.map(d=>({id:d.id,...d.data()})); renderAll(); checkLoaded(); }, ()=>checkLoaded());
 
   document.getElementById('sync-dot').style.background = 'var(--green)';
@@ -707,10 +765,13 @@ document.getElementById('btn-save-ticket').onclick = async () => {
   if (!betreff) { alert('Bitte einen Betreff eingeben.'); return; }
   const gId = document.getElementById('t-geraet').value;
   const pId = document.getElementById('t-partner').value;
+  const bId = document.getElementById('t-bereich').value;
   const data = {
     betreff, prioritaet: document.getElementById('t-prioritaet').value,
     geraetId: gId, geraetName: window.state.geraete.find(g=>g.id===gId)?.name||'',
     partnerId: pId, partnerName: window.state.partner.find(p=>p.id===pId)?.name||'',
+    bereichId: bId, bereichName: window.state.bereiche.find(b=>b.id===bId)?.name||'',
+    gemeldet: document.getElementById('t-gemeldet').value,
     beschreibung: document.getElementById('t-beschreibung').value,
   };
   if(window._editId && window._editType==='tickets'){
@@ -731,21 +792,27 @@ document.getElementById('btn-save-wartung').onclick = async () => {
   if (!bez||!datum) { alert('Bitte Bezeichnung und Datum ausfüllen.'); return; }
   const gId = document.getElementById('w-geraet').value;
   const pId = document.getElementById('w-partner').value;
-  const data = {
+  const intervall = document.getElementById('w-intervall').value;
+  const base = {
     bezeichnung: bez, typ: document.getElementById('w-typ').value,
     geraetId: gId, geraetName: window.state.geraete.find(g=>g.id===gId)?.name||'',
     partnerId: pId, partnerName: window.state.partner.find(p=>p.id===pId)?.name||'',
-    datum, intervall: document.getElementById('w-intervall').value,
-    notizen: document.getElementById('w-notizen').value,
-    status: new Date(datum) < new Date() ? 'faellig' : 'geplant',
+    intervall, notizen: document.getElementById('w-notizen').value,
   };
   if(window._editId && window._editType==='wartungen'){
-    await updateDoc(doc(db,'wartungen',window._editId), data);
+    await updateDoc(doc(db,'wartungen',window._editId), {...base, datum, status: new Date(datum)<new Date()?'faellig':'geplant'});
     await addLog(`Wartung "${bez}" bearbeitet`, '#d97706');
   } else {
-    data.createdAt = serverTimestamp();
-    await addDoc(collection(db,'wartungen'), data);
-    await addLog(`Wartung erstellt: "${bez}" am ${datum}`, '#d97706');
+    const dates = generateRecurringDates(datum, intervall);
+    const seriesId = bez.replace(/\s+/g,'_') + '_' + datum;
+    for(const d of dates){
+      await addDoc(collection(db,'wartungen'), {
+        ...base, datum: d,
+        status: new Date(d)<new Date() ? 'faellig' : 'geplant',
+        seriesId, createdAt: serverTimestamp()
+      });
+    }
+    await addLog(`Wartung "${bez}" erstellt (${dates.length} Termin${dates.length>1?'e':''}, ${intervall})`, '#d97706');
   }
   closeModal('modal-wartung');
 };
@@ -847,7 +914,33 @@ window.updateTicketStatus = async (id, status) => {
 };
 window.updateWartungStatus = async (id, status) => {
   await updateDoc(doc(db,'wartungen',id), {status});
-  await addLog(`Wartung "${window.state.wartungen.find(w=>w.id===id)?.bezeichnung||id}" → ${status}`, '#d97706');
+  const w = window.state.wartungen.find(w=>w.id===id);
+  await addLog(`Wartung "${w?.bezeichnung||id}" → ${status}`, '#d97706');
+  // Auto-continue: if abgeschlossen or storniert AND recurring, create next occurrence after last planned
+  if((status==='abgeschlossen'||status==='storniert') && w && w.intervall && w.intervall!=='einmalig' && w.seriesId) {
+    // Find latest datum in same series that is still geplant or faellig
+    const sameSeries = window.state.wartungen.filter(x=>x.seriesId===w.seriesId && x.id!==id && x.status!=='abgeschlossen' && x.status!=='storniert');
+    if(sameSeries.length === 0) {
+      // All done – generate 2 more years from today
+      const nextStart = w.datum; // extend from this date
+      const newDates = generateRecurringDates(nextStart, w.intervall, true); // extension mode
+      const seriesId = w.seriesId;
+      for(const d of newDates){
+        // Only add if not already existing
+        const exists = window.state.wartungen.some(x=>x.seriesId===seriesId && x.datum===d);
+        if(!exists){
+          await addDoc(collection(db,'wartungen'), {
+            bezeichnung: w.bezeichnung, typ: w.typ,
+            geraetId: w.geraetId||'', geraetName: w.geraetName||'',
+            partnerId: w.partnerId||'', partnerName: w.partnerName||'',
+            intervall: w.intervall, notizen: w.notizen||'',
+            datum: d, status: 'geplant', seriesId, createdAt: serverTimestamp()
+          });
+        }
+      }
+      await addLog(`Wartungsreihe "${w.bezeichnung}" automatisch verlängert`, '#d97706');
+    }
+  }
 };
 window.changeGeraetStatus = async (id, status) => {
   await updateDoc(doc(db,'geraete',id), {status});
@@ -859,8 +952,45 @@ window.deleteItem = async (col, id) => {
   await addLog(`Eintrag gelöscht (${col})`, '#9a9890');
 };
 
-// ---- EDIT ----
-window.editItem = (type, id) => {
+// ---- HELPERS ----
+window.generateRecurringDates = function(startDate, intervall, extensionMode=false) {
+  const dates = [];
+  const start = new Date(startDate + 'T00:00:00');
+  const cutoff = new Date();
+  cutoff.setFullYear(cutoff.getFullYear() + 2);
+  if(intervall === 'einmalig') return [startDate];
+  const addMonths = (d, m) => { const r = new Date(d); r.setMonth(r.getMonth()+m); return r; };
+  const intervals = {monatlich:1, quartalsweise:3, halbjaehrlich:6, jaehrlich:12};
+  const step = intervals[intervall] || 12;
+  let cur = extensionMode ? addMonths(start, step) : new Date(start);
+  while(cur <= cutoff) {
+    dates.push(cur.toISOString().split('T')[0]);
+    cur = addMonths(cur, step);
+  }
+  return dates;
+};
+
+document.getElementById('btn-save-bereich').onclick = async () => {
+  const name = document.getElementById('b-name').value.trim();
+  if(!name) { alert('Bitte eine Bezeichnung eingeben.'); return; }
+  const data = {
+    name, kategorie: document.getElementById('b-kategorie').value,
+    zimmernummer: document.getElementById('b-zimmernummer').value,
+    etage: document.getElementById('b-etage').value,
+    kapazitaet: document.getElementById('b-kapazitaet').value,
+    notizen: document.getElementById('b-notizen').value,
+  };
+  if(window._editId && window._editType==='bereiche'){
+    await updateDoc(doc(db,'bereiche',window._editId), data);
+    await addLog(`Bereich "${name}" bearbeitet`, '#7c3aed');
+  } else {
+    data.createdAt = serverTimestamp();
+    await addDoc(collection(db,'bereiche'), data);
+    await addLog(`Bereich "${name}" hinzugefügt`, '#7c3aed');
+  }
+  closeModal('modal-bereich');
+};
+
   const item = window.state[type].find(i=>i.id===id);
   if(!item) return;
   window._editId = id;
@@ -930,14 +1060,25 @@ window.editItem = (type, id) => {
     document.getElementById('modal-dokument').querySelector('.modal-title').textContent='Dokument bearbeiten';
     document.getElementById('btn-save-dokument').textContent='Änderungen speichern';
     document.getElementById('modal-dokument').classList.remove('hidden');
+  } else if(type==='bereiche'){
+    document.getElementById('b-name').value=item.name||'';
+    document.getElementById('b-kategorie').value=item.kategorie||'zimmer';
+    document.getElementById('b-zimmernummer').value=item.zimmernummer||'';
+    document.getElementById('b-etage').value=item.etage||'';
+    document.getElementById('b-kapazitaet').value=item.kapazitaet||'';
+    document.getElementById('b-notizen').value=item.notizen||'';
+    onBereichKatChange(item.kategorie);
+    document.getElementById('modal-bereich').querySelector('.modal-title').textContent='Bereich bearbeiten';
+    document.getElementById('btn-save-bereich').textContent='Änderungen speichern';
+    document.getElementById('modal-bereich').classList.remove('hidden');
   }
 };
 </script>
 
 <script>
-window.state = { tickets:[], wartungen:[], geraete:[], partner:[], notfaelle:[], dokumente:[], log:[], ticketFilter:'alle', wartungFilter:'alle', geraeteFilter:'alle', calMonth:new Date().getMonth(), calYear:new Date().getFullYear(), ticketSearch:'' };
+window.state = { tickets:[], wartungen:[], geraete:[], partner:[], notfaelle:[], dokumente:[], bereiche:[], log:[], ticketFilter:'alle', wartungFilter:'alle', geraeteFilter:'alle', bereicheFilter:'alle', calMonth:new Date().getMonth(), calYear:new Date().getFullYear(), ticketSearch:'' };
 
-const pageLabels = {dashboard:'Dashboard',tickets:'Tickets & Störungen',wartung:'Wartungsaufträge',kalender:'Wartungskalender',geraete:'Geräte & Anlagen',dokumente:'Dokumente',partner:'Partnerfirmen',notfall:'Notfallkontakte',aktivitaet:'Aktivitätslog',mehr:'Mehr'};
+const pageLabels = {dashboard:'Dashboard',tickets:'Tickets & Störungen',wartung:'Wartungsaufträge',kalender:'Wartungskalender',geraete:'Geräte & Anlagen',bereiche:'Hotelbereiche',dokumente:'Dokumente',partner:'Partnerfirmen',notfall:'Notfallkontakte',aktivitaet:'Aktivitätslog',mehr:'Mehr'};
 
 // Pages reachable directly from bottom nav (no back button needed)
 const mainPages = new Set(['dashboard','tickets','geraete','notfall','mehr']);
@@ -956,6 +1097,7 @@ const fabActions = {
   tickets: () => openModal('modal-ticket'),
   wartung: () => openModal('modal-wartung'),
   geraete: () => openModal('modal-geraet'),
+  bereiche: () => openModal('modal-bereich'),
   partner: () => openModal('modal-partner'),
   notfall: () => openModal('modal-notfall'),
   dokumente: () => openModal('modal-dokument'),
@@ -1016,31 +1158,58 @@ function closeModal(id) {
   document.querySelectorAll(`#${id} select`).forEach(e=>e.selectedIndex=0);
   window._editId=null; window._editType=null;
   // Reset titles and button labels
-  const titleMap={'modal-ticket':'Neues Ticket / Störungsmeldung','modal-wartung':'Wartungsauftrag erfassen','modal-geraet':'Gerät / Anlage hinzufügen','modal-partner':'Partnerfirma hinzufügen','modal-notfall':'Notfallkontakt hinzufügen','modal-dokument':'Dokument erfassen'};
-  const btnMap={'modal-ticket':'btn-save-ticket','modal-wartung':'btn-save-wartung','modal-geraet':'btn-save-geraet','modal-partner':'btn-save-partner','modal-notfall':'btn-save-notfall','modal-dokument':'btn-save-dokument'};
-  const saveLabelMap={'modal-ticket':'Ticket erstellen','modal-wartung':'Auftrag erstellen','modal-geraet':'Gerät speichern','modal-partner':'Firma speichern','modal-notfall':'Kontakt speichern','modal-dokument':'Speichern'};
+  const titleMap={'modal-ticket':'Neues Ticket / Störungsmeldung','modal-wartung':'Wartungsauftrag erfassen','modal-geraet':'Gerät / Anlage hinzufügen','modal-partner':'Partnerfirma hinzufügen','modal-notfall':'Notfallkontakt hinzufügen','modal-dokument':'Dokument erfassen','modal-bereich':'Hotelbereich hinzufügen'};
+  const btnMap={'modal-ticket':'btn-save-ticket','modal-wartung':'btn-save-wartung','modal-geraet':'btn-save-geraet','modal-partner':'btn-save-partner','modal-notfall':'btn-save-notfall','modal-dokument':'btn-save-dokument','modal-bereich':'btn-save-bereich'};
+  const saveLabelMap={'modal-ticket':'Ticket erstellen','modal-wartung':'Auftrag erstellen','modal-geraet':'Gerät speichern','modal-partner':'Firma speichern','modal-notfall':'Kontakt speichern','modal-dokument':'Speichern','modal-bereich':'Bereich speichern'};
   if(titleMap[id]) document.querySelector(`#${id} .modal-title`).textContent=titleMap[id];
   if(btnMap[id]) document.getElementById(btnMap[id]).textContent=saveLabelMap[id];
 }
 
 function populateSelects() {
-  const g = state.geraete.map(g=>`<option value="${g.id}">${g.name}</option>`).join('');
+  const g = state.geraete.map(g=>`<option value="${g.id}">${g.name}${g.standort?' ('+g.standort+')':''}</option>`).join('');
   const p = state.partner.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
+  const b = state.bereiche.map(b=>`<option value="${b.id}">${b.name}</option>`).join('');
   ['t-geraet','w-geraet','d-geraet'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML='<option value="">– auswählen –</option>'+g;});
   ['t-partner','w-partner'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML='<option value="">– auswählen –</option>'+p;});
   const gp=document.getElementById('g-partner');if(gp)gp.innerHTML='<option value="">– auswählen –</option>'+p;
+  const tb=document.getElementById('t-bereich');if(tb)tb.innerHTML='<option value="">– auswählen –</option>'+b;
 }
+
+// Auto-fill Bereich when Gerät is selected in ticket modal
+window.onTicketGeraetChange = function(geraetId) {
+  if(!geraetId) return;
+  const geraet = state.geraete.find(g=>g.id===geraetId);
+  if(!geraet||!geraet.standort) return;
+  // Try to match standort to a bereich name
+  const match = state.bereiche.find(b=>b.name.toLowerCase()===geraet.standort.toLowerCase()||geraet.standort.toLowerCase().includes(b.name.toLowerCase()));
+  const bereichSel = document.getElementById('t-bereich');
+  if(match && bereichSel) {
+    bereichSel.value = match.id;
+    bereichSel.disabled = true;
+    bereichSel.title = 'Wird automatisch vom Gerät-Standort übernommen';
+  } else if(bereichSel) {
+    bereichSel.disabled = false;
+    bereichSel.title = '';
+  }
+};
+
+window.onBereichKatChange = function(kat) {
+  const zg = document.getElementById('zimmer-nummer-group');
+  if(zg) zg.style.display = kat==='zimmer' ? 'block' : 'none';
+};
 
 const pBadge={kritisch:'badge-red',hoch:'badge-orange',mittel:'badge-yellow',niedrig:'badge-green'};
 const pLabel={kritisch:'🔴 Kritisch',hoch:'🟠 Hoch',mittel:'🟡 Mittel',niedrig:'🟢 Niedrig'};
-const sBadge={offen:'badge-red',in_bearbeitung:'badge-yellow',erledigt:'badge-green',geplant:'badge-blue',faellig:'badge-orange',abgeschlossen:'badge-green'};
-const sLabel={offen:'Offen',in_bearbeitung:'In Bearbeitung',erledigt:'Erledigt',geplant:'Geplant',faellig:'Fällig',abgeschlossen:'Abgeschlossen'};
+const sBadge={offen:'badge-red',in_bearbeitung:'badge-yellow',erledigt:'badge-green',geplant:'badge-blue',faellig:'badge-orange',abgeschlossen:'badge-green',storniert:'badge-gray'};
+const sLabel={offen:'Offen',in_bearbeitung:'In Bearbeitung',erledigt:'Erledigt',geplant:'Geplant',faellig:'Fällig',abgeschlossen:'Abgeschlossen',storniert:'Storniert'};
 const kIcons={aufzug:'🛗',heizung:'🔥',klima:'❄️',elektro:'⚡',brandschutz:'🧯',sicherheit:'🔒',sanitaer:'🚿',kueche:'🍳',it:'💻',solar:'☀️',sonstiges:'🔧'};
+const bIcons={zimmer:'🛏️',seminar:'🎓',restaurant:'🍽️',kueche:'🍳',allgemein:'🏛️',technik:'🔧',aussen:'🌿'};
+const bLabel={zimmer:'Zimmer',seminar:'Seminarraum',restaurant:'Restaurant/Bar',kueche:'Küche',allgemein:'Allgemeinbereich',technik:'Technikraum',aussen:'Aussenbereich'};
 
 function fDate(d){if(!d)return'–';try{return new Date(d+'T00:00:00').toLocaleDateString('de-DE');}catch(e){return d;}}
 function fTs(ts){if(!ts)return'–';try{const d=ts.toDate?ts.toDate():new Date(ts);return d.toLocaleDateString('de-DE')+' '+d.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});}catch(e){return'–';}}
 
-function renderAll() { renderDashboard();renderTickets();renderTicketsMobile();renderWartungen();renderWartungenMobile();renderGeraete();renderPartner();renderNotfall();renderDokumente();renderDokumenteMobile();updateBadges(); }
+function renderAll() { renderDashboard();renderTickets();renderTicketsMobile();renderWartungen();renderWartungenMobile();renderGeraete();renderPartner();renderNotfall();renderDokumente();renderDokumenteMobile();renderBereiche();updateBadges(); }
 
 function renderDashboard() {
   const offene=state.tickets.filter(t=>t.status!=='erledigt');
@@ -1069,16 +1238,16 @@ function renderTickets() {
   if(state.ticketFilter!=='alle') data=data.filter(t=>t.status===state.ticketFilter);
   if(state.ticketSearch) data=data.filter(t=>t.betreff.toLowerCase().includes(state.ticketSearch.toLowerCase()));
   const tb=document.getElementById('tickets-table');
-  tb.innerHTML=data.length?data.map(t=>`<tr><td><span style="font-weight:500;">${t.betreff}</span>${t.beschreibung?`<div style="font-size:12px;color:var(--text3);">${t.beschreibung.substring(0,60)}${t.beschreibung.length>60?'...':''}</div>`:''}</td><td>${t.geraetName||'–'}</td><td><span class="badge ${pBadge[t.prioritaet]}">${pLabel[t.prioritaet]}</span></td><td><select onchange="updateTicketStatus('${t.id}',this.value)" style="border:1px solid var(--border2);border-radius:5px;padding:3px 8px;font-size:12px;background:var(--surface);"><option value="offen" ${t.status==='offen'?'selected':''}>Offen</option><option value="in_bearbeitung" ${t.status==='in_bearbeitung'?'selected':''}>In Bearbeitung</option><option value="erledigt" ${t.status==='erledigt'?'selected':''}>Erledigt</option></select></td><td style="font-size:12px;color:var(--text3);">${t.ersteller||'–'}</td><td style="font-family:'DM Mono',monospace;font-size:11px;">${fTs(t.createdAt)}</td><td>${t.partnerName||'–'}</td><td style="white-space:nowrap;"><button class="btn btn-sm btn-edit" onclick="editItem('tickets','${t.id}')">✏️</button> <button class="btn btn-secondary btn-sm" onclick="deleteItem('tickets','${t.id}')">🗑️</button></td></tr>`).join(''):`<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">🎫</div><p>Keine Tickets gefunden</p></div></td></tr>`;
+  tb.innerHTML=data.length?data.map(t=>`<tr><td><span style="font-weight:500;">${t.betreff}</span>${t.beschreibung?`<div style="font-size:12px;color:var(--text3);">${t.beschreibung.substring(0,60)}${t.beschreibung.length>60?'...':''}</div>`:''}</td><td>${t.geraetName||'–'}</td><td>${t.bereichName?`<span class="badge badge-blue">${t.bereichName}</span>`:'–'}</td><td><span class="badge ${pBadge[t.prioritaet]}">${pLabel[t.prioritaet]}</span></td><td><select onchange="updateTicketStatus('${t.id}',this.value)" style="border:1px solid var(--border2);border-radius:5px;padding:3px 8px;font-size:12px;background:var(--surface);"><option value="offen" ${t.status==='offen'?'selected':''}>Offen</option><option value="in_bearbeitung" ${t.status==='in_bearbeitung'?'selected':''}>In Bearbeitung</option><option value="erledigt" ${t.status==='erledigt'?'selected':''}>Erledigt</option></select></td><td style="font-size:12px;color:var(--text3);">${t.ersteller||t.gemeldet||'–'}</td><td>${t.partnerName||'–'}</td><td style="white-space:nowrap;"><button class="btn btn-sm btn-edit" onclick="editItem('tickets','${t.id}')">✏️</button> <button class="btn btn-secondary btn-sm" onclick="deleteItem('tickets','${t.id}')">🗑️</button></td></tr>`).join(''):`<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">🎫</div><p>Keine Tickets gefunden</p></div></td></tr>`;
 }
 
 function renderWartungen() {
   let data=[...state.wartungen];
-  if(state.wartungFilter==='faellig') data=data.filter(w=>w.status==='faellig'||(new Date(w.datum)<new Date()&&w.status!=='abgeschlossen'));
+  if(state.wartungFilter==='faellig') data=data.filter(w=>w.status==='faellig'||(new Date(w.datum)<new Date()&&w.status!=='abgeschlossen'&&w.status!=='storniert'));
   else if(state.wartungFilter!=='alle') data=data.filter(w=>w.status===state.wartungFilter);
   data.sort((a,b)=>new Date(a.datum)-new Date(b.datum));
   const tb=document.getElementById('wartung-table');
-  tb.innerHTML=data.length?data.map(w=>`<tr><td><span style="font-weight:500;">${w.bezeichnung}</span></td><td>${w.geraetName||'–'}</td><td><span class="badge badge-gray">${w.typ}</span></td><td style="font-family:'DM Mono',monospace;font-size:12px;${new Date(w.datum)<new Date()&&w.status!=='abgeschlossen'?'color:var(--red);font-weight:600;':''}">${fDate(w.datum)}</td><td>${w.partnerName||'–'}</td><td><select onchange="updateWartungStatus('${w.id}',this.value)" style="border:1px solid var(--border2);border-radius:5px;padding:3px 8px;font-size:12px;background:var(--surface);"><option value="geplant" ${w.status==='geplant'?'selected':''}>Geplant</option><option value="faellig" ${w.status==='faellig'?'selected':''}>Fällig</option><option value="abgeschlossen" ${w.status==='abgeschlossen'?'selected':''}>Abgeschlossen</option></select></td><td style="white-space:nowrap;"><button class="btn btn-sm btn-edit" onclick="editItem('wartungen','${w.id}')">✏️</button> <button class="btn btn-secondary btn-sm" onclick="deleteItem('wartungen','${w.id}')">🗑️</button></td></tr>`).join(''):`<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">🔧</div><p>Keine Wartungsaufträge</p></div></td></tr>`;
+  tb.innerHTML=data.length?data.map(w=>`<tr><td><span style="font-weight:500;">${w.bezeichnung}</span>${w.seriesId?`<div style="font-size:10.5px;color:var(--text3);">🔁 ${w.intervall}</div>`:''}</td><td>${w.geraetName||'–'}</td><td><span class="badge badge-gray">${w.typ}</span></td><td style="font-family:'DM Mono',monospace;font-size:12px;${new Date(w.datum)<new Date()&&w.status!=='abgeschlossen'&&w.status!=='storniert'?'color:var(--red);font-weight:600;':''}">${fDate(w.datum)}</td><td>${w.partnerName||'–'}</td><td><select onchange="updateWartungStatus('${w.id}',this.value)" style="border:1px solid var(--border2);border-radius:5px;padding:3px 8px;font-size:12px;background:var(--surface);"><option value="geplant" ${w.status==='geplant'?'selected':''}>Geplant</option><option value="faellig" ${w.status==='faellig'?'selected':''}>Fällig</option><option value="abgeschlossen" ${w.status==='abgeschlossen'?'selected':''}>Abgeschlossen</option><option value="storniert" ${w.status==='storniert'?'selected':''}>Storniert</option></select></td><td style="white-space:nowrap;"><button class="btn btn-sm btn-edit" onclick="editItem('wartungen','${w.id}')">✏️</button> <button class="btn btn-secondary btn-sm" onclick="deleteItem('wartungen','${w.id}')">🗑️</button></td></tr>`).join(''):`<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">🔧</div><p>Keine Wartungsaufträge</p></div></td></tr>`;
 }
 
 function renderGeraete() {
@@ -1150,26 +1319,27 @@ function renderTicketsMobile() {
 function renderWartungenMobile() {
   const el = document.getElementById('wartung-mobile'); if(!el) return;
   let data=[...state.wartungen];
-  if(state.wartungFilter==='faellig') data=data.filter(w=>w.status==='faellig'||(new Date(w.datum)<new Date()&&w.status!=='abgeschlossen'));
+  if(state.wartungFilter==='faellig') data=data.filter(w=>w.status==='faellig'||(new Date(w.datum)<new Date()&&w.status!=='abgeschlossen'&&w.status!=='storniert'));
   else if(state.wartungFilter!=='alle') data=data.filter(w=>w.status===state.wartungFilter);
   data.sort((a,b)=>new Date(a.datum)-new Date(b.datum));
   if(!data.length){el.innerHTML=`<div class="empty-state"><div class="empty-icon">🔧</div><p>Keine Wartungsaufträge</p></div>`;return;}
   el.innerHTML=data.map(w=>`<div class="mobile-card">
     <div class="mobile-card-header">
-      <div class="mobile-card-title">${w.bezeichnung}</div>
-      <span class="badge ${sBadge[w.status]}">${sLabel[w.status]}</span>
+      <div class="mobile-card-title">${w.bezeichnung}${w.seriesId?` <span style="font-size:11px;color:var(--text3);">🔁</span>`:''}</div>
+      <span class="badge ${sBadge[w.status]||'badge-gray'}">${sLabel[w.status]||w.status}</span>
     </div>
     <div class="mobile-card-meta">
       <span class="badge badge-gray">${w.typ}</span>
       ${w.geraetName?`<span class="badge badge-gray">⚙️ ${w.geraetName}</span>`:''}
     </div>
-    <div style="font-size:13px;margin-bottom:4px;${new Date(w.datum)<new Date()&&w.status!=='abgeschlossen'?'color:var(--red);font-weight:600;':'color:var(--text2);'}">📅 Fällig: ${fDate(w.datum)}</div>
+    <div style="font-size:13px;margin-bottom:4px;${new Date(w.datum)<new Date()&&w.status!=='abgeschlossen'&&w.status!=='storniert'?'color:var(--red);font-weight:600;':'color:var(--text2);'}">📅 Fällig: ${fDate(w.datum)}</div>
     ${w.partnerName?`<div style="font-size:12.5px;color:var(--text3);">🏭 ${w.partnerName}</div>`:''}
     <div class="mobile-card-actions">
       <select onchange="updateWartungStatus('${w.id}',this.value)" style="flex:1;border:1px solid var(--border2);border-radius:7px;padding:8px;font-size:13px;background:var(--surface);">
         <option value="geplant" ${w.status==='geplant'?'selected':''}>Geplant</option>
         <option value="faellig" ${w.status==='faellig'?'selected':''}>Fällig</option>
         <option value="abgeschlossen" ${w.status==='abgeschlossen'?'selected':''}>Abgeschlossen</option>
+        <option value="storniert" ${w.status==='storniert'?'selected':''}>Storniert</option>
       </select>
       <button class="btn btn-sm btn-edit" onclick="editItem('wartungen','${w.id}')">✏️</button>
       <button class="btn btn-secondary btn-sm" onclick="deleteItem('wartungen','${w.id}')">🗑️</button>
@@ -1195,7 +1365,32 @@ function renderDokumenteMobile() {
   </div>`).join('');
 }
 
-function filterTickets(f,btn){state.ticketFilter=f;btn.closest('.tabs').querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));btn.classList.add('active');renderTickets();renderTicketsMobile();}
+function renderBereiche() {
+  let data = state.bereiche;
+  if(state.bereicheFilter && state.bereicheFilter!=='alle') data=data.filter(b=>b.kategorie===state.bereicheFilter);
+  data=[...data].sort((a,b)=>{
+    if(a.kategorie===b.kategorie) return (a.zimmernummer||a.name).localeCompare(b.zimmernummer||b.name, 'de', {numeric:true});
+    return a.kategorie.localeCompare(b.kategorie);
+  });
+  const grid=document.getElementById('bereiche-grid');
+  if(!grid) return;
+  grid.innerHTML=data.length?data.map(b=>`<div class="card">
+    <div class="card-body">
+      <div style="font-size:28px;margin-bottom:8px;">${bIcons[b.kategorie]||'🏨'}</div>
+      <div style="font-weight:600;font-size:15px;margin-bottom:4px;">${b.name}</div>
+      <div style="margin-bottom:10px;"><span class="badge badge-blue">${bLabel[b.kategorie]||b.kategorie}</span>${b.zimmernummer?` <span class="badge badge-gray">Nr. ${b.zimmernummer}</span>`:''}</div>
+      ${b.etage?`<div style="font-size:12.5px;color:var(--text3);margin-bottom:3px;">📍 ${b.etage}</div>`:''}
+      ${b.kapazitaet?`<div style="font-size:12.5px;color:var(--text3);margin-bottom:3px;">👥 ${b.kapazitaet}</div>`:''}
+      ${b.notizen?`<div style="font-size:12px;color:var(--text3);border-top:1px solid var(--border);padding-top:8px;margin-top:6px;">${b.notizen}</div>`:''}
+      <div style="display:flex;justify-content:flex-end;gap:6px;margin-top:10px;">
+        <button class="btn btn-sm btn-edit" onclick="editItem('bereiche','${b.id}')">✏️ Bearbeiten</button>
+        <button class="btn btn-secondary btn-sm" onclick="deleteItem('bereiche','${b.id}')">🗑️</button>
+      </div>
+    </div>
+  </div>`).join(''):`<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">🏨</div><p>Noch keine Bereiche erfasst</p></div>`;
+}
+
+function filterBereiche(f,btn){state.bereicheFilter=f;btn.closest('.tabs').querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));btn.classList.add('active');renderBereiche();}
 function filterWartung(f,btn){state.wartungFilter=f;btn.closest('.tabs').querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));btn.classList.add('active');renderWartungen();renderWartungenMobile();}
 function filterGeraete(f,btn){state.geraeteFilter=f;btn.closest('.tabs').querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));btn.classList.add('active');renderGeraete();}
 
