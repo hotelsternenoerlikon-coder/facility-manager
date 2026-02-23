@@ -436,6 +436,7 @@
         <div class="nav-label">System</div>
         <button class="nav-item" onclick="showPage('aktivitaet')"><span class="nav-icon">📋</span> Aktivitätslog</button>
         <button class="nav-item" id="nav-benutzer" onclick="showPage('benutzer')" style="display:none"><span class="nav-icon">👥</span> Benutzerverwaltung <span class="nav-badge" id="access-req-badge" style="display:none">0</span></button>
+        <button class="nav-item" id="nav-import" onclick="showPage('import')" style="display:none"><span class="nav-icon">📥</span> Daten importieren</button>
       </div>
     </nav>
     <div style="padding:16px 20px;border-top:1px solid rgba(255,255,255,0.08);font-size:12px;color:rgba(255,255,255,0.3);">
@@ -590,7 +591,7 @@
 
     <!-- BENUTZERVERWALTUNG (nur Admins) -->
     <div class="page page-hidden" id="page-benutzer">
-      <div class="grid-2" style="gap:20px;">
+      <div class="grid-2 mb-16" style="gap:20px;">
         <div class="card">
           <div class="card-header"><span class="card-title">⏳ Zugriffsanfragen</span><span id="req-count" style="font-size:11.5px;color:var(--text3);"></span></div>
           <div id="access-requests-list"><div class="card-body"><div class="empty-state"><div class="empty-icon">✅</div><p>Keine offenen Anfragen</p></div></div></div>
@@ -600,11 +601,85 @@
           <div id="approved-users-list"><div class="card-body"><div class="empty-state"><div class="empty-icon">👥</div><p>Noch keine genehmigten Nutzer</p></div></div></div>
         </div>
       </div>
-      <div class="card" style="margin-top:16px;border-left:3px solid var(--accent);">
-        <div class="card-body">
-          <div style="font-weight:600;margin-bottom:8px;">ℹ️ Admin-Verwaltung über Firebase Console</div>
-          <div style="font-size:13px;color:var(--text2);line-height:1.7;">
-            Um einen Nutzer zum <strong>Admin</strong> zu machen: Firebase Console → Firestore → Collection <code style="background:var(--bg);padding:1px 5px;border-radius:4px;">admins</code> → Dokument mit der E-Mail-Adresse als ID hinzufügen → Feld <code style="background:var(--bg);padding:1px 5px;border-radius:4px;">role: "admin"</code> setzen.
+      <div class="card" style="margin-top:16px;">
+        <div class="card-header"><span class="card-title">🛡️ Admins</span><span style="font-size:12px;color:var(--text3);">Admins können Nutzer verwalten und haben vollen Zugriff</span></div>
+        <div id="admins-list"><div class="card-body"><div class="empty-state"><div class="empty-icon">🛡️</div><p>Wird geladen…</p></div></div></div>
+      </div>
+    </div>
+
+    <!-- IMPORT -->
+    <div class="page page-hidden" id="page-import">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;" id="import-grid">
+
+        <!-- Partnerfirmen -->
+        <div class="card">
+          <div class="card-header"><span class="card-title">🏭 Partnerfirmen importieren</span></div>
+          <div class="card-body">
+            <p style="font-size:13px;color:var(--text2);margin-bottom:16px;">Excel-Vorlage herunterladen, ausfüllen und hochladen.</p>
+            <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:14px;font-size:12px;color:var(--text3);">
+              <strong>Spalten:</strong> Name, Bereich, Kontakt, Telefon, Email, Adresse, Vertrag, Notizen
+            </div>
+            <div style="display:flex;gap:8px;flex-direction:column;">
+              <button class="btn btn-secondary" onclick="downloadTemplate('partner')">⬇️ Vorlage herunterladen</button>
+              <label class="btn btn-primary" style="justify-content:center;cursor:pointer;">
+                📤 Excel hochladen <input type="file" accept=".xlsx,.xls" style="display:none" onchange="handleImport(this,'partner')">
+              </label>
+            </div>
+            <div id="import-result-partner" style="margin-top:12px;"></div>
+          </div>
+        </div>
+
+        <!-- Notfallkontakte -->
+        <div class="card">
+          <div class="card-header"><span class="card-title">🚨 Notfallkontakte importieren</span></div>
+          <div class="card-body">
+            <p style="font-size:13px;color:var(--text2);margin-bottom:16px;">Excel-Vorlage herunterladen, ausfüllen und hochladen.</p>
+            <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:14px;font-size:12px;color:var(--text3);">
+              <strong>Spalten:</strong> Name, Kategorie, Telefon, Erreichbar, Notizen
+            </div>
+            <div style="display:flex;gap:8px;flex-direction:column;">
+              <button class="btn btn-secondary" onclick="downloadTemplate('notfall')">⬇️ Vorlage herunterladen</button>
+              <label class="btn btn-primary" style="justify-content:center;cursor:pointer;">
+                📤 Excel hochladen <input type="file" accept=".xlsx,.xls" style="display:none" onchange="handleImport(this,'notfall')">
+              </label>
+            </div>
+            <div id="import-result-notfall" style="margin-top:12px;"></div>
+          </div>
+        </div>
+
+        <!-- Geräte -->
+        <div class="card">
+          <div class="card-header"><span class="card-title">⚙️ Geräte & Anlagen importieren</span></div>
+          <div class="card-body">
+            <p style="font-size:13px;color:var(--text2);margin-bottom:16px;">Excel-Vorlage herunterladen, ausfüllen und hochladen.</p>
+            <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:14px;font-size:12px;color:var(--text3);">
+              <strong>Spalten:</strong> Name, Kategorie, Hersteller, Seriennummer, Standort, Baujahr, NaechsteWartung, Notizen
+            </div>
+            <div style="display:flex;gap:8px;flex-direction:column;">
+              <button class="btn btn-secondary" onclick="downloadTemplate('geraete')">⬇️ Vorlage herunterladen</button>
+              <label class="btn btn-primary" style="justify-content:center;cursor:pointer;">
+                📤 Excel hochladen <input type="file" accept=".xlsx,.xls" style="display:none" onchange="handleImport(this,'geraete')">
+              </label>
+            </div>
+            <div id="import-result-geraete" style="margin-top:12px;"></div>
+          </div>
+        </div>
+
+        <!-- Wartungsaufträge -->
+        <div class="card">
+          <div class="card-header"><span class="card-title">🔧 Wartungsaufträge importieren</span></div>
+          <div class="card-body">
+            <p style="font-size:13px;color:var(--text2);margin-bottom:16px;">Excel-Vorlage herunterladen, ausfüllen und hochladen.</p>
+            <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:14px;font-size:12px;color:var(--text3);">
+              <strong>Spalten:</strong> Bezeichnung, Typ, Datum (JJJJ-MM-TT), Intervall, GerätName, PartnerName, Notizen
+            </div>
+            <div style="display:flex;gap:8px;flex-direction:column;">
+              <button class="btn btn-secondary" onclick="downloadTemplate('wartung')">⬇️ Vorlage herunterladen</button>
+              <label class="btn btn-primary" style="justify-content:center;cursor:pointer;">
+                📤 Excel hochladen <input type="file" accept=".xlsx,.xls" style="display:none" onchange="handleImport(this,'wartung')">
+              </label>
+            </div>
+            <div id="import-result-wartung" style="margin-top:12px;"></div>
           </div>
         </div>
       </div>
@@ -618,6 +693,7 @@
         <button class="mobile-mehr-item" onclick="showPage('partner')">🏭<span>Partnerfirmen</span><span style="margin-left:auto;color:var(--text3);">›</span></button>
         <button class="mobile-mehr-item" onclick="showPage('aktivitaet')">📋<span>Aktivitätslog</span><span style="margin-left:auto;color:var(--text3);">›</span></button>
         <button class="mobile-mehr-item" id="mehr-benutzer" onclick="showPage('benutzer')" style="display:none">👥<span>Benutzerverwaltung</span><span style="margin-left:auto;color:var(--text3);">›</span></button>
+        <button class="mobile-mehr-item" id="mehr-import" onclick="showPage('import')" style="display:none">📥<span>Daten importieren</span><span style="margin-left:auto;color:var(--text3);">›</span></button>
         <div style="margin-top:8px;">
           <button onclick="fbSignOutMobile()" style="width:100%;padding:14px;border-radius:10px;border:1px solid var(--red);background:var(--red-light);color:var(--red);font-size:14px;font-weight:500;cursor:pointer;">⏏️ Abmelden</button>
         </div>
@@ -860,6 +936,9 @@ onAuthStateChanged(auth, async user => {
         const mb = document.getElementById('mehr-benutzer'); if(mb) mb.style.display='';
         startAdminListeners();
       }
+      // Import available for all users
+      const ni = document.getElementById('nav-import'); if(ni) ni.style.display='';
+      const mi = document.getElementById('mehr-import'); if(mi) mi.style.display='';
       startListeners();
     } else if (access === 'pending') {
       // ⏳ Show waiting screen
@@ -915,10 +994,40 @@ function startAdminListeners() {
           <div style="font-weight:500;font-size:13.5px;">${u.name || u.email}</div>
           <div style="font-size:12px;color:var(--text3);">${u.email}</div>
         </div>
-        <button class="btn btn-sm btn-secondary" onclick="revokeUser('${u.id}','${u.email}')">Zugang entziehen</button>
+        <div style="display:flex;gap:6px;">
+          <button class="btn btn-sm" style="background:var(--accent-light);color:var(--accent);border:1px solid #bfdbfe;" onclick="makeAdmin('${u.id}','${u.email}','${u.name||u.email}')">🛡️ Admin machen</button>
+          <button class="btn btn-sm btn-secondary" onclick="revokeUser('${u.id}','${u.email}')">Zugang entziehen</button>
+        </div>
       </div>`).join('') : '<div class="card-body"><div class="empty-state"><div class="empty-icon">👥</div><p>Noch keine genehmigten Nutzer</p></div></div>';
   });
+
+  onSnapshot(query(collection(db, 'admins'), orderBy('createdAt', 'desc')), snap => {
+    const admins = snap.docs.map(d => ({id: d.id, ...d.data()}));
+    const el = document.getElementById('admins-list');
+    const myKey = currentUser?.email?.replace(/[@.]/g,'_');
+    el.innerHTML = admins.length ? admins.map(a => `
+      <div style="display:flex;align-items:center;gap:12px;padding:12px 20px;border-bottom:1px solid var(--border);">
+        <div style="font-size:20px;">🛡️</div>
+        <div style="flex:1;">
+          <div style="font-weight:500;font-size:13.5px;">${a.name||a.email||a.id.replace(/_/g,'.')}</div>
+          <div style="font-size:12px;color:var(--text3);">${a.email||a.id.replace(/_/g,'.')}</div>
+        </div>
+        ${a.id !== myKey ? `<button class="btn btn-sm" style="background:var(--red-light);color:var(--red);border:1px solid #fca5a5;" onclick="removeAdmin('${a.id}','${a.email||a.id}')">Admin entfernen</button>` : '<span style="font-size:12px;color:var(--text3);">Du</span>'}
+      </div>`).join('') : '<div class="card-body"><div class="empty-state"><div class="empty-icon">🛡️</div><p>Keine Admins gefunden</p></div></div>';
+  });
 }
+
+window.makeAdmin = async (emailKey, email, name) => {
+  if(!confirm(`${name} zum Admin machen?`)) return;
+  await setDoc(doc(db, 'admins', emailKey), { email, name, role: 'admin', createdAt: serverTimestamp() });
+  await addLog(`${name} zum Admin ernannt`, '#7c3aed');
+};
+
+window.removeAdmin = async (emailKey, email) => {
+  if(!confirm(`Admin-Rechte von ${email} entziehen?`)) return;
+  await deleteDoc(doc(db, 'admins', emailKey));
+  await addLog(`Admin-Rechte entzogen: ${email}`, '#dc2626');
+};
 
 window.approveUser = async (emailKey, email, name) => {
   await setDoc(doc(db, 'approvedUsers', emailKey), { email, name, status: 'approved', createdAt: serverTimestamp() });
@@ -937,6 +1046,11 @@ window.revokeUser = async (emailKey, email) => {
   await deleteDoc(doc(db, 'approvedUsers', emailKey));
   await addLog(`Zugang entzogen: ${email}`, '#dc2626');
 };
+
+// Expose Firebase functions for import
+window._addDoc = (colName, data) => addDoc(collection(db, colName), data);
+window._serverTimestamp = () => serverTimestamp();
+window._addLog = addLog;
 
 // Firestore
 function col(name) { return query(collection(db, name), orderBy('createdAt', 'desc')); }
@@ -1287,7 +1401,7 @@ window.editItem = (type, id) => {
 <script>
 window.state = { tickets:[], wartungen:[], geraete:[], partner:[], notfaelle:[], dokumente:[], bereiche:[], log:[], ticketFilter:'alle', wartungFilter:'alle', geraeteFilter:'alle', bereicheFilter:'alle', calMonth:new Date().getMonth(), calYear:new Date().getFullYear(), ticketSearch:'' };
 
-const pageLabels = {dashboard:'Dashboard',tickets:'Tickets & Störungen',wartung:'Wartungsaufträge',kalender:'Wartungskalender',geraete:'Geräte & Anlagen',bereiche:'Hotelbereiche',dokumente:'Dokumente',partner:'Partnerfirmen',notfall:'Notfallkontakte',aktivitaet:'Aktivitätslog',benutzer:'Benutzerverwaltung',mehr:'Mehr'};
+const pageLabels = {dashboard:'Dashboard',tickets:'Tickets & Störungen',wartung:'Wartungsaufträge',kalender:'Wartungskalender',geraete:'Geräte & Anlagen',bereiche:'Hotelbereiche',dokumente:'Dokumente',partner:'Partnerfirmen',notfall:'Notfallkontakte',aktivitaet:'Aktivitätslog',benutzer:'Benutzerverwaltung',import:'Daten importieren',mehr:'Mehr'};
 
 // Pages reachable directly from bottom nav (no back button needed)
 const mainPages = new Set(['dashboard','tickets','geraete','notfall','mehr']);
@@ -1637,6 +1751,80 @@ function renderCalendar() {
 function changeMonth(dir){state.calMonth+=dir;if(state.calMonth>11){state.calMonth=0;state.calYear++;}if(state.calMonth<0){state.calMonth=11;state.calYear--;}renderCalendar();}
 
 setInterval(()=>{document.getElementById('clock').textContent=new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit',second:'2-digit'});},1000);
+
+// ---- EXCEL IMPORT / EXPORT ----
+const TEMPLATES = {
+  partner: {
+    cols: ['Name','Bereich','Kontakt','Telefon','Email','Adresse','Vertrag','Notizen'],
+    example: ['Muster GmbH','Heizung & Sanitär','Hans Muster','044 123 45 67','info@muster.ch','Musterstrasse 1, Zürich','V-2024-001','Notiz hier']
+  },
+  notfall: {
+    cols: ['Name','Kategorie','Telefon','Erreichbar','Notizen'],
+    example: ['Feuerwehr Oerlikon','Feuerwehr / Rettung','118','24/7','']
+  },
+  geraete: {
+    cols: ['Name','Kategorie','Hersteller','Seriennummer','Standort','Baujahr','NaechsteWartung','Notizen'],
+    example: ['Aufzug OG1','aufzug','Schindler','SN-12345','1. OG','2015-06-01','2025-06-01','Jährliche Inspektion']
+  },
+  wartung: {
+    cols: ['Bezeichnung','Typ','Datum','Intervall','GerätName','PartnerName','Notizen'],
+    example: ['Aufzug Inspektion','inspektion','2025-03-01','jaehrlich','Aufzug OG1','Schindler AG','']
+  }
+};
+
+window.downloadTemplate = function(type) {
+  const t = TEMPLATES[type];
+  if(!t) return;
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet([t.cols, t.example]);
+  // Style header row width
+  ws['!cols'] = t.cols.map(()=>({wch:20}));
+  XLSX.utils.book_append_sheet(wb, ws, 'Vorlage');
+  const names = {partner:'Partnerfirmen',notfall:'Notfallkontakte',geraete:'Geraete',wartung:'Wartungsauftraege'};
+  XLSX.writeFile(wb, `FacilityOS_Vorlage_${names[type]}.xlsx`);
+};
+
+window.handleImport = async function(input, type) {
+  const file = input.files[0]; if(!file) return;
+  const resultEl = document.getElementById(`import-result-${type}`);
+  resultEl.innerHTML = '<div style="color:var(--text3);font-size:13px;">⏳ Wird importiert…</div>';
+  try {
+    const data = await file.arrayBuffer();
+    const wb = XLSX.read(data);
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(ws);
+    if(!rows.length) { resultEl.innerHTML='<div style="color:var(--red);font-size:13px;">❌ Keine Daten gefunden</div>'; return; }
+
+    let count = 0, errors = 0;
+    for(const row of rows) {
+      try {
+        let docData = { createdAt: window._serverTimestamp() };
+        if(type==='partner') {
+          if(!row['Name']) continue;
+          docData = {...docData, name:row['Name']||'', bereich:row['Bereich']||'Sonstiges', kontakt:row['Kontakt']||'', telefon:String(row['Telefon']||''), email:row['Email']||'', adresse:row['Adresse']||'', vertrag:row['Vertrag']||'', notizen:row['Notizen']||'' };
+        } else if(type==='notfall') {
+          if(!row['Name']||!row['Telefon']) continue;
+          docData = {...docData, name:row['Name']||'', kategorie:row['Kategorie']||'Sonstiges', telefon:String(row['Telefon']||''), erreichbar:row['Erreichbar']||'24/7', notizen:row['Notizen']||'' };
+        } else if(type==='geraete') {
+          if(!row['Name']) continue;
+          docData = {...docData, name:row['Name']||'', kategorie:row['Kategorie']||'sonstiges', hersteller:row['Hersteller']||'', seriennummer:String(row['Seriennummer']||''), standort:row['Standort']||'', baujahr:row['Baujahr']?String(row['Baujahr']):'', naechsteWartung:row['NaechsteWartung']?String(row['NaechsteWartung']):'', notizen:row['Notizen']||'', status:'aktiv' };
+        } else if(type==='wartung') {
+          if(!row['Bezeichnung']||!row['Datum']) continue;
+          const datum = String(row['Datum']);
+          docData = {...docData, bezeichnung:row['Bezeichnung']||'', typ:row['Typ']||'wartung', datum, intervall:row['Intervall']||'einmalig', geraetName:row['GerätName']||'', partnerName:row['PartnerName']||'', notizen:row['Notizen']||'', status: new Date(datum)<new Date()?'faellig':'geplant' };
+        }
+        const colMap = {partner:'partner',notfall:'notfaelle',geraete:'geraete',wartung:'wartungen'};
+        await window._addDoc(colMap[type], docData);
+        count++;
+      } catch(e) { errors++; }
+    }
+    await window._addLog(`Import ${type}: ${count} Einträge importiert${errors?', '+errors+' Fehler':''}`, '#7c3aed');
+    resultEl.innerHTML=`<div style="background:var(--green-light);color:var(--green);padding:10px 12px;border-radius:7px;font-size:13px;margin-top:4px;">✅ ${count} Einträge erfolgreich importiert${errors?`<br>⚠️ ${errors} Zeilen übersprungen (fehlende Pflichtfelder)`:''}</div>`;
+    input.value='';
+  } catch(e) {
+    resultEl.innerHTML=`<div style="background:var(--red-light);color:var(--red);padding:10px 12px;border-radius:7px;font-size:13px;">❌ Fehler: ${e.message}</div>`;
+  }
+};
 </script>
-</body>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script></body>
 </html>
