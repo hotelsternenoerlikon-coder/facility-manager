@@ -764,7 +764,7 @@ window.fbSignOutPending = () => fbSignOut(auth);
 
 // ---- ACCESS CONTROL ----
 async function checkUserAccess(user) {
-  const emailKey = user.email.replace(/\./g, '_');
+  const emailKey = user.email.replace(/[@.]/g, '_');
 
   // 1. Check if admin
   const adminDoc = await getDoc(doc(db, 'admins', emailKey));
