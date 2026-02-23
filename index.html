@@ -332,6 +332,10 @@
       <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google">
       Mit Google anmelden
     </button>
+    <button class="btn-google" id="btn-ms-login" style="margin-top:10px;">
+      <img src="https://upload.wikimedia.org/wikipedia/commons/4/44/Microsoft_logo.svg" alt="Microsoft" style="width:18px;height:18px;">
+      Mit Microsoft anmelden
+    </button>
     <div class="login-hint">Nur autorisierte Mitarbeiter haben Zugriff</div>
   </div>
 </div>
@@ -739,7 +743,7 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
 import { getFirestore, collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, getDoc, setDoc, serverTimestamp, query, orderBy } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
-import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut as fbSignOut } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
+import { getAuth, GoogleAuthProvider, OAuthProvider, signInWithPopup, onAuthStateChanged, signOut as fbSignOut } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDcfrW2Q7Q61oqZFCo9D-CcLKpQYhiIkwM",
@@ -754,11 +758,14 @@ const fbApp = initializeApp(firebaseConfig);
 const db = getFirestore(fbApp);
 const auth = getAuth(fbApp);
 const provider = new GoogleAuthProvider();
+const msProvider = new OAuthProvider('microsoft.com');
+msProvider.setCustomParameters({ tenant: 'common' });
 
 let currentUser = null;
 
 // Auth
 document.getElementById('btn-google-login').onclick = () => signInWithPopup(auth, provider).catch(e => alert('Anmeldung fehlgeschlagen: ' + e.message));
+document.getElementById('btn-ms-login').onclick = () => signInWithPopup(auth, msProvider).catch(e => alert('Microsoft-Anmeldung fehlgeschlagen: ' + e.message));
 document.getElementById('btn-logout').onclick = () => fbSignOut(auth);
 window.fbSignOutPending = () => fbSignOut(auth);
 
