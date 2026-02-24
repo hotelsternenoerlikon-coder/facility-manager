@@ -1766,6 +1766,22 @@ function formatUrl(u){
   return 'https://' + s.replace(/^\/\/+/, '');
 }
 
+// ---------- Helper: HTML Escape ----------
+function esc(str) {
+  if (str === null || str === undefined) return "";
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function normalizeUrl(u){
+  return formatUrl(u);
+}
+
+
 
 function telHref(raw){
   if(!raw) return '';
