@@ -457,7 +457,6 @@
         <button class="nav-item" onclick="showPage('aktivitaet')"><span class="nav-icon">📋</span> Aktivitätslog</button>
         <button class="nav-item" id="nav-benutzer" onclick="showPage('benutzer')" style="display:none"><span class="nav-icon">👥</span> Benutzerverwaltung <span class="nav-badge" id="access-req-badge" style="display:none">0</span></button>
         <button class="nav-item" id="nav-import" onclick="showPage('import')" style="display:none"><span class="nav-icon">📥</span> Daten importieren</button>
-        <button class="nav-item" id="nav-export" onclick="showPage('export')" style="display:none"><span class="nav-icon">📤</span> Daten exportieren</button>
       </div>
     </nav>
     <div style="padding:16px 20px;border-top:1px solid rgba(255,255,255,0.08);font-size:12px;color:rgba(255,255,255,0.3);">
@@ -717,34 +716,7 @@
             <div id="import-result-wartung" style="margin-top:12px;"></div>
           </div>
         </div>
-      
-    <!-- EXPORT -->
-    <div class="page page-hidden" id="page-export">
-      <div class="card">
-        <div class="card-header"><span class="card-title">📤 Daten exportieren</span></div>
-        <div class="card-body">
-          <p style="font-size:13px;color:var(--text2);margin-bottom:14px;">
-            Exportiert ausgewählte Daten als Excel-Datei (mehrere Tabellenblätter). Die Datei wird lokal heruntergeladen.
-          </p>
-
-          <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;">
-            <button class="btn-primary" onclick="exportFacilityOS('all')">📦 Alles exportieren (Excel)</button>
-            <button class="btn-secondary" onclick="exportFacilityOS('tickets')">🎫 Tickets</button>
-            <button class="btn-secondary" onclick="exportFacilityOS('wartungen')">🔧 Wartungsaufträge</button>
-            <button class="btn-secondary" onclick="exportFacilityOS('geraete')">⚙️ Geräte</button>
-            <button class="btn-secondary" onclick="exportFacilityOS('partner')">🏭 Partnerfirmen</button>
-            <button class="btn-secondary" onclick="exportFacilityOS('notfaelle')">🚨 Notfallkontakte</button>
-          </div>
-
-          <div id="export-result" style="margin-top:14px;"></div>
-
-          <div style="margin-top:14px;padding:12px 14px;border-radius:10px;border:1px solid var(--border);background:var(--surface2);font-size:12px;color:var(--text2);">
-            Hinweis: Exportiert wird der aktuelle Stand aus Firestore (inkl. Dokument-ID als <span style="font-family:'DM Mono',monospace;">id</span>).
-          </div>
-        </div>
       </div>
-    </div>
-</div>
     </div>
     <div class="page page-hidden" id="page-mehr">
       <div style="display:flex;flex-direction:column;gap:10px;">
@@ -756,7 +728,6 @@
         <button class="mobile-mehr-item" onclick="showPage('aktivitaet')">📋<span>Aktivitätslog</span><span style="margin-left:auto;color:var(--text3);">›</span></button>
         <button class="mobile-mehr-item" id="mehr-benutzer" onclick="showPage('benutzer')" style="display:none">👥<span>Benutzerverwaltung</span><span style="margin-left:auto;color:var(--text3);">›</span></button>
         <button class="mobile-mehr-item" id="mehr-import" onclick="showPage('import')" style="display:none">📥<span>Daten importieren</span><span style="margin-left:auto;color:var(--text3);">›</span></button>
-        <button class="mobile-mehr-item" id="mehr-export" onclick="showPage('export')" style="display:none">📤<span>Daten exportieren</span><span style="margin-left:auto;color:var(--text3);">›</span></button>
         <div style="margin-top:8px;">
           <button onclick="fbSignOutMobile()" style="width:100%;padding:14px;border-radius:10px;border:1px solid var(--red);background:var(--red-light);color:var(--red);font-size:14px;font-weight:500;cursor:pointer;">⏏️ Abmelden</button>
         </div>
@@ -893,7 +864,7 @@
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
-import { getFirestore, collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, getDoc, getDocs, setDoc, serverTimestamp, query, orderBy  } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+import { getFirestore, collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, getDoc, setDoc, serverTimestamp, query, orderBy } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 import { getAuth, GoogleAuthProvider, OAuthProvider, signInWithPopup, onAuthStateChanged, signOut as fbSignOut } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
 
 const firebaseConfig = {
@@ -1013,9 +984,7 @@ onAuthStateChanged(auth, async user => {
       }
       // Import available for all users
       const ni = document.getElementById('nav-import'); if(ni) ni.style.display='';
-      const ne = document.getElementById('nav-export'); if(ne) ne.style.display='';
       const mi = document.getElementById('mehr-import'); if(mi) mi.style.display='';
-      const me = document.getElementById('mehr-export'); if(me) me.style.display='';
       startListeners();
     } else if (access === 'pending') {
       // ⏳ Show waiting screen
@@ -1617,7 +1586,7 @@ applyResponsiveVisibility();
 
 
 
-const pageLabels = {dashboard:'Dashboard',tickets:'Tickets & Störungen',wartung:'Wartungsaufträge',kalender:'Wartungskalender',geraete:'Geräte & Anlagen',bereiche:'Hotelbereiche',dokumente:'Dokumente',partner:'Partnerfirmen',notfall:'Notfallkontakte',aktivitaet:'Aktivitätslog',benutzer:'Benutzerverwaltung',import:'Daten importieren',export:'Daten exportieren',mehr:'Mehr'};
+const pageLabels = {dashboard:'Dashboard',tickets:'Tickets & Störungen',wartung:'Wartungsaufträge',kalender:'Wartungskalender',geraete:'Geräte & Anlagen',bereiche:'Hotelbereiche',dokumente:'Dokumente',partner:'Partnerfirmen',notfall:'Notfallkontakte',aktivitaet:'Aktivitätslog',benutzer:'Benutzerverwaltung',import:'Daten importieren',mehr:'Mehr'};
 
 // Pages reachable directly from bottom nav (no back button needed)
 const mainPages = new Set(['dashboard','tickets','geraete','notfall','mehr']);
@@ -1641,34 +1610,6 @@ const fabActions = {
   notfall: () => openModal('modal-notfall'),
   dokumente: () => openModal('modal-dokument'),
 };
-
-function renderExportPage(){
-  const el = document.getElementById('page-export');
-  if(!el) return;
-  // If content already present, do nothing
-  if(el.querySelector('.card')) { el.dataset.built='1'; return; }
-  el.innerHTML = `
-    <div class="card">
-      <div class="card-header"><span class="card-title">📤 Daten exportieren</span></div>
-      <div class="card-body">
-        <p style="font-size:13px;color:var(--text2);margin-bottom:14px;">
-          Exportiert ausgewählte Daten als Excel-Datei. Die Datei wird lokal heruntergeladen.
-        </p>
-        <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;">
-          <button class="btn-primary" onclick="exportFacilityOS('all')">📦 Alles exportieren (Excel)</button>
-          <button class="btn-secondary" onclick="exportFacilityOS('tickets')">🎫 Tickets & Störungen</button>
-          <button class="btn-secondary" onclick="exportFacilityOS('wartungen')">🔧 Wartungsaufträge</button>
-          <button class="btn-secondary" onclick="exportFacilityOS('geraete')">⚙️ Geräte & Anlagen</button>
-          <button class="btn-secondary" onclick="exportFacilityOS('partner')">🏭 Partnerfirmen</button>
-          <button class="btn-secondary" onclick="exportFacilityOS('notfaelle')">🚨 Notfallkontakte</button>
-        </div>
-        <div id="export-result" style="margin-top:14px;"></div>
-        <div style="margin-top:14px;font-size:12px;color:var(--text3);">
-          Hinweis: Firestore-Timestamps werden als ISO-Datum exportiert. Dokument-IDs werden als Spalte <span class="badge">id</span mitgeführt.
-        </div>
-      </div>
-    </div>`;
-}
 window._currentPage = 'dashboard';
 window.handleFab = () => { const fn = fabActions[window._currentPage]; if(fn) fn(); };
 
@@ -1716,7 +1657,6 @@ function showPage(name, navBtn, isBack) {
 
   if(name==='kalender') renderCalendar();
   if(name==='aktivitaet') renderAktivitaet();
-  if(name==='export') renderExportPage();
 }
 
 function openModal(id) { populateSelects(); document.getElementById(id).classList.remove('hidden'); }
@@ -2376,112 +2316,6 @@ window.handleImport = async function(input, type) {
     resultEl.innerHTML=`<div style="background:var(--red-light);color:var(--red);padding:10px 12px;border-radius:7px;font-size:13px;">❌ Fehler: ${e.message}</div>`;
   }
 };
-
-
-// -------------------- EXPORT (Excel) --------------------
-function _tsToISO(v){
-  try{
-    if(!v) return v;
-    // Firestore Timestamp (has toDate)
-    if(typeof v === 'object' && typeof v.toDate === 'function'){
-      return v.toDate().toISOString();
-    }
-    // JS Date
-    if(v instanceof Date) return v.toISOString();
-    return v;
-  }catch(e){ return v; }
-}
-
-function _deepConvert(obj){
-  if(obj === null || obj === undefined) return obj;
-  if(Array.isArray(obj)) return obj.map(_deepConvert);
-  if(typeof obj === 'object'){
-    // Timestamp / Date handled here:
-    if(typeof obj.toDate === 'function' || obj instanceof Date) return _tsToISO(obj);
-    const out = {};
-    Object.keys(obj).forEach(k=>{
-      out[k] = _deepConvert(obj[k]);
-    });
-    return out;
-  }
-  return obj;
-}
-
-async function _fetchCollectionData(colName){
-  const snap = await getDocs(collection(db, colName));
-  const arr = [];
-  snap.forEach(d=>{
-    const data = d.data ? d.data() : {};
-    const row = _deepConvert(data || {});
-    row.id = d.id;
-    arr.push(row);
-  });
-  return arr;
-}
-
-function _downloadWorkbook(wb, filename){
-  XLSX.writeFile(wb, filename, { compression: true });
-}
-
-window.exportFacilityOS = async function(mode){
-  const resultEl = document.getElementById('export-result');
-  if(resultEl) resultEl.innerHTML = '<div style="background:var(--surface2);border:1px solid var(--border);padding:10px 12px;border-radius:8px;font-size:13px;">⏳ Export läuft…</div>';
-
-  try{
-    if(typeof XLSX === 'undefined') throw new Error('SheetJS (XLSX) ist nicht geladen.');
-
-    const mapping = {
-      tickets: {col:'tickets', sheet:'Tickets'},
-      wartungen: {col:'wartungen', sheet:'Wartungen'},
-      geraete: {col:'geraete', sheet:'Geraete'},
-      partner: {col:'partner', sheet:'Partner'},
-      notfaelle: {col:'notfaelle', sheet:'Notfaelle'},
-    };
-
-    const wb = XLSX.utils.book_new();
-
-    const tasks = [];
-    if(mode === 'all'){
-      Object.keys(mapping).forEach(k=>tasks.push(k));
-    } else {
-      if(!mapping[mode]) throw new Error('Unbekannter Export-Typ: '+mode);
-      tasks.push(mode);
-    }
-
-    for(const key of tasks){
-      const info = mapping[key];
-      const rows = await _fetchCollectionData(info.col);
-
-      // Optionale Sortierung fürs Export-Excel (stabil, nachvollziehbar)
-      if(info.col === 'partner') rows.sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),'de',{sensitivity:'base',numeric:true}));
-      if(info.col === 'notfaelle') rows.sort((a,b)=>{
-        const ap=!!a.pinned, bp=!!b.pinned; if(ap!==bp) return ap?-1:1;
-        return String(a.name||'').localeCompare(String(b.name||''),'de',{sensitivity:'base',numeric:true});
-      });
-      if(info.col === 'geraete') rows.sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),'de',{sensitivity:'base',numeric:true}));
-      if(info.col === 'wartungen') rows.sort((a,b)=>String(a.titel||a.name||'').localeCompare(String(b.titel||b.name||''),'de',{sensitivity:'base',numeric:true}));
-      if(info.col === 'tickets') rows.sort((a,b)=>{
-        const ad = (a.updatedAt||a.createdAt||a.datum||''); 
-        const bd = (b.updatedAt||b.createdAt||b.datum||'');
-        return String(bd).localeCompare(String(ad)); // neueste zuerst
-      });
-
-      const ws = XLSX.utils.json_to_sheet(rows);
-      XLSX.utils.book_append_sheet(wb, ws, info.sheet);
-    }
-
-    const now = new Date();
-    const pad = (n)=>String(n).padStart(2,'0');
-    const fname = `FacilityOS_Export_${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}.xlsx`;
-    _downloadWorkbook(wb, fname);
-
-    if(resultEl) resultEl.innerHTML = `<div style="background:var(--green-light);color:var(--green);padding:10px 12px;border-radius:8px;font-size:13px;">✅ Export erstellt: <span style="font-family:'DM Mono',monospace;">${fname}</span></div>`;
-  }catch(e){
-    console.error('exportFacilityOS failed', e);
-    if(resultEl) resultEl.innerHTML = `<div style="background:var(--red-light);color:var(--red);padding:10px 12px;border-radius:8px;font-size:13px;">❌ Export fehlgeschlagen: ${esc(e.message||e)}</div>`;
-  }
-};
-
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script></body>
 </html>
