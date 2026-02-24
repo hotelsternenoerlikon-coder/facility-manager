@@ -1577,7 +1577,9 @@ window.editItem = (type, id) => {
     document.getElementById('t-betreff').value=item.betreff||'';
     document.getElementById('t-prioritaet').value=item.prioritaet||'mittel';
     document.getElementById('t-geraet').value=item.geraetId||'';
+    document.getElementById('t-bereich').value=item.bereichId||'';
     document.getElementById('t-partner').value=item.partnerId||'';
+    document.getElementById('t-gemeldet').value=item.gemeldetVon||item.gemeldet||'';
     document.getElementById('t-beschreibung').value=item.beschreibung||'';
     document.getElementById('modal-ticket').querySelector('.modal-title').textContent='Ticket bearbeiten';
     document.getElementById('btn-save-ticket').textContent='Änderungen speichern';
