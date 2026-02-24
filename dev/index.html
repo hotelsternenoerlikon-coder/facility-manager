@@ -394,7 +394,7 @@
   <div class="mobile-topbar">
     <div style="display:flex;align-items:center;gap:4px;">
       <button class="mobile-back-btn" id="mobile-back-btn" onclick="goBack()">‹</button>
-      <div class="mobile-topbar-title" id="mobile-page-title">DDashboard</div>
+      <div class="mobile-topbar-title" id="mobile-page-title">Dashboard</div>
     </div>
     <div class="mobile-topbar-right">
       <div><span class="sync-dot" id="sync-dot-mobile" style="background:var(--yellow)"></span></div>
@@ -700,75 +700,72 @@
           </div>
         </div>
 
-         <!-- Wartungsaufträge -->
-         <div class="card">
-           <div class="card-header"><span class="card-title">🔧 Wartungsaufträge importieren</span></div>
-           <div class="card-body">
-             <p style="font-size:13px;color:var(--text2);margin-bottom:16px;">Excel-Vorlage herunterladen, ausfüllen und hochladen.</p>
-             <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:14px;font-size:12px;color:var(--text3);">
-               <strong>Spalten:</strong> Bezeichnung, Typ, Datum (JJJJ-MM-TT), Intervall, GerätName, PartnerName, Notizen
-             </div>
-             <div style="display:flex;gap:8px;flex-direction:column;">
-               <button class="btn btn-secondary" onclick="downloadTemplate('wartung')">⬇️ Vorlage herunterladen</button>
-               <label class="btn btn-primary" style="justify-content:center;cursor:pointer;">
-                 📤 Excel hochladen <input type="file" accept=".xlsx,.xls" style="display:none" onchange="handleImport(this,'wartung')">
-               </label>
-             </div>
-             <div id="import-result-wartung" style="margin-top:12px;"></div>
-           </div>
-         </div>
--      
-+      </div>
-+    </div>
-+
-     <!-- EXPORT -->
-     <div class="page page-hidden" id="page-export">
-       <div class="card">
-         <div class="card-header"><span class="card-title">📤 Daten exportieren</span></div>
-         <div class="card-body">
-           <p style="font-size:13px;color:var(--text2);margin-bottom:14px;">
-             Exportiert ausgewählte Daten als Excel-Datei (mehrere Tabellenblätter). Die Datei wird lokal heruntergeladen.
-           </p>
- 
-           <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;">
-             <button class="btn-primary" onclick="exportFacilityOS('all')">📦 Alles exportieren (Excel)</button>
-             <button class="btn-secondary" onclick="exportFacilityOS('tickets')">🎫 Tickets</button>
-             <button class="btn-secondary" onclick="exportFacilityOS('wartungen')">🔧 Wartungsaufträge</button>
-             <button class="btn-secondary" onclick="exportFacilityOS('geraete')">⚙️ Geräte</button>
-             <button class="btn-secondary" onclick="exportFacilityOS('partner')">🏭 Partnerfirmen</button>
-             <button class="btn-secondary" onclick="exportFacilityOS('notfaelle')">🚨 Notfallkontakte</button>
-           </div>
- 
-           <div id="export-result" style="margin-top:14px;"></div>
- 
-           <div style="margin-top:14px;padding:12px 14px;border-radius:10px;border:1px solid var(--border);background:var(--surface2);font-size:12px;color:var(--text2);">
-             Hinweis: Exportiert wird der aktuelle Stand aus Firestore (inkl. Dokument-ID als <span style="font-family:'DM Mono',monospace;">id</span>).
-           </div>
-         </div>
-       </div>
-     </div>
--</div>
--    </div>
-+
-     <div class="page page-hidden" id="page-mehr">
-       <div style="display:flex;flex-direction:column;gap:10px;">
-         <button class="mobile-mehr-item" onclick="showPage('wartung')">🔧<span>Wartungsaufträge</span><span style="margin-left:auto;color:var(--text3);">›</span></button>
-         <button class="mobile-mehr-item" onclick="showPage('kalender')">📅<span>Wartungskalender</span><span style="margin-left:auto;color:var(--text3);">›</span></button>
-         <button class="mobile-mehr-item" onclick="showPage('bereiche')">🏨<span>Hotelbereiche</span><span style="margin-left:auto;color:var(--text3);">›</span></button>
-         <button class="mobile-mehr-item" onclick="showPage('dokumente')">📄<span>Dokumente</span><span style="margin-left:auto;color:var(--text3);">›</span></button>
-         <button class="mobile-mehr-item" onclick="showPage('partner')">🏭<span>Partnerfirmen</span><span style="margin-left:auto;color:var(--text3);">›</span></button>
-         <button class="mobile-mehr-item" onclick="showPage('aktivitaet')">📋<span>Aktivitätslog</span><span style="margin-left:auto;color:var(--text3);">›</span></button>
-         <button class="mobile-mehr-item" id="mehr-benutzer" onclick="showPage('benutzer')" style="display:none">👥<span>Benutzerverwaltung</span><span style="margin-left:auto;color:var(--text3);">›</span></button>
-         <button class="mobile-mehr-item" id="mehr-import" onclick="showPage('import')" style="display:none">📥<span>Daten importieren</span><span style="margin-left:auto;color:var(--text3);">›</span></button>
-         <button class="mobile-mehr-item" id="mehr-export" onclick="showPage('export')" style="display:none">📤<span>Daten exportieren</span><span style="margin-left:auto;color:var(--text3);">›</span></button>
-         <div style="margin-top:8px;">
-           <button onclick="fbSignOutMobile()" style="width:100%;padding:14px;border-radius:10px;border:1px solid var(--red);background:var(--red-light);color:var(--red);font-size:14px;font-weight:500;cursor:pointer;">⏏️ Abmelden</button>
-         </div>
-       </div>
-     </div>
-   </main>
- </div>
- 
+        <!-- Wartungsaufträge -->
+        <div class="card">
+          <div class="card-header"><span class="card-title">🔧 Wartungsaufträge importieren</span></div>
+          <div class="card-body">
+            <p style="font-size:13px;color:var(--text2);margin-bottom:16px;">Excel-Vorlage herunterladen, ausfüllen und hochladen.</p>
+            <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:14px;font-size:12px;color:var(--text3);">
+              <strong>Spalten:</strong> Bezeichnung, Typ, Datum (JJJJ-MM-TT), Intervall, GerätName, PartnerName, Notizen
+            </div>
+            <div style="display:flex;gap:8px;flex-direction:column;">
+              <button class="btn btn-secondary" onclick="downloadTemplate('wartung')">⬇️ Vorlage herunterladen</button>
+              <label class="btn btn-primary" style="justify-content:center;cursor:pointer;">
+                📤 Excel hochladen <input type="file" accept=".xlsx,.xls" style="display:none" onchange="handleImport(this,'wartung')">
+              </label>
+            </div>
+            <div id="import-result-wartung" style="margin-top:12px;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- EXPORT -->
+    <div class="page page-hidden" id="page-export">
+      <div class="card">
+        <div class="card-header"><span class="card-title">📤 Daten exportieren</span></div>
+        <div class="card-body">
+          <p style="font-size:13px;color:var(--text2);margin-bottom:14px;">
+            Exportiert ausgewählte Daten als Excel-Datei (mehrere Tabellenblätter). Die Datei wird lokal heruntergeladen.
+          </p>
+
+          <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;">
+            <button class="btn btn-primary" onclick="exportFacilityOS('all')">📦 Alles exportieren (Excel)</button>
+            <button class="btn btn-secondary" onclick="exportFacilityOS('tickets')">🎫 Tickets & Störungen</button>
+            <button class="btn btn-secondary" onclick="exportFacilityOS('wartungen')">🔧 Wartungsaufträge</button>
+            <button class="btn btn-secondary" onclick="exportFacilityOS('geraete')">⚙️ Geräte & Anlagen</button>
+            <button class="btn btn-secondary" onclick="exportFacilityOS('partner')">🏭 Partnerfirmen</button>
+            <button class="btn btn-secondary" onclick="exportFacilityOS('notfaelle')">🚨 Notfallkontakte</button>
+          </div>
+
+          <div id="export-result" style="margin-top:14px;"></div>
+
+          <div style="margin-top:14px;padding:12px 14px;border-radius:10px;border:1px solid var(--border);background:var(--surface2);font-size:12px;color:var(--text2);">
+            Hinweis: Exportiert wird der aktuelle Stand aus Firestore (inkl. Dokument-ID als <span style="font-family:'DM Mono',monospace;">id</span>). Firestore-Timestamps werden als ISO-Datum exportiert.
+          </div>
+        </div>
+      </div>
+    </div>
+
+<div class="page page-hidden" id="page-mehr">
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <button class="mobile-mehr-item" onclick="showPage('wartung')">🔧<span>Wartungsaufträge</span><span style="margin-left:auto;color:var(--text3);">›</span></button>
+        <button class="mobile-mehr-item" onclick="showPage('kalender')">📅<span>Wartungskalender</span><span style="margin-left:auto;color:var(--text3);">›</span></button>
+        <button class="mobile-mehr-item" onclick="showPage('bereiche')">🏨<span>Hotelbereiche</span><span style="margin-left:auto;color:var(--text3);">›</span></button>
+        <button class="mobile-mehr-item" onclick="showPage('dokumente')">📄<span>Dokumente</span><span style="margin-left:auto;color:var(--text3);">›</span></button>
+        <button class="mobile-mehr-item" onclick="showPage('partner')">🏭<span>Partnerfirmen</span><span style="margin-left:auto;color:var(--text3);">›</span></button>
+        <button class="mobile-mehr-item" onclick="showPage('aktivitaet')">📋<span>Aktivitätslog</span><span style="margin-left:auto;color:var(--text3);">›</span></button>
+        <button class="mobile-mehr-item" id="mehr-benutzer" onclick="showPage('benutzer')" style="display:none">👥<span>Benutzerverwaltung</span><span style="margin-left:auto;color:var(--text3);">›</span></button>
+        <button class="mobile-mehr-item" id="mehr-import" onclick="showPage('import')" style="display:none">📥<span>Daten importieren</span><span style="margin-left:auto;color:var(--text3);">›</span></button>
+        <button class="mobile-mehr-item" id="mehr-export" onclick="showPage(\'export\')">📤<span>Daten exportieren</span><span style="margin-left:auto;color:var(--text3);">›</span></button>
+        <div style="margin-top:8px;">
+          <button onclick="fbSignOutMobile()" style="width:100%;padding:14px;border-radius:10px;border:1px solid var(--red);background:var(--red-light);color:var(--red);font-size:14px;font-weight:500;cursor:pointer;">⏏️ Abmelden</button>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
 <!-- MODALS -->
 <div class="modal-overlay hidden" id="modal-ticket">
   <div class="modal">
