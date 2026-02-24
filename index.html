@@ -160,6 +160,22 @@
   .device-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; box-shadow: var(--shadow); transition: box-shadow 0.15s; }
   .device-card:hover { box-shadow: var(--shadow-md); }
 
+  /* ===== PARTNER CARDS ===== */
+  .partner-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow); transition: box-shadow 0.15s; display:flex; flex-direction:column; gap: 10px; }
+  .partner-card:hover { box-shadow: var(--shadow-md); }
+  .partner-top { display:flex; gap: 12px; align-items:flex-start; }
+  .partner-icon { width: 42px; height: 42px; border-radius: 10px; background: var(--surface2); border: 1px solid var(--border); display:flex; align-items:center; justify-content:center; font-size: 20px; flex-shrink:0; }
+  .partner-name { font-weight: 700; font-size: 14px; line-height: 1.2; margin-top: 2px; }
+  .partner-sub { margin-top: 6px; display:flex; gap: 6px; flex-wrap:wrap; }
+  .partner-row { display:flex; align-items:center; gap: 10px; font-size: 12.5px; color: var(--text2); }
+  .partner-row-label { color: var(--text3); min-width: 56px; }
+  .partner-row-value { color: var(--text2); font-weight: 500; }
+  .partner-links { display:flex; flex-wrap:wrap; gap: 8px; }
+  .link-pill { display:inline-flex; align-items:center; gap: 6px; padding: 6px 10px; border-radius: 999px; background: var(--surface2); border: 1px solid var(--border); color: var(--text2); text-decoration: none; font-size: 12.5px; max-width: 100%; }
+  .link-pill:hover { border-color: var(--accent); color: var(--accent); background: #eef4ff; }
+  .partner-actions { display:flex; justify-content:flex-end; gap: 8px; padding-top: 6px; border-top: 1px solid var(--border); }
+
+
   .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
   .cal-day-label { text-align: center; font-size: 11px; font-weight: 600; color: var(--text3); text-transform: uppercase; padding: 6px 0; }
   .cal-day { min-height: 80px; padding: 6px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); }
@@ -491,7 +507,7 @@
         <button class="btn btn-primary" onclick="openModal('modal-ticket')">+ Neues Ticket</button>
       </div>
       <div class="card">
-        <div class="card-header"><span class="card-title">Tickets & Störungsmeldungen</span><div class="search-wrap"><span class="search-icon">🔍</span><input class="search-input" placeholder="Suchen..." oninput="state.ticketSearch=this.value;renderTickets()"></div></div>
+        <div class="card-header"><span class="card-title">Tickets & Störungsmeldungen</span><div class="search-wrap"><span class="search-icon">🔍</span><input class="search-input" placeholder="Suchen..." oninput="state.ticketSearch=this.value;renderTickets();renderTicketsMobile()"></div></div>
         <div class="table-wrap"><table><thead><tr><th>Betreff</th><th>Gerät</th><th>Bereich</th><th>Priorität</th><th>Status</th><th>Erstellt von</th><th>Zugewiesen</th><th></th></tr></thead><tbody id="tickets-table"></tbody></table></div>
         <div class="mobile-card-list" id="tickets-mobile"></div>
       </div>
@@ -1389,79 +1405,6 @@ window.deleteItem = async (col, id) => {
 };
 
 // ---- HELPERS ----
-
-// HTML-Escaping (XSS-Schutz) – wird in Render-Funktionen genutzt
-function esc(str) {
-  if (str === null || str === undefined) return '';
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
-}
-// Optional global verfügbar (für Debug/Console)
-window.esc = esc;
-
-// Mini Debug / Health – PRO
-window.__FM_DEBUG__ = window.__FM_DEBUG__ || {
-  startedAt: new Date().toISOString(),
-  errors: [],
-  warnings: [],
-  info: []
-};
-
-function fmWarn(msg, data) {
-  window.__FM_DEBUG__.warnings.push({ t: new Date().toISOString(), msg, data });
-  console.warn("[FacilityOS]", msg, data || "");
-}
-function fmInfo(msg, data) {
-  window.__FM_DEBUG__.info.push({ t: new Date().toISOString(), msg, data });
-  console.info("[FacilityOS]", msg, data || "");
-}
-
-// Global Error Capture (ohne App-Abbruch)
-window.addEventListener('error', (e) => {
-  try {
-    window.__FM_DEBUG__.errors.push({
-      t: new Date().toISOString(),
-      type: "error",
-      message: e.message,
-      filename: e.filename,
-      lineno: e.lineno,
-      colno: e.colno,
-      stack: e.error && e.error.stack ? String(e.error.stack) : null
-    });
-  } catch (_) {}
-});
-window.addEventListener('unhandledrejection', (e) => {
-  try {
-    window.__FM_DEBUG__.errors.push({
-      t: new Date().toISOString(),
-      type: "unhandledrejection",
-      message: e.reason ? String(e.reason) : "Unhandled promise rejection",
-      stack: e.reason && e.reason.stack ? String(e.reason.stack) : null
-    });
-  } catch (_) {}
-});
-
-// Sanity Checks (loggt nur, blockiert nicht)
-function facilityHealthCheck() {
-  try {
-    if (!document.getElementById('app')) fmWarn("Root #app nicht gefunden – UI kann leer bleiben.");
-    if (!window.firebase) fmInfo("Firebase wird als ES-Module importiert (window.firebase ist ok, wenn nicht genutzt).");
-    // wichtige Funktionen, die wir in Render-Pipelines erwarten
-    const requiredFns = ["renderAll", "renderPartner"];
-    requiredFns.forEach((fn) => {
-      if (typeof window[fn] !== "function") {
-        // In ES-Module sind Funktionen nicht zwingend auf window – deshalb nur Hinweis.
-        fmInfo(`${fn} ist nicht auf window gebunden (ok bei module-scope).`);
-      }
-    });
-  } catch (err) {
-    fmWarn("HealthCheck Fehler", err);
-  }
-}
 window.generateRecurringDates = function(startDate, intervall, extensionMode=false) {
   const dates = [];
   const start = new Date(startDate + 'T00:00:00');
@@ -1823,16 +1766,77 @@ function formatUrl(u){
   return 'https://' + s.replace(/^\/\/+/, '');
 }
 
+
+function telHref(raw){
+  if(!raw) return '';
+  const s = String(raw).trim();
+  if(!s) return '';
+  // Keep only digits and leading +
+  let cleaned = s.replace(/[^\d+]/g,'');
+  // Avoid multiple + signs
+  cleaned = cleaned.replace(/\+(?=.)/g, (match, offset)=> offset===0?'+':'');
+  return cleaned || s;
+}
+
+function bereichIcon(b){
+  const x=(b||'').toLowerCase();
+  if(x.includes('aufzug')) return '🛗';
+  if(x.includes('heizung')||x.includes('sanit')) return '🔥';
+  if(x.includes('elektro')) return '⚡';
+  if(x.includes('klima')) return '❄️';
+  if(x.includes('brand')) return '🧯';
+  if(x.includes('sicher')) return '🛡️';
+  if(x.includes('it')||x.includes('netz')) return '🖧';
+  if(x.includes('gebäude')||x.includes('gebaeude')||x.includes('service')) return '🧹';
+  return '🏭';
+}
+
 function renderPartner() {
-  const grid=document.getElementById('partner-grid');
+  const grid = document.getElementById('partner-grid');
+  if(!grid) return;
+
   const data = (state.partnerFilter && state.partnerFilter!=='alle')
     ? state.partner.filter(p => (p.bereich||'Sonstiges') === state.partnerFilter)
     : state.partner;
 
-  grid.innerHTML = data.length
-    ? data.map(p=>`<div class="card"><div class="card-body"><div style="font-weight:800">${esc(p.name||'')}</div><div class="muted">${esc(p.bereich||'')}</div><div class="spacer"></div><div class="pill">${esc(p.kontakt||'')}</div><div class="pill">${esc(p.telefon||'')}</div><div class="pill">${esc(p.email||'')}</div><div class="spacer"></div><div class="actions"><button class="btn btn-ghost" onclick="openPartner('${p.id}')">Öffnen</button><button class="btn btn-danger" onclick="deletePartner('${p.id}')">Löschen</button></div></div></div>`).join('')
-    : `<div class="empty">Keine Partnerfirmen in dieser Kategorie.</div>`;
+  if(!data.length){
+    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">🏭</div><p>Keine Partnerfirmen in dieser Kategorie.</p></div>`;
+    return;
+  }
+
+  grid.innerHTML = data.map(p=>{
+    const bereich = p.bereich || 'Sonstiges';
+    const tel = p.telefon ? `<a class="link-pill" href="tel:${telHref(p.telefon)}" title="Anrufen">📞 ${esc(p.telefon)}</a>` : '';
+    const mob = p.mobile ? `<a class="link-pill" href="tel:${telHref(p.mobile)}" title="Mobile anrufen">📱 ${esc(p.mobile)}</a>` : '';
+    const mail = p.email ? `<a class="link-pill" href="mailto:${esc(p.email)}" title="E-Mail senden">✉️ ${esc(p.email)}</a>` : '';
+    const web = p.website ? `<a class="link-pill" href="${normalizeUrl(p.website)}" target="_blank" rel="noopener" title="Website öffnen">🌐 ${esc(p.website)}</a>` : '';
+    const kontakt = p.kontakt ? `<div class="partner-row"><span class="partner-row-label">Kontakt</span><span class="partner-row-value">${esc(p.kontakt)}</span></div>` : '';
+
+    return `<div class="partner-card">
+      <div class="partner-top">
+        <div class="partner-icon">${bereichIcon(bereich)}</div>
+        <div style="flex:1;min-width:0;">
+          <div class="partner-name">${esc(p.name||'')}</div>
+          <div class="partner-sub">
+            <span class="badge badge-gray">${esc(bereich)}</span>
+          </div>
+        </div>
+      </div>
+
+      ${kontakt}
+
+      <div class="partner-links">
+        ${tel}${mob}${mail}${web}
+      </div>
+
+      <div class="partner-actions">
+        <button class="btn btn-sm btn-edit" onclick="editItem('partner','${p.id}')">✏️ Öffnen</button>
+        <button class="btn btn-secondary btn-sm" onclick="deleteItem('partner','${p.id}')">🗑️ Löschen</button>
+      </div>
+    </div>`;
+  }).join('');
 }
+
 
 function renderNotfall() {
   const grid=document.getElementById('notfall-grid');
@@ -1960,6 +1964,16 @@ function renderBereiche() {
       </div>
     </div>
   </div>`).join(''):`<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">🏨</div><p>Noch keine Bereiche erfasst</p></div>`;
+}
+
+function filterTickets(f,btn){
+  state.ticketFilter=f;
+  if(btn){
+    btn.closest('.tabs').querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+    btn.classList.add('active');
+  }
+  renderTickets();
+  renderTicketsMobile();
 }
 
 function filterBereiche(f,btn){state.bereicheFilter=f;btn.closest('.tabs').querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));btn.classList.add('active');renderBereiche();}
