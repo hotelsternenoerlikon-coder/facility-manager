@@ -116,7 +116,6 @@
   .badge-red { background: var(--red-light); color: var(--red); }
   .badge-yellow { background: var(--yellow-light); color: var(--yellow); }
   .badge-blue { background: var(--accent-light); color: var(--accent); }
-  .badge-violet { background: #f3e8ff; color: #7c3aed; }
   .badge-orange { background: var(--orange-light); color: var(--orange); }
   .badge-gray { background: #f1f0eb; color: var(--text2); }
 
@@ -234,8 +233,7 @@
   }
 
   /* ===== MOBILE CARDS (replace tables on mobile) ===== */
-  /* Desktop: hide the mobile card lists; they are shown only on small screens */
-  .mobile-card-list { display: none; flex-direction: column; gap: 10px; }
+  .mobile-card-list { display: flex; flex-direction: column; gap: 10px; }
   .mobile-card {
     background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
     padding: 14px 16px; box-shadow: var(--shadow);
@@ -321,7 +319,31 @@
     .page { padding: 10px; }
   }
 
-.checkbox{display:flex;align-items:flex-start;gap:10px;font-size:13px;color:var(--text2);} .checkbox input{margin-top:3px;}
+/* ===== ADMIN DEBUG PANEL ===== */
+.debug-btn { display:none; }
+.debug-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.35); z-index:1000; display:none; align-items:flex-end; justify-content:flex-end; backdrop-filter: blur(2px); }
+.debug-overlay.visible { display:flex; }
+.debug-panel {
+  width: 520px; max-width: 96vw; max-height: 92vh; overflow:auto;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.22);
+  margin: 16px;
+}
+.debug-head { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:16px 18px; border-bottom:1px solid var(--border); }
+.debug-title { font-weight: 650; font-size: 14px; }
+.debug-sub { font-size: 11.5px; color: var(--text3); font-family:'DM Mono', monospace; }
+.debug-body { padding: 14px 18px; }
+.debug-row { display:flex; justify-content:space-between; gap:12px; padding: 8px 0; border-bottom:1px dashed var(--border); }
+.debug-row:last-child { border-bottom:none; }
+.debug-k { color: var(--text3); font-size: 12px; }
+.debug-v { color: var(--text); font-size: 12.5px; font-family:'DM Mono', monospace; text-align:right; word-break: break-word; }
+.debug-log { background: var(--surface2); border:1px solid var(--border); border-radius: 10px; padding: 10px; font-family:'DM Mono', monospace; font-size: 11.5px; color: var(--text2); white-space: pre-wrap; max-height: 240px; overflow:auto; }
+.debug-actions { display:flex; gap:8px; flex-wrap:wrap; margin-top: 12px; }
+@media (max-width: 768px){
+  .debug-panel{ width: 100%; margin: 0; border-radius: 18px 18px 0 0; max-height: 92vh; }
+  .debug-overlay{ align-items:flex-end; justify-content:center; }
+}
+
 </style>
 </head>
 <body>
@@ -383,6 +405,7 @@
     <div class="mobile-topbar-right">
       <div><span class="sync-dot" id="sync-dot-mobile" style="background:var(--yellow)"></span></div>
       <img class="mobile-user-avatar" id="user-avatar-mobile" src="" alt="" style="display:none">
+      <button class="debug-btn" id="btn-debug-mobile" onclick="openDebugPanel()" style="display:none;background:none;border:1px solid rgba(255,255,255,0.25);color:rgba(255,255,255,0.85);font-size:12px;cursor:pointer;padding:4px 8px;border-radius:8px;">🐞</button>
       <button onclick="fbSignOutMobile()" style="background:none;border:none;color:rgba(255,255,255,0.6);font-size:13px;cursor:pointer;padding:4px;">Abmelden</button>
     </div>
   </div>
@@ -457,6 +480,7 @@
         <div style="width:1px;height:24px;background:var(--border);margin:0 4px;"></div>
         <span class="user-name" id="user-name"></span>
         <img class="user-avatar" id="user-avatar" src="" alt="" style="display:none">
+        <button class="btn btn-secondary btn-sm debug-btn" id="btn-debug" onclick="openDebugPanel()">🐞 Debug</button>
         <button class="btn-logout" id="btn-logout">Abmelden</button>
       </div>
     </div>
@@ -621,7 +645,7 @@
           <div class="card-body">
             <p style="font-size:13px;color:var(--text2);margin-bottom:16px;">Excel-Vorlage herunterladen, ausfüllen und hochladen.</p>
             <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:14px;font-size:12px;color:var(--text3);">
-              <strong>Spalten:</strong> Name, Bereich, Kontakt, Telefon, Mobile, Email, Website, Adresse, Vertrag, Notizen
+              <strong>Spalten:</strong> Name, Bereich, Kontakt, Telefon, Email, Adresse, Vertrag, Notizen
             </div>
             <div style="display:flex;gap:8px;flex-direction:column;">
               <button class="btn btn-secondary" onclick="downloadTemplate('partner')">⬇️ Vorlage herunterladen</button>
@@ -639,7 +663,7 @@
           <div class="card-body">
             <p style="font-size:13px;color:var(--text2);margin-bottom:16px;">Excel-Vorlage herunterladen, ausfüllen und hochladen.</p>
             <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:14px;font-size:12px;color:var(--text3);">
-              <strong>Spalten:</strong> Name, Kategorie, Telefon, Mobile, Erreichbar, Notizen
+              <strong>Spalten:</strong> Name, Kategorie, Telefon, Erreichbar, Notizen
             </div>
             <div style="display:flex;gap:8px;flex-direction:column;">
               <button class="btn btn-secondary" onclick="downloadTemplate('notfall')">⬇️ Vorlage herunterladen</button>
@@ -728,9 +752,8 @@
     <div class="modal-header"><span class="modal-title">Wartungsauftrag erfassen</span><button class="modal-close" onclick="closeModal('modal-wartung')">×</button></div>
     <div class="modal-body">
       <div class="grid-2"><div class="form-group"><label class="form-label">Bezeichnung *</label><input class="form-input" id="w-bezeichnung"></div><div class="form-group"><label class="form-label">Typ</label><select class="form-select" id="w-typ"><option value="inspektion">Inspektion</option><option value="wartung">Wartung</option><option value="reparatur">Reparatur</option><option value="pruefung">Prüfung/TÜV</option><option value="service">Serviceauftrag</option></select></div></div>
-      <div class="grid-2"><div class="form-group"><label class="form-label">Gerät / Anlage</label><select class="form-select" id="w-geraet" onchange="onWartungGeraetChange(this.value)"><option value="">– auswählen –</option></select></div><div class="form-group"><label class="form-label">Zuständige Firma</label><select class="form-select" id="w-partner"><option value="">– auswählen –</option></select></div></div>
+      <div class="grid-2"><div class="form-group"><label class="form-label">Gerät / Anlage</label><select class="form-select" id="w-geraet"><option value="">– auswählen –</option></select></div><div class="form-group"><label class="form-label">Zuständige Firma</label><select class="form-select" id="w-partner"><option value="">– auswählen –</option></select></div></div>
       <div class="grid-2"><div class="form-group"><label class="form-label">Fälligkeitsdatum *</label><input class="form-input" type="date" id="w-datum"></div><div class="form-group"><label class="form-label">Wiederholung</label><select class="form-select" id="w-intervall"><option value="einmalig">Einmalig</option><option value="monatlich">Monatlich</option><option value="quartalsweise">Quartalsweise</option><option value="halbjaehrlich">Halbjährlich</option><option value="jaehrlich">Jährlich</option></select></div></div>
-      <div class="form-group" style="margin-top:-6px;"><label class="checkbox"><input type="checkbox" id="w-autoTicket"> <span>Ticket automatisch erstellen (bei Fälligkeit wird beim Öffnen der App ein Ticket erstellt)</span></label></div>
       <div class="form-group"><label class="form-label">Notizen</label><textarea class="form-textarea" id="w-notizen"></textarea></div>
     </div>
     <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('modal-wartung')">Abbrechen</button><button class="btn btn-primary" id="btn-save-wartung">Auftrag erstellen</button></div>
@@ -741,10 +764,9 @@
   <div class="modal">
     <div class="modal-header"><span class="modal-title">Gerät / Anlage hinzufügen</span><button class="modal-close" onclick="closeModal('modal-geraet')">×</button></div>
     <div class="modal-body">
-      <div class="grid-2"><div class="form-group"><label class="form-label">Bezeichnung *</label><input class="form-input" id="g-name"></div><div class="form-group"><label class="form-label">Kategorie *</label><select class="form-select" id="g-kategorie"><option value="aufzug">🛗 Aufzug</option><option value="heizung">🔥 Heizung/HVAC</option><option value="klima">❄️ Klimaanlage</option><option value="lueftung">💨 Lüftungstechnik</option><option value="elektro">⚡ Elektro/USV</option><option value="brandschutz">🧯 Brandschutz</option><option value="sicherheit">🔒 Sicherheitssystem</option><option value="sanitaer">🚿 Sanitär</option><option value="kueche">🍳 Küchengeräte</option><option value="it">💻 IT-Infrastruktur</option><option value="solar">☀️ Solar/PV</option><option value="sonstiges">🔧 Sonstiges</option></select></div></div>
+      <div class="grid-2"><div class="form-group"><label class="form-label">Bezeichnung *</label><input class="form-input" id="g-name"></div><div class="form-group"><label class="form-label">Kategorie *</label><select class="form-select" id="g-kategorie"><option value="aufzug">🛗 Aufzug</option><option value="heizung">🔥 Heizung/HVAC</option><option value="klima">❄️ Klimaanlage</option><option value="elektro">⚡ Elektro/USV</option><option value="brandschutz">🧯 Brandschutz</option><option value="sicherheit">🔒 Sicherheitssystem</option><option value="sanitaer">🚿 Sanitär</option><option value="kueche">🍳 Küchengeräte</option><option value="it">💻 IT-Infrastruktur</option><option value="solar">☀️ Solar/PV</option><option value="sonstiges">🔧 Sonstiges</option></select></div></div>
       <div class="grid-2"><div class="form-group"><label class="form-label">Hersteller</label><input class="form-input" id="g-hersteller"></div><div class="form-group"><label class="form-label">Seriennummer</label><input class="form-input" id="g-seriennummer"></div></div>
-      <div class="grid-2"><div class="form-group"><label class="form-label">Installationsdatum</label><input class="form-input" type="date" id="g-baujahr"></div><div class="form-group"><label class="form-label">Hotelbereich *</label><select class="form-select" id="g-bereich"><option value="">– auswählen –</option></select></div></div>
-      <div class="grid-2"><div class="form-group"><label class="form-label">Raum / Detail</label><input class="form-input" id="g-raum" placeholder="z.B. Zimmer 312, Technikraum, Keller"></div><div class="form-group"><label class="form-label">&nbsp;</label><input type="hidden" id="g-standort"></div></div>
+      <div class="grid-2"><div class="form-group"><label class="form-label">Installationsdatum</label><input class="form-input" type="date" id="g-baujahr"></div><div class="form-group"><label class="form-label">Standort / Raum</label><input class="form-input" id="g-standort"></div></div>
       <div class="grid-2"><div class="form-group"><label class="form-label">Nächste Wartung</label><input class="form-input" type="date" id="g-naechste-wartung"></div><div class="form-group"><label class="form-label">Zuständige Partnerfirma</label><select class="form-select" id="g-partner"><option value="">– auswählen –</option></select></div></div>
       <div class="form-group"><label class="form-label">Notizen</label><textarea class="form-textarea" id="g-notizen"></textarea></div>
     </div>
@@ -758,8 +780,7 @@
     <div class="modal-body">
       <div class="grid-2"><div class="form-group"><label class="form-label">Firmenname *</label><input class="form-input" id="p-name"></div><div class="form-group"><label class="form-label">Fachbereich</label><select class="form-select" id="p-bereich"><option>Aufzugstechnik</option><option>Heizung & Sanitär</option><option>Elektrotechnik</option><option>Klimatechnik</option><option>Brandschutz</option><option>Sicherheitstechnik</option><option>IT & Netzwerk</option><option>Allgemeiner Gebäudeservice</option><option>Sonstiges</option></select></div></div>
       <div class="grid-2"><div class="form-group"><label class="form-label">Ansprechpartner</label><input class="form-input" id="p-kontakt"></div><div class="form-group"><label class="form-label">Telefon</label><input class="form-input" id="p-telefon"></div></div>
-      <div class="grid-2"><div class="form-group"><label class="form-label">Mobile</label><input class="form-input" id="p-mobile"></div><div class="form-group"><label class="form-label">E-Mail</label><input class="form-input" id="p-email" type="email"></div></div>
-      <div class="grid-2"><div class="form-group"><label class="form-label">Website</label><input class="form-input" id="p-web" type="url" placeholder="https://..."></div><div class="form-group"><label class="form-label">Vertragsnummer</label><input class="form-input" id="p-vertrag"></div></div>
+      <div class="grid-2"><div class="form-group"><label class="form-label">E-Mail</label><input class="form-input" id="p-email" type="email"></div><div class="form-group"><label class="form-label">Vertragsnummer</label><input class="form-input" id="p-vertrag"></div></div>
       <div class="form-group"><label class="form-label">Adresse</label><input class="form-input" id="p-adresse"></div>
       <div class="form-group"><label class="form-label">Notizen</label><textarea class="form-textarea" id="p-notizen"></textarea></div>
     </div>
@@ -773,7 +794,6 @@
     <div class="modal-body">
       <div class="grid-2"><div class="form-group"><label class="form-label">Name / Funktion *</label><input class="form-input" id="n-name"></div><div class="form-group"><label class="form-label">Kategorie</label><select class="form-select" id="n-kategorie"><option>Intern</option><option>Feuerwehr / Rettung</option><option>Polizei</option><option>Aufzugnotdienst</option><option>Heizungsnotdienst</option><option>Elektronotdienst</option><option>Wassernotdienst</option><option>Facility Management</option><option>Sonstiges</option></select></div></div>
       <div class="grid-2"><div class="form-group"><label class="form-label">Telefon *</label><input class="form-input" id="n-telefon"></div><div class="form-group"><label class="form-label">Erreichbar</label><select class="form-select" id="n-erreichbar"><option value="24/7">24/7</option><option value="werktags">Werktags</option><option value="auf-abruf">Auf Abruf</option></select></div></div>
-      <div class="form-group"><label class="form-label">Mobile</label><input class="form-input" id="n-mobile"></div>
       <div class="form-group"><label class="form-label">Notizen</label><textarea class="form-textarea" id="n-notizen"></textarea></div>
     </div>
     <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('modal-notfall')">Abbrechen</button><button class="btn btn-primary" id="btn-save-notfall">Kontakt speichern</button></div>
@@ -859,13 +879,13 @@ async function checkUserAccess(user) {
 
   // 1. Check if admin
   const adminDoc = await getDoc(doc(db, 'admins', emailKey));
-  if (adminDoc.exists()) { window._userRole = 'admin'; return 'admin'; }
+  if (adminDoc.exists()) return 'admin';
 
   // 2. Check approved users
   const approvedDoc = await getDoc(doc(db, 'approvedUsers', emailKey));
   if (approvedDoc.exists()) {
     const data = approvedDoc.data();
-    if (data.status === 'approved') { window._userRole = data.role || 'reception'; return 'approved'; }
+    if (data.status === 'approved') return 'approved';
     if (data.status === 'rejected') return 'rejected';
   }
 
@@ -938,6 +958,8 @@ onAuthStateChanged(auth, async user => {
       }
       window._fbSignOut = () => fbSignOut(auth);
       window._isAdmin = (access === 'admin');
+      setupDebugUIAfterAuth(access);
+
       // Show admin UI elements
       if (access === 'admin') {
         const nb = document.getElementById('nav-benutzer'); if(nb) nb.style.display='';
@@ -985,12 +1007,8 @@ function startAdminListeners() {
           <div style="font-weight:600;font-size:13.5px;">${r.name || '–'}</div>
           <div style="font-size:12px;color:var(--text3);">${r.email}</div>
         </div>
-        <div style="display:flex;gap:6px;align-items:center;">
-          <select id="role-${r.id}" style="border:1px solid var(--border2);border-radius:6px;padding:6px 8px;font-size:12px;background:var(--surface);">
-            <option value="reception">Reception</option>
-            <option value="hauswart">Hauswart</option>
-          </select>
-          <button class="btn btn-sm" style="background:var(--green-light);color:var(--green);border:1px solid #86efac;" onclick="approveUser('${r.id}','${r.email}','${r.name}',document.getElementById('role-${r.id}').value)">✅ Genehmigen</button>
+        <div style="display:flex;gap:6px;">
+          <button class="btn btn-sm" style="background:var(--green-light);color:var(--green);border:1px solid #86efac;" onclick="approveUser('${r.id}','${r.email}','${r.name}')">✅ Genehmigen</button>
           <button class="btn btn-sm" style="background:var(--red-light);color:var(--red);border:1px solid #fca5a5;" onclick="rejectUser('${r.id}')">🚫 Ablehnen</button>
         </div>
       </div>`).join('') : '<div class="card-body"><div class="empty-state"><div class="empty-icon">✅</div><p>Keine offenen Anfragen</p></div></div>';
@@ -1003,18 +1021,10 @@ function startAdminListeners() {
       <div style="display:flex;align-items:center;gap:12px;padding:12px 20px;border-bottom:1px solid var(--border);">
         <div style="font-size:20px;">👤</div>
         <div style="flex:1;">
-          <div style="font-weight:500;font-size:13.5px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-            <span>${u.name || u.email}</span>
-            <span class="badge badge-gray" style="text-transform:capitalize;">${(u.role||'reception').replace('hauswart','Hauswart').replace('reception','Reception')}</span>
-          </div>
+          <div style="font-weight:500;font-size:13.5px;">${u.name || u.email}</div>
           <div style="font-size:12px;color:var(--text3);">${u.email}</div>
         </div>
-        <div style="display:flex;gap:6px;align-items:center;">
-          <select onchange="setUserRole('${u.id}',this.value)" style="border:1px solid var(--border2);border-radius:6px;padding:6px 8px;font-size:12px;background:var(--surface);">
-            <option value="reception" ${(u.role||'reception')==='reception'?'selected':''}>Reception</option>
-            <option value="hauswart" ${(u.role||'reception')==='hauswart'?'selected':''}>Hauswart</option>
-          </select>
-
+        <div style="display:flex;gap:6px;">
           <button class="btn btn-sm" style="background:var(--accent-light);color:var(--accent);border:1px solid #bfdbfe;" onclick="makeAdmin('${u.id}','${u.email}','${u.name||u.email}')">🛡️ Admin machen</button>
           <button class="btn btn-sm btn-secondary" onclick="revokeUser('${u.id}','${u.email}')">Zugang entziehen</button>
         </div>
@@ -1049,8 +1059,8 @@ window.removeAdmin = async (emailKey, email) => {
   await addLog(`Admin-Rechte entzogen: ${email}`, '#dc2626');
 };
 
-window.approveUser = async (emailKey, email, name, role='reception') => {
-  await setDoc(doc(db, 'approvedUsers', emailKey), { email, name, role: role||'reception', status: 'approved', createdAt: serverTimestamp() });
+window.approveUser = async (emailKey, email, name) => {
+  await setDoc(doc(db, 'approvedUsers', emailKey), { email, name, status: 'approved', createdAt: serverTimestamp() });
   await updateDoc(doc(db, 'accessRequests', emailKey), { status: 'approved' });
   await addLog(`Nutzer "${name||email}" genehmigt`, '#16a34a');
 };
@@ -1067,17 +1077,6 @@ window.revokeUser = async (emailKey, email) => {
   await addLog(`Zugang entzogen: ${email}`, '#dc2626');
 };
 
-
-window.setUserRole = async (emailKey, role) => {
-  try{
-    await updateDoc(doc(db,'approvedUsers', emailKey), { role: role||'reception' });
-    await addLog(`Rolle aktualisiert: ${emailKey.replace(/_/g,'.')} → ${role}`, '#2563eb');
-  }catch(e){
-    console.error(e);
-    alert('Rolle konnte nicht geändert werden: ' + e.message);
-  }
-};
-
 // Expose Firebase functions for import
 window._addDoc = (colName, data) => addDoc(collection(db, colName), data);
 window._serverTimestamp = () => serverTimestamp();
@@ -1087,68 +1086,7 @@ window._addLog = addLog;
 function col(name) { return query(collection(db, name), orderBy('createdAt', 'desc')); }
 
 let loadedCount = 0;
-
-let _wartungTicketGenDone = false;
-
-async function generateTicketsFromDueWartungen() {
-  try{
-    if(!currentUser) return;
-    const today = new Date();
-    const todayStr = today.toISOString().slice(0,10); // YYYY-MM-DD
-    const due = (window.state.wartungen||[]).filter(w=>{
-      if(!w) return false;
-      if(!w.autoTicket) return false;
-      if(!w.datum) return false;
-      if(w.status==='abgeschlossen' || w.status==='storniert') return false;
-      return String(w.datum) <= todayStr;
-    });
-
-    for(const w of due){
-      // Prevent duplicates
-      if(w.ticketId) continue;
-      if((window.state.tickets||[]).some(t=>t.wartungId===w.id)) {
-        // backfill wartung doc to avoid future checks
-        try{ await updateDoc(doc(db,'wartungen',w.id), {ticketId: 'existing'}); }catch(e){}
-        continue;
-      }
-
-      const betreff = `Wartung: ${w.bezeichnung||'Wartungsauftrag'}`;
-      const parts = [];
-      parts.push(`Automatisch erstellt aus Wartungsauftrag.`);
-      if(w.datum) parts.push(`Fällig am: ${fDate(w.datum)}`);
-      if(w.partnerName) parts.push(`Firma: ${w.partnerName}`);
-      if(w.geraetName) parts.push(`Gerät/Anlage: ${w.geraetName}`);
-      const beschreibung = parts.join('\n');
-
-      const data = {
-        betreff,
-        beschreibung,
-        prioritaet: 'normal',
-        status: 'offen',
-        ersteller: 'System',
-        createdAt: serverTimestamp(),
-        wartungId: w.id,
-        wartungSeriesId: w.seriesId||'',
-        wartungDatum: w.datum,
-        geraetId: w.geraetId||'',
-        geraetName: w.geraetName||'',
-        partnerId: w.partnerId||'',
-        partnerName: w.partnerName||'',
-        bereichId: '',
-        bereichName: 'Wartung',
-        autoGenerated: true
-      };
-
-      const ref = await addDoc(collection(db,'tickets'), data);
-      await updateDoc(doc(db,'wartungen',w.id), {ticketId: ref.id});
-      await addLog(`Ticket (Wartung) erstellt: "${betreff}"`, '#dc2626');
-    }
-  } catch(err){
-    console.error('generateTicketsFromDueWartungen failed', err);
-  }
-}
-
-function checkLoaded() { loadedCount++; if (loadedCount >= 8) { document.getElementById('loading-overlay').classList.add('hidden'); if(!_wartungTicketGenDone){ _wartungTicketGenDone=true; generateTicketsFromDueWartungen(); } } }
+function checkLoaded() { loadedCount++; if (loadedCount >= 8) document.getElementById('loading-overlay').classList.add('hidden'); }
 
 function startListeners() {
   loadedCount = 0;
@@ -1211,7 +1149,6 @@ document.getElementById('btn-save-wartung').onclick = async () => {
     geraetId: gId, geraetName: window.state.geraete.find(g=>g.id===gId)?.name||'',
     partnerId: pId, partnerName: window.state.partner.find(p=>p.id===pId)?.name||'',
     intervall, notizen: document.getElementById('w-notizen').value,
-    autoTicket: document.getElementById('w-autoTicket').checked,
   };
   if(window._editId && window._editType==='wartungen'){
     await updateDoc(doc(db,'wartungen',window._editId), {...base, datum, status: new Date(datum)<new Date()?'faellig':'geplant'});
@@ -1240,11 +1177,7 @@ document.getElementById('btn-save-geraet').onclick = async () => {
     hersteller: document.getElementById('g-hersteller').value,
     seriennummer: document.getElementById('g-seriennummer').value,
     baujahr: document.getElementById('g-baujahr').value,
-    bereichId: document.getElementById('g-bereich')?.value || '',
-    bereichName: window.state.bereiche.find(b=>b.id=== (document.getElementById('g-bereich')?.value||''))?.name || '',
-    raum: document.getElementById('g-raum')?.value || '',
-    standort: document.getElementById('g-standort')?.value || '', // legacy
-
+    standort: document.getElementById('g-standort').value,
     naechsteWartung: document.getElementById('g-naechste-wartung').value,
     partnerId: pId, partnerName: window.state.partner.find(p=>p.id===pId)?.name||'',
     notizen: document.getElementById('g-notizen').value,
@@ -1267,9 +1200,7 @@ document.getElementById('btn-save-partner').onclick = async () => {
     name, bereich: document.getElementById('p-bereich').value,
     kontakt: document.getElementById('p-kontakt').value,
     telefon: document.getElementById('p-telefon').value,
-    mobile: document.getElementById('p-mobile').value,
     email: document.getElementById('p-email').value,
-    website: (function(){ const v=(document.getElementById('p-web').value||'').trim(); if(!v) return ''; return (/^https?:\/\//i.test(v))?v:`https://${v}`; })(),
     vertrag: document.getElementById('p-vertrag').value,
     adresse: document.getElementById('p-adresse').value,
     notizen: document.getElementById('p-notizen').value,
@@ -1291,8 +1222,7 @@ document.getElementById('btn-save-notfall').onclick = async () => {
   if (!name||!telefon) { alert('Name und Telefon ausfüllen.'); return; }
   const data = {
     name, kategorie: document.getElementById('n-kategorie').value,
-    telefon, mobile: document.getElementById('n-mobile').value,
-    erreichbar: document.getElementById('n-erreichbar').value,
+    telefon, erreichbar: document.getElementById('n-erreichbar').value,
     notizen: document.getElementById('n-notizen').value,
   };
   if(window._editId && window._editType==='notfaelle'){
@@ -1355,7 +1285,6 @@ window.updateWartungStatus = async (id, status) => {
             geraetId: w.geraetId||'', geraetName: w.geraetName||'',
             partnerId: w.partnerId||'', partnerName: w.partnerName||'',
             intervall: w.intervall, notizen: w.notizen||'',
-            autoTicket: !!w.autoTicket,
             datum: d, status: 'geplant', seriesId, createdAt: serverTimestamp()
           });
         }
@@ -1437,7 +1366,6 @@ window.editItem = (type, id) => {
     document.getElementById('w-partner').value=item.partnerId||'';
     document.getElementById('w-datum').value=item.datum||'';
     document.getElementById('w-intervall').value=item.intervall||'einmalig';
-    document.getElementById('w-autoTicket').checked=!!item.autoTicket;
     document.getElementById('w-notizen').value=item.notizen||'';
     document.getElementById('modal-wartung').querySelector('.modal-title').textContent='Wartungsauftrag bearbeiten';
     document.getElementById('btn-save-wartung').textContent='Änderungen speichern';
@@ -1448,8 +1376,6 @@ window.editItem = (type, id) => {
     document.getElementById('g-hersteller').value=item.hersteller||'';
     document.getElementById('g-seriennummer').value=item.seriennummer||'';
     document.getElementById('g-baujahr').value=item.baujahr||'';
-    document.getElementById('g-bereich').value=item.bereichId||'';
-    document.getElementById('g-raum').value=item.raum||'';
     document.getElementById('g-standort').value=item.standort||'';
     document.getElementById('g-naechste-wartung').value=item.naechsteWartung||'';
     document.getElementById('g-partner').value=item.partnerId||'';
@@ -1462,9 +1388,7 @@ window.editItem = (type, id) => {
     document.getElementById('p-bereich').value=item.bereich||'';
     document.getElementById('p-kontakt').value=item.kontakt||'';
     document.getElementById('p-telefon').value=item.telefon||'';
-    document.getElementById('p-mobile').value=item.mobile||'';
     document.getElementById('p-email').value=item.email||'';
-    document.getElementById('p-web').value=item.website||'';
     document.getElementById('p-vertrag').value=item.vertrag||'';
     document.getElementById('p-adresse').value=item.adresse||'';
     document.getElementById('p-notizen').value=item.notizen||'';
@@ -1475,7 +1399,6 @@ window.editItem = (type, id) => {
     document.getElementById('n-name').value=item.name||'';
     document.getElementById('n-kategorie').value=item.kategorie||'';
     document.getElementById('n-telefon').value=item.telefon||'';
-    document.getElementById('n-mobile').value=item.mobile||'';
     document.getElementById('n-erreichbar').value=item.erreichbar||'24/7';
     document.getElementById('n-notizen').value=item.notizen||'';
     document.getElementById('modal-notfall').querySelector('.modal-title').textContent='Notfallkontakt bearbeiten';
@@ -1507,21 +1430,6 @@ window.editItem = (type, id) => {
 
 <script>
 window.state = { tickets:[], wartungen:[], geraete:[], partner:[], notfaelle:[], dokumente:[], bereiche:[], log:[], ticketFilter:'alle', wartungFilter:'alle', geraeteFilter:'alle', bereicheFilter:'alle', calMonth:new Date().getMonth(), calYear:new Date().getFullYear(), ticketSearch:'' };
-
-// Force responsive visibility (prevents table + mobile cards showing at the same time)
-function applyResponsiveVisibility(){
-  const isMobile = window.matchMedia('(max-width: 768px)').matches;
-  document.querySelectorAll('.mobile-card-list').forEach(el=>{
-    el.style.display = isMobile ? 'flex' : 'none';
-  });
-  document.querySelectorAll('.table-wrap').forEach(el=>{
-    el.style.display = isMobile ? 'none' : '';
-  });
-}
-window.addEventListener('resize', applyResponsiveVisibility);
-applyResponsiveVisibility();
-
-
 
 const pageLabels = {dashboard:'Dashboard',tickets:'Tickets & Störungen',wartung:'Wartungsaufträge',kalender:'Wartungskalender',geraete:'Geräte & Anlagen',bereiche:'Hotelbereiche',dokumente:'Dokumente',partner:'Partnerfirmen',notfall:'Notfallkontakte',aktivitaet:'Aktivitätslog',benutzer:'Benutzerverwaltung',import:'Daten importieren',mehr:'Mehr'};
 
@@ -1599,7 +1507,7 @@ function showPage(name, navBtn, isBack) {
 function openModal(id) { populateSelects(); document.getElementById(id).classList.remove('hidden'); }
 function closeModal(id) {
   document.getElementById(id).classList.add('hidden');
-  document.querySelectorAll(`#${id} input,#${id} textarea`).forEach(e=>{ if(e.type==='checkbox') e.checked=false; else e.value=''; });
+  document.querySelectorAll(`#${id} input,#${id} textarea`).forEach(e=>e.value='');
   document.querySelectorAll(`#${id} select`).forEach(e=>e.selectedIndex=0);
   window._editId=null; window._editType=null;
   // Reset titles and button labels
@@ -1611,55 +1519,30 @@ function closeModal(id) {
 }
 
 function populateSelects() {
-  const g = state.geraete.map(g=>{
-    const loc = (g.bereichName||g.standort||'') + (g.raum?' / '+g.raum:'');
-    return `<option value="${g.id}">${g.name}${loc?' ('+loc+')':''}</option>`;
-  }).join('');
+  const g = state.geraete.map(g=>`<option value="${g.id}">${g.name}${g.standort?' ('+g.standort+')':''}</option>`).join('');
   const p = state.partner.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
   const b = state.bereiche.map(b=>`<option value="${b.id}">${b.name}</option>`).join('');
   ['t-geraet','w-geraet','d-geraet'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML='<option value="">– auswählen –</option>'+g;});
   ['t-partner','w-partner'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML='<option value="">– auswählen –</option>'+p;});
   const gp=document.getElementById('g-partner');if(gp)gp.innerHTML='<option value="">– auswählen –</option>'+p;
   const tb=document.getElementById('t-bereich');if(tb)tb.innerHTML='<option value="">– auswählen –</option>'+b;
-  const gb=document.getElementById('g-bereich');if(gb)gb.innerHTML='<option value="">– auswählen –</option>'+b;
 }
 
 // Auto-fill Bereich when Gerät is selected in ticket modal
 window.onTicketGeraetChange = function(geraetId) {
   if(!geraetId) return;
   const geraet = state.geraete.find(g=>g.id===geraetId);
-  if(!geraet) return;
-
-  // Prefer direct reference to hotelbereich
-  if(geraet.bereichId){
-    const tb=document.getElementById('t-bereich');
-    if(tb) tb.value = geraet.bereichId;
-    return;
-  }
-
-  // Legacy fallback: try to match standort text to a bereich name
-  if(!geraet.standort) return;
-  const s = String(geraet.standort).toLowerCase();
-  const match = state.bereiche.find(b=>String(b.name||'').toLowerCase()===s || s.includes(String(b.name||'').toLowerCase()));
-  if(match){
-    const tb=document.getElementById('t-bereich');
-    if(tb) tb.value = match.id;
-  }
-};
-
-// Auto-select Partnerfirma when Gerät/Anlage is selected in Wartung modal
-window.onWartungGeraetChange = function(geraetId) {
-  const wp = document.getElementById('w-partner');
-  if(!wp) return;
-  if(!geraetId){ return; }
-
-  const geraet = state.geraete.find(g=>g.id===geraetId);
-  if(!geraet) return;
-
-  // Prefer explicit partner reference on the device
-  if(geraet.partnerId){
-    wp.value = geraet.partnerId;
-    return;
+  if(!geraet||!geraet.standort) return;
+  // Try to match standort to a bereich name
+  const match = state.bereiche.find(b=>b.name.toLowerCase()===geraet.standort.toLowerCase()||geraet.standort.toLowerCase().includes(b.name.toLowerCase()));
+  const bereichSel = document.getElementById('t-bereich');
+  if(match && bereichSel) {
+    bereichSel.value = match.id;
+    bereichSel.disabled = true;
+    bereichSel.title = 'Wird automatisch vom Gerät-Standort übernommen';
+  } else if(bereichSel) {
+    bereichSel.disabled = false;
+    bereichSel.title = '';
   }
 };
 
@@ -1708,7 +1591,7 @@ function renderTickets() {
   if(state.ticketFilter!=='alle') data=data.filter(t=>t.status===state.ticketFilter);
   if(state.ticketSearch) data=data.filter(t=>t.betreff.toLowerCase().includes(state.ticketSearch.toLowerCase()));
   const tb=document.getElementById('tickets-table');
-  tb.innerHTML=data.length?data.map(t=>`<tr><td><span style="font-weight:500;">${t.betreff}</span>${t.autoGenerated?` <span class="badge badge-violet">🤖 Automatisch aus Wartung</span>`:''}${t.beschreibung?`<div style="font-size:12px;color:var(--text3);">${t.beschreibung.substring(0,60)}${t.beschreibung.length>60?'...':''}</div>`:''}</td><td>${t.geraetName||'–'}</td><td>${t.bereichName?`<span class="badge badge-blue">${t.bereichName}</span>`:'–'}</td><td><span class="badge ${pBadge[t.prioritaet]}">${pLabel[t.prioritaet]}</span></td><td><select onchange="updateTicketStatus('${t.id}',this.value)" style="border:1px solid var(--border2);border-radius:5px;padding:3px 8px;font-size:12px;background:var(--surface);"><option value="offen" ${t.status==='offen'?'selected':''}>Offen</option><option value="in_bearbeitung" ${t.status==='in_bearbeitung'?'selected':''}>In Bearbeitung</option><option value="erledigt" ${t.status==='erledigt'?'selected':''}>Erledigt</option></select></td><td style="font-size:12px;color:var(--text3);">${t.ersteller||t.gemeldet||'–'}</td><td>${t.partnerName||'–'}</td><td style="white-space:nowrap;"><button class="btn btn-sm btn-edit" onclick="editItem('tickets','${t.id}')">✏️</button> <button class="btn btn-secondary btn-sm" onclick="deleteItem('tickets','${t.id}')">🗑️</button></td></tr>`).join(''):`<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">🎫</div><p>Keine Tickets gefunden</p></div></td></tr>`;
+  tb.innerHTML=data.length?data.map(t=>`<tr><td><span style="font-weight:500;">${t.betreff}</span>${t.beschreibung?`<div style="font-size:12px;color:var(--text3);">${t.beschreibung.substring(0,60)}${t.beschreibung.length>60?'...':''}</div>`:''}</td><td>${t.geraetName||'–'}</td><td>${t.bereichName?`<span class="badge badge-blue">${t.bereichName}</span>`:'–'}</td><td><span class="badge ${pBadge[t.prioritaet]}">${pLabel[t.prioritaet]}</span></td><td><select onchange="updateTicketStatus('${t.id}',this.value)" style="border:1px solid var(--border2);border-radius:5px;padding:3px 8px;font-size:12px;background:var(--surface);"><option value="offen" ${t.status==='offen'?'selected':''}>Offen</option><option value="in_bearbeitung" ${t.status==='in_bearbeitung'?'selected':''}>In Bearbeitung</option><option value="erledigt" ${t.status==='erledigt'?'selected':''}>Erledigt</option></select></td><td style="font-size:12px;color:var(--text3);">${t.ersteller||t.gemeldet||'–'}</td><td>${t.partnerName||'–'}</td><td style="white-space:nowrap;"><button class="btn btn-sm btn-edit" onclick="editItem('tickets','${t.id}')">✏️</button> <button class="btn btn-secondary btn-sm" onclick="deleteItem('tickets','${t.id}')">🗑️</button></td></tr>`).join(''):`<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">🎫</div><p>Keine Tickets gefunden</p></div></td></tr>`;
 }
 
 function renderWartungen() {
@@ -1725,25 +1608,17 @@ function renderGeraete() {
   if(state.geraeteFilter==='aktiv') data=data.filter(g=>g.status==='aktiv');
   else if(state.geraeteFilter==='stoerung') data=data.filter(g=>g.status==='stoerung');
   const grid=document.getElementById('geraete-grid');
-  grid.innerHTML=data.length?data.map(g=>`<div class="device-card"><div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:8px;"><div style="font-size:28px;">${kIcons[g.kategorie]||'🔧'}</div><select onchange="changeGeraetStatus('${g.id}',this.value)" style="border:1px solid var(--border2);border-radius:5px;padding:2px 6px;font-size:11.5px;background:var(--surface);"><option value="aktiv" ${g.status==='aktiv'?'selected':''}>✅ Aktiv</option><option value="stoerung" ${g.status==='stoerung'?'selected':''}>🔴 Störung</option><option value="wartung" ${g.status==='wartung'?'selected':''}>🟡 Wartung</option><option value="ausser_betrieb" ${g.status==='ausser_betrieb'?'selected':''}>⚫ Außer Betrieb</option></select></div><div style="font-weight:600;font-size:14px;margin-bottom:4px;">${g.name}</div><div style="font-size:12px;color:var(--text3);margin-bottom:6px;">${(g.bereichName||g.standort||'–') + (g.raum?' / '+g.raum:'')}</div>${g.hersteller?`<div style="font-size:12px;color:var(--text3);margin-bottom:4px;">🏭 ${g.hersteller}${g.seriennummer?' · SN: '+g.seriennummer:''}</div>`:''}${g.naechsteWartung?`<div style="font-size:12px;color:${new Date(g.naechsteWartung)<new Date()?'var(--red)':'var(--text3)'};margin-bottom:4px;">🔧 Wartung: ${fDate(g.naechsteWartung)}</div>`:''}${g.partnerName?`<div style="font-size:12px;color:var(--text3);margin-bottom:4px;">🤝 ${g.partnerName}</div>`:''}${g.notizen?`<div style="font-size:11.5px;color:var(--text3);border-top:1px solid var(--border);padding-top:8px;margin-top:6px;">${g.notizen}</div>`:''}<div style="display:flex;justify-content:flex-end;gap:6px;margin-top:10px;"><button class="btn btn-sm btn-edit" onclick="editItem('geraete','${g.id}')">✏️ Bearbeiten</button><button class="btn btn-secondary btn-sm" onclick="deleteItem('geraete','${g.id}')">🗑️</button></div></div>`).join(''):`<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">⚙️</div><p>Noch keine Geräte erfasst</p></div>`;
-}
-
-function formatUrl(u){
-  if(!u) return '';
-  const s = (''+u).trim();
-  if(!s) return '';
-  if(/^https?:\/\//i.test(s)) return s;
-  return 'https://' + s.replace(/^\/\/+/, '');
+  grid.innerHTML=data.length?data.map(g=>`<div class="device-card"><div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:8px;"><div style="font-size:28px;">${kIcons[g.kategorie]||'🔧'}</div><select onchange="changeGeraetStatus('${g.id}',this.value)" style="border:1px solid var(--border2);border-radius:5px;padding:2px 6px;font-size:11.5px;background:var(--surface);"><option value="aktiv" ${g.status==='aktiv'?'selected':''}>✅ Aktiv</option><option value="stoerung" ${g.status==='stoerung'?'selected':''}>🔴 Störung</option><option value="wartung" ${g.status==='wartung'?'selected':''}>🟡 Wartung</option><option value="ausser_betrieb" ${g.status==='ausser_betrieb'?'selected':''}>⚫ Außer Betrieb</option></select></div><div style="font-weight:600;font-size:14px;margin-bottom:4px;">${g.name}</div><div style="font-size:12px;color:var(--text3);margin-bottom:6px;">${g.standort||'–'}</div>${g.hersteller?`<div style="font-size:12px;color:var(--text3);margin-bottom:4px;">🏭 ${g.hersteller}${g.seriennummer?' · SN: '+g.seriennummer:''}</div>`:''}${g.naechsteWartung?`<div style="font-size:12px;color:${new Date(g.naechsteWartung)<new Date()?'var(--red)':'var(--text3)'};margin-bottom:4px;">🔧 Wartung: ${fDate(g.naechsteWartung)}</div>`:''}${g.partnerName?`<div style="font-size:12px;color:var(--text3);margin-bottom:4px;">🤝 ${g.partnerName}</div>`:''}${g.notizen?`<div style="font-size:11.5px;color:var(--text3);border-top:1px solid var(--border);padding-top:8px;margin-top:6px;">${g.notizen}</div>`:''}<div style="display:flex;justify-content:flex-end;gap:6px;margin-top:10px;"><button class="btn btn-sm btn-edit" onclick="editItem('geraete','${g.id}')">✏️ Bearbeiten</button><button class="btn btn-secondary btn-sm" onclick="deleteItem('geraete','${g.id}')">🗑️</button></div></div>`).join(''):`<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">⚙️</div><p>Noch keine Geräte erfasst</p></div>`;
 }
 
 function renderPartner() {
   const grid=document.getElementById('partner-grid');
-  grid.innerHTML=state.partner.length?state.partner.map(p=>`<div class="card"><div class="card-body"><div style="font-weight:600;font-size:15px;margin-bottom:4px;">${p.name}</div><div style="margin-bottom:12px;"><span class="badge badge-blue">${p.bereich}</span></div>${p.kontakt?`<div style="font-size:13px;margin-bottom:4px;">👤 ${p.kontakt}</div>`:''}${p.telefon?`<div style="font-size:13px;margin-bottom:4px;">📞 <a href="tel:${p.telefon}" style="color:var(--accent);text-decoration:none;">${p.telefon}</a></div>`:''}${p.mobile?`<div style="font-size:13px;margin-bottom:4px;">📱 <a href="tel:${p.mobile}" style="color:var(--accent);text-decoration:none;">${p.mobile}</a></div>`:''}${p.email?`<div style="font-size:13px;margin-bottom:4px;">📧 <a href="mailto:${p.email}" style="color:var(--accent);text-decoration:none;">${p.email}</a></div>`:''}${p.website?`<div style="font-size:13px;margin-bottom:4px;">🌐 <a href="${formatUrl(p.website)}" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none;">${p.website}</a></div>`:''}${p.adresse?`<div style="font-size:12.5px;color:var(--text3);margin-bottom:4px;">📍 ${p.adresse}</div>`:''}${p.vertrag?`<div style="font-size:11.5px;color:var(--text3);font-family:'DM Mono',monospace;margin-bottom:8px;">Vertrag: ${p.vertrag}</div>`:''}${p.notizen?`<div style="font-size:12px;color:var(--text3);border-top:1px solid var(--border);padding-top:8px;margin-top:4px;">${p.notizen}</div>`:''}<div style="display:flex;justify-content:flex-end;gap:6px;margin-top:10px;"><button class="btn btn-sm btn-edit" onclick="editItem('partner','${p.id}')">✏️ Bearbeiten</button><button class="btn btn-secondary btn-sm" onclick="deleteItem('partner','${p.id}')">🗑️</button></div></div></div>`).join(''):`<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">🏭</div><p>Noch keine Partnerfirmen erfasst</p></div>`;
+  grid.innerHTML=state.partner.length?state.partner.map(p=>`<div class="card"><div class="card-body"><div style="font-weight:600;font-size:15px;margin-bottom:4px;">${p.name}</div><div style="margin-bottom:12px;"><span class="badge badge-blue">${p.bereich}</span></div>${p.kontakt?`<div style="font-size:13px;margin-bottom:4px;">👤 ${p.kontakt}</div>`:''}${p.telefon?`<div style="font-size:13px;margin-bottom:4px;">📞 <a href="tel:${p.telefon}" style="color:var(--accent);text-decoration:none;">${p.telefon}</a></div>`:''}${p.email?`<div style="font-size:13px;margin-bottom:4px;">📧 <a href="mailto:${p.email}" style="color:var(--accent);text-decoration:none;">${p.email}</a></div>`:''}${p.adresse?`<div style="font-size:12.5px;color:var(--text3);margin-bottom:4px;">📍 ${p.adresse}</div>`:''}${p.vertrag?`<div style="font-size:11.5px;color:var(--text3);font-family:'DM Mono',monospace;margin-bottom:8px;">Vertrag: ${p.vertrag}</div>`:''}${p.notizen?`<div style="font-size:12px;color:var(--text3);border-top:1px solid var(--border);padding-top:8px;margin-top:4px;">${p.notizen}</div>`:''}<div style="display:flex;justify-content:flex-end;gap:6px;margin-top:10px;"><button class="btn btn-sm btn-edit" onclick="editItem('partner','${p.id}')">✏️ Bearbeiten</button><button class="btn btn-secondary btn-sm" onclick="deleteItem('partner','${p.id}')">🗑️</button></div></div></div>`).join(''):`<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">🏭</div><p>Noch keine Partnerfirmen erfasst</p></div>`;
 }
 
 function renderNotfall() {
   const grid=document.getElementById('notfall-grid');
-  grid.innerHTML=state.notfaelle.length?state.notfaelle.map(n=>`<div class="card" style="border-left:3px solid var(--red);"><div class="card-body"><div style="font-weight:600;font-size:15px;margin-bottom:6px;">${n.name}</div><div style="margin-bottom:12px;"><span class="badge badge-red">${n.kategorie}</span> <span class="badge badge-gray">${n.erreichbar}</span></div><div style="font-size:20px;font-weight:700;margin-bottom:8px;">📞 <a href="tel:${n.telefon}" style="color:var(--red);text-decoration:none;">${n.telefon}</a></div>${n.mobile?`<div style="font-size:13px;margin-bottom:8px;">📱 <a href="tel:${n.mobile}" style="color:var(--red);text-decoration:none;">${n.mobile}</a></div>`:''}${n.notizen?`<div style="font-size:12px;color:var(--text3);">${n.notizen}</div>`:''}<div style="display:flex;justify-content:flex-end;gap:6px;margin-top:10px;"><button class="btn btn-sm btn-edit" onclick="editItem('notfaelle','${n.id}')">✏️ Bearbeiten</button><button class="btn btn-secondary btn-sm" onclick="deleteItem('notfaelle','${n.id}')">🗑️</button></div></div></div>`).join(''):`<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">🚨</div><p>Noch keine Notfallkontakte</p></div>`;
+  grid.innerHTML=state.notfaelle.length?state.notfaelle.map(n=>`<div class="card" style="border-left:3px solid var(--red);"><div class="card-body"><div style="font-weight:600;font-size:15px;margin-bottom:6px;">${n.name}</div><div style="margin-bottom:12px;"><span class="badge badge-red">${n.kategorie}</span> <span class="badge badge-gray">${n.erreichbar}</span></div><div style="font-size:20px;font-weight:700;margin-bottom:8px;">📞 <a href="tel:${n.telefon}" style="color:var(--red);text-decoration:none;">${n.telefon}</a></div>${n.notizen?`<div style="font-size:12px;color:var(--text3);">${n.notizen}</div>`:''}<div style="display:flex;justify-content:flex-end;gap:6px;margin-top:10px;"><button class="btn btn-sm btn-edit" onclick="editItem('notfaelle','${n.id}')">✏️ Bearbeiten</button><button class="btn btn-secondary btn-sm" onclick="deleteItem('notfaelle','${n.id}')">🗑️</button></div></div></div>`).join(''):`<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">🚨</div><p>Noch keine Notfallkontakte</p></div>`;
 }
 
 function renderDokumente() {
@@ -1777,7 +1652,6 @@ function renderTicketsMobile() {
     </div>
     <div class="mobile-card-meta">
       <span class="badge ${sBadge[t.status]}">${sLabel[t.status]}</span>
-      ${t.autoGenerated?`<span class="badge badge-violet">🤖 Automatisch aus Wartung</span>`:''}
       ${t.geraetName?`<span class="badge badge-gray">⚙️ ${t.geraetName}</span>`:''}
       ${t.partnerName?`<span class="badge badge-gray">🏭 ${t.partnerName}</span>`:''}
     </div>
@@ -1911,12 +1785,12 @@ setInterval(()=>{document.getElementById('clock').textContent=new Date().toLocal
 // ---- EXCEL IMPORT / EXPORT ----
 const TEMPLATES = {
   partner: {
-    cols: ['Name','Bereich','Kontakt','Telefon','Mobile','Email','Website','Adresse','Vertrag','Notizen'],
-    example: ['Muster GmbH','Heizung & Sanitär','Hans Muster','044 123 45 67','079 123 45 67','info@muster.ch','https://muster.ch','Musterstrasse 1, Zürich','V-2024-001','Notiz hier']
+    cols: ['Name','Bereich','Kontakt','Telefon','Email','Adresse','Vertrag','Notizen'],
+    example: ['Muster GmbH','Heizung & Sanitär','Hans Muster','044 123 45 67','info@muster.ch','Musterstrasse 1, Zürich','V-2024-001','Notiz hier']
   },
   notfall: {
-    cols: ['Name','Kategorie','Telefon','Mobile','Erreichbar','Notizen'],
-    example: ['Feuerwehr Oerlikon','Feuerwehr / Rettung','118','','24/7','']
+    cols: ['Name','Kategorie','Telefon','Erreichbar','Notizen'],
+    example: ['Feuerwehr Oerlikon','Feuerwehr / Rettung','118','24/7','']
   },
   geraete: {
     cols: ['Name','Kategorie','Hersteller','Seriennummer','Standort','Baujahr','NaechsteWartung','Notizen'],
@@ -1957,10 +1831,10 @@ window.handleImport = async function(input, type) {
         let docData = { createdAt: window._serverTimestamp() };
         if(type==='partner') {
           if(!row['Name']) continue;
-          docData = {...docData, name:row['Name']||'', bereich:row['Bereich']||'Sonstiges', kontakt:row['Kontakt']||'', telefon:String(row['Telefon']||''), mobile:String(row['Mobile']||''), email:row['Email']||'', website:String(row['Website']||''), adresse:row['Adresse']||'', vertrag:row['Vertrag']||'', notizen:row['Notizen']||'' };
+          docData = {...docData, name:row['Name']||'', bereich:row['Bereich']||'Sonstiges', kontakt:row['Kontakt']||'', telefon:String(row['Telefon']||''), email:row['Email']||'', adresse:row['Adresse']||'', vertrag:row['Vertrag']||'', notizen:row['Notizen']||'' };
         } else if(type==='notfall') {
           if(!row['Name']||!row['Telefon']) continue;
-          docData = {...docData, name:row['Name']||'', kategorie:row['Kategorie']||'Sonstiges', telefon:String(row['Telefon']||''), mobile:String(row['Mobile']||''), erreichbar:row['Erreichbar']||'24/7', notizen:row['Notizen']||'' };
+          docData = {...docData, name:row['Name']||'', kategorie:row['Kategorie']||'Sonstiges', telefon:String(row['Telefon']||''), erreichbar:row['Erreichbar']||'24/7', notizen:row['Notizen']||'' };
         } else if(type==='geraete') {
           if(!row['Name']) continue;
           docData = {...docData, name:row['Name']||'', kategorie:row['Kategorie']||'sonstiges', hersteller:row['Hersteller']||'', seriennummer:String(row['Seriennummer']||''), standort:row['Standort']||'', baujahr:row['Baujahr']?String(row['Baujahr']):'', naechsteWartung:row['NaechsteWartung']?String(row['NaechsteWartung']):'', notizen:row['Notizen']||'', status:'aktiv' };
@@ -1981,6 +1855,197 @@ window.handleImport = async function(input, type) {
     resultEl.innerHTML=`<div style="background:var(--red-light);color:var(--red);padding:10px 12px;border-radius:7px;font-size:13px;">❌ Fehler: ${e.message}</div>`;
   }
 };
+
+<!-- ADMIN DEBUG PANEL -->
+<div class="debug-overlay" id="debug-overlay" onclick="if(event.target.id==='debug-overlay') closeDebugPanel()">
+  <div class="debug-panel" role="dialog" aria-modal="true" aria-label="Debug Panel">
+    <div class="debug-head">
+      <div>
+        <div class="debug-title">🐞 FacilityOS Debug (Admin)</div>
+        <div class="debug-sub" id="debug-sub">–</div>
+      </div>
+      <button class="modal-close" onclick="closeDebugPanel()">×</button>
+    </div>
+    <div class="debug-body">
+      <div class="debug-row"><div class="debug-k">Build</div><div class="debug-v" id="dbg-build">–</div></div>
+      <div class="debug-row"><div class="debug-k">User</div><div class="debug-v" id="dbg-user">–</div></div>
+      <div class="debug-row"><div class="debug-k">Rolle</div><div class="debug-v" id="dbg-role">–</div></div>
+      <div class="debug-row"><div class="debug-k">Sync</div><div class="debug-v" id="dbg-sync">–</div></div>
+      <div class="debug-row"><div class="debug-k">Daten</div><div class="debug-v" id="dbg-counts">–</div></div>
+      <div class="debug-row"><div class="debug-k">Wartung-Generator</div><div class="debug-v" id="dbg-gen">–</div></div>
+
+      <div style="margin-top:12px;margin-bottom:6px;color:var(--text3);font-size:12px;font-weight:600;">Letzte Meldungen</div>
+      <div class="debug-log" id="dbg-log">–</div>
+
+      <div class="debug-actions">
+        <button class="btn btn-secondary btn-sm" onclick="refreshDebugPanel()">↻ Aktualisieren</button>
+        <button class="btn btn-secondary btn-sm" onclick="copyDebugReport()">📋 Log kopieren</button>
+        <button class="btn btn-secondary btn-sm" onclick="downloadDebugReport()">⬇️ Report.json</button>
+      </div>
+
+      <div style="margin-top:10px;font-size:11.5px;color:var(--text3);">
+        Tipp: Wenn etwas nicht stimmt, kopiere den Log und sende ihn an den Support/Entwickler.
+      </div>
+    </div>
+  </div>
+</div>
+
 </script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script></body>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js">
+// ===== ADMIN DEBUG PANEL =====
+const __BUILD = "2026-02-24 07:32";
+const __debug = {
+  build: __BUILD,
+  startedAt: Date.now(),
+  messages: [],
+  maxMessages: 80,
+  lastSyncLabel: null,
+  lastSyncAt: null,
+  wartungGen: { ran: false, created: 0, skipped: 0, lastRunAt: null },
+};
+
+function _pushDbg(level, msg, extra) {
+  try {
+    const item = {
+      t: new Date().toISOString(),
+      level,
+      msg: (typeof msg === 'string') ? msg : (msg?.message || JSON.stringify(msg)),
+      extra: extra ? (typeof extra === 'string' ? extra : JSON.stringify(extra)) : undefined
+    };
+    __debug.messages.unshift(item);
+    if (__debug.messages.length > __debug.maxMessages) __debug.messages.length = __debug.maxMessages;
+  } catch(e) {}
+}
+
+(function hookConsole(){
+  const origErr = console.error.bind(console);
+  const origWarn = console.warn.bind(console);
+  console.error = (...args) => { _pushDbg('error', args[0], args.slice(1)); origErr(...args); };
+  console.warn  = (...args) => { _pushDbg('warn',  args[0], args.slice(1)); origWarn(...args); };
+  window.addEventListener('error', (e) => _pushDbg('error', e.message || 'window.error', { filename:e.filename, lineno:e.lineno, colno:e.colno }));
+  window.addEventListener('unhandledrejection', (e) => _pushDbg('error', 'unhandledrejection', (e.reason && (e.reason.message||e.reason)) || e));
+})();
+
+function setDebugButtonsVisible(isAdmin) {
+  const btn = document.getElementById('btn-debug');
+  const btnm = document.getElementById('btn-debug-mobile');
+  if(btn) btn.style.display = isAdmin ? '' : 'none';
+  if(btnm) btnm.style.display = isAdmin ? '' : 'none';
+}
+
+window.openDebugPanel = () => {
+  if(!window._isAdmin) return;
+  const ov = document.getElementById('debug-overlay');
+  if(ov) {
+    ov.classList.add('visible');
+    refreshDebugPanel();
+  }
+};
+window.closeDebugPanel = () => {
+  const ov = document.getElementById('debug-overlay');
+  if(ov) ov.classList.remove('visible');
+};
+window.refreshDebugPanel = () => {
+  try {
+    const sub = document.getElementById('debug-sub');
+    if(sub) sub.textContent = `Build ${__BUILD} · Uptime ${Math.round((Date.now()-__debug.startedAt)/1000)}s`;
+    const u = currentUser;
+    const userLine = u ? `${u.email||'–'} | ${u.uid||'–'}` : '–';
+    const roleLine = window._isAdmin ? 'admin' : (window._userRole || '–');
+
+    document.getElementById('dbg-build').textContent = __BUILD;
+    document.getElementById('dbg-user').textContent = userLine;
+    document.getElementById('dbg-role').textContent = roleLine;
+
+    const sync = document.getElementById('sync-label')?.textContent || __debug.lastSyncLabel || '–';
+    document.getElementById('dbg-sync').textContent = sync;
+
+    const counts = `tickets:${state?.tickets?.length||0} · wartungen:${state?.wartungen?.length||0} · geraete:${state?.geraete?.length||0} · bereiche:${state?.bereiche?.length||0} · partner:${state?.partner?.length||0} · notfall:${state?.notfall?.length||0}`;
+    document.getElementById('dbg-counts').textContent = counts;
+
+    const gen = __debug.wartungGen;
+    const genLine = gen.ran ? `letzter Lauf: ${gen.lastRunAt?new Date(gen.lastRunAt).toLocaleString(): '–'} · erstellt:${gen.created} · übersprungen:${gen.skipped}` : 'noch nicht gelaufen';
+    document.getElementById('dbg-gen').textContent = genLine;
+
+    const logEl = document.getElementById('dbg-log');
+    const lines = __debug.messages.slice(0, 40).map(m => `${m.t} [${m.level}] ${m.msg}${m.extra?(' | '+m.extra):''}`);
+    logEl.textContent = lines.length ? lines.join('\n') : 'Keine Warnungen/Fehler aufgezeichnet.';
+  } catch(e) {
+    console.error('refreshDebugPanel failed', e);
+  }
+};
+
+window.copyDebugReport = async () => {
+  try {
+    const report = buildDebugReport();
+    await navigator.clipboard.writeText(JSON.stringify(report, null, 2));
+    alert('Debug-Report in die Zwischenablage kopiert.');
+  } catch(e) {
+    console.error(e);
+    alert('Kopieren fehlgeschlagen: ' + (e.message||e));
+  }
+};
+window.downloadDebugReport = () => {
+  try {
+    const report = buildDebugReport();
+    const blob = new Blob([JSON.stringify(report, null, 2)], {type:'application/json'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `FacilityOS_Debug_${__BUILD.replace(/[: ]/g,'-')}.json`;
+    a.click();
+    setTimeout(()=>URL.revokeObjectURL(a.href), 1200);
+  } catch(e) {
+    console.error(e);
+    alert('Download fehlgeschlagen: ' + (e.message||e));
+  }
+};
+
+function buildDebugReport() {
+  return {
+    build: __BUILD,
+    url: location.href,
+    user: currentUser ? { email: currentUser.email, uid: currentUser.uid } : null,
+    isAdmin: !!window._isAdmin,
+    role: window._userRole || null,
+    counts: {
+      tickets: state?.tickets?.length||0,
+      wartungen: state?.wartungen?.length||0,
+      geraete: state?.geraete?.length||0,
+      bereiche: state?.bereiche?.length||0,
+      partner: state?.partner?.length||0,
+      notfall: state?.notfall?.length||0,
+      dokumente: state?.dokumente?.length||0,
+      log: state?.log?.length||0,
+    },
+    syncLabel: document.getElementById('sync-label')?.textContent || null,
+    wartungGenerator: __debug.wartungGen,
+    recentMessages: __debug.messages,
+    userAgent: navigator.userAgent,
+    time: new Date().toISOString(),
+  };
+}
+
+// Hook: expose a way for existing code to update generator stats safely
+window._dbgWartungGen = (patch={}) => {
+  try { __debug.wartungGen = {...__debug.wartungGen, ...patch}; } catch(e) {}
+};
+
+// Ensure buttons reflect admin state
+function setupDebugUIAfterAuth(access) {
+  const isAdmin = access === 'admin';
+  setDebugButtonsVisible(isAdmin);
+}
+
+// Keep last sync label
+setInterval(() => {
+  try {
+    const lbl = document.getElementById('sync-label')?.textContent || null;
+    if(lbl && lbl !== __debug.lastSyncLabel){
+      __debug.lastSyncLabel = lbl;
+      __debug.lastSyncAt = Date.now();
+    }
+  } catch(e){}
+}, 1500);
+
+</script></body>
 </html>
