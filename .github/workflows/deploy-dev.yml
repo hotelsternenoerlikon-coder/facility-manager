@@ -1,1 +1,42 @@
+name: Deploy dev branch to /dev
 
+on:
+  push:
+    branches:
+      - dev
+
+permissions:
+  contents: write
+
+jobs:
+  deploy-dev:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout dev branch
+        uses: actions/checkout@v4
+        with:
+          ref: dev
+          path: dev-src
+
+      - name: Checkout main branch
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: main-src
+
+      - name: Copy dev files into /dev folder
+        run: |
+          rm -rf main-src/dev
+          mkdir -p main-src/dev
+          rsync -av dev-src/ main-src/dev/ \
+            --exclude ".git" \
+            --exclude ".github"
+
+      - name: Commit and push
+        run: |
+          cd main-src
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add dev
+          git commit -m "Update dev test version" || echo "No changes"
+          git push
