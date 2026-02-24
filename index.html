@@ -645,6 +645,23 @@
     <div class="page page-hidden" id="page-import">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;" id="import-grid">
 
+        <!-- EXPORT -->
+        <div class="card" style="grid-column:1 / -1;">
+          <div class="card-header"><span class="card-title">📤 Daten exportieren</span><span style="font-size:12px;color:var(--text3);">Exportiert die aktuellen Daten als Excel-Datei (.xlsx)</span></div>
+          <div class="card-body">
+            <p style="font-size:13px;color:var(--text2);margin-bottom:14px;">Wähle den gewünschten Export. Die Datei wird direkt heruntergeladen.</p>
+            <div style="display:flex;flex-wrap:wrap;gap:10px;">
+              <button class="btn btn-secondary" onclick="exportData('tickets')">⬇️ Tickets & Störungen</button>
+              <button class="btn btn-secondary" onclick="exportData('wartungen')">⬇️ Wartungsaufträge</button>
+              <button class="btn btn-secondary" onclick="exportData('geraete')">⬇️ Geräte & Anlagen</button>
+              <button class="btn btn-secondary" onclick="exportData('partner')">⬇️ Partnerfirmen</button>
+              <button class="btn btn-secondary" onclick="exportData('notfaelle')">⬇️ Notfallkontakte</button>
+            </div>
+            <div id="export-result" style="margin-top:12px;"></div>
+          </div>
+        </div>
+
+
         <!-- Partnerfirmen -->
         <div class="card">
           <div class="card-header"><span class="card-title">🏭 Partnerfirmen importieren</span></div>
@@ -2316,6 +2333,80 @@ window.handleImport = async function(input, type) {
     resultEl.innerHTML=`<div style="background:var(--red-light);color:var(--red);padding:10px 12px;border-radius:7px;font-size:13px;">❌ Fehler: ${e.message}</div>`;
   }
 };
+
+window.exportData = async function(type){
+  const resultEl = document.getElementById('export-result');
+  if(resultEl) resultEl.innerHTML = '<div style="color:var(--text3);font-size:13px;">⏳ Export wird vorbereitet…</div>';
+  try{
+    const map = {
+      tickets:   { col:'tickets',   sheet:'Tickets',          file:'FacilityOS_Export_Tickets_Stoerungen.xlsx' },
+      wartungen: { col:'wartungen', sheet:'Wartungsauftraege',file:'FacilityOS_Export_Wartungsauftraege.xlsx' },
+      geraete:   { col:'geraete',   sheet:'Geraete',          file:'FacilityOS_Export_Geraete_Anlagen.xlsx' },
+      partner:   { col:'partner',   sheet:'Partnerfirmen',    file:'FacilityOS_Export_Partnerfirmen.xlsx' },
+      notfaelle: { col:'notfaelle', sheet:'Notfallkontakte',  file:'FacilityOS_Export_Notfallkontakte.xlsx' },
+    };
+    const cfg = map[type];
+    if(!cfg) throw new Error('Unbekannter Export-Typ: '+type);
+
+    const snap = await getDocs(collection(db, cfg.col));
+    const rows = [];
+    snap.forEach(d=>{
+      const data = d.data() || {};
+      rows.push({ id: d.id, ...data });
+    });
+
+    // Helper: convert Firestore Timestamp / arrays / objects to readable strings
+    const norm = (v)=>{
+      if(v===null || v===undefined) return '';
+      if(typeof v === 'object'){
+        if(typeof v.toDate === 'function'){
+          try { return v.toDate().toISOString(); } catch(e){ return ''; }
+        }
+        if(Array.isArray(v)) return v.map(norm).join(' | ');
+        const out = {};
+        for(const k in v){
+          if(!Object.prototype.hasOwnProperty.call(v,k)) continue;
+          out[k] = norm(v[k]);
+        }
+        return JSON.stringify(out);
+      }
+      return v;
+    };
+
+    const cleaned = rows.map(r=>{
+      const o = {};
+      Object.keys(r).forEach(k=>{ o[k] = norm(r[k]); });
+      return o;
+    });
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(cleaned);
+
+    const headers = Object.keys(cleaned[0]||{});
+    ws['!cols'] = headers.map(h=>({wch: Math.min(44, Math.max(12, String(h).length+2))}));
+
+    XLSX.utils.book_append_sheet(wb, ws, cfg.sheet);
+
+    const meta = [
+      ['Export', cfg.sheet],
+      ['Erstellt am', new Date().toLocaleString('de-CH')],
+      ['Anzahl Datensätze', cleaned.length],
+      ['Hinweis', 'Zeitstempel-Felder sind ISO-Strings. Komplexe Felder können als JSON dargestellt sein.']
+    ];
+    const ws2 = XLSX.utils.aoa_to_sheet(meta);
+    ws2['!cols'] = [{wch:22},{wch:70}];
+    XLSX.utils.book_append_sheet(wb, ws2, 'Info');
+
+    XLSX.writeFile(wb, cfg.file);
+
+    if(resultEl) resultEl.innerHTML = `<div style="color:var(--green);font-size:13px;">✅ Export erstellt: ${cleaned.length} Datensätze</div>`;
+  } catch(err){
+    console.error('exportData failed', err);
+    const resultEl = document.getElementById('export-result');
+    if(resultEl) resultEl.innerHTML = `<div style="color:var(--red);font-size:13px;">❌ Export fehlgeschlagen: ${esc(err?.message||String(err))}</div>`;
+  }
+};
+
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script></body>
 </html>
