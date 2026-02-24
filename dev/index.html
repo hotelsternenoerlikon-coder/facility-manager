@@ -549,7 +549,16 @@
         </div>
         <button class="btn btn-primary" onclick="openModal('modal-wartung')">+ Wartung planen</button>
       </div>
-      <div class="card"><div class="card-body"><div class="cal-grid" id="cal-header"></div><div class="cal-grid" id="cal-body" style="margin-top:4px;"></div></div></div>
+      <div class="card"><div class="card-body">
+        <div class="cal-grid" id="cal-header"></div>
+        <div class="cal-grid" id="cal-body" style="margin-top:4px;"></div>
+        <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:14px;padding-top:12px;border-top:1px solid var(--border);font-size:12px;color:var(--text3);">
+          <span><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:var(--accent-light);margin-right:5px;"></span>Geplant</span>
+          <span><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:var(--orange-light);margin-right:5px;"></span>Fällig</span>
+          <span><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:var(--green-light);margin-right:5px;"></span>Abgeschlossen</span>
+          <span><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:#f3f0ff;border:1px dashed #c4b5fd;margin-right:5px;"></span>Rolling-Vorschau (automatisch geplant)</span>
+        </div>
+      </div></div>
       <div class="card" style="margin-top:16px;"><div class="card-header"><span class="card-title">Ereignisse dieses Monats</span></div><div class="table-wrap"><table><thead><tr><th>Datum</th><th>Bezeichnung</th><th>Gerät</th><th>Typ</th><th>Status</th></tr></thead><tbody id="cal-events-list"></tbody></table></div></div>
     </div>
 
@@ -1355,16 +1364,15 @@ document.getElementById('btn-save-wartung').onclick = async () => {
     await updateDoc(doc(db,'wartungen',window._editId), {...base, datum, status: new Date(datum)<new Date()?'faellig':'geplant'});
     await addLog(`Wartung "${bez}" bearbeitet`, '#d97706');
   } else {
-    const dates = generateRecurringDates(datum, intervall);
-    const seriesId = bez.replace(/\s+/g,'_') + '_' + datum;
-    for(const d of dates){
-      await addDoc(collection(db,'wartungen'), {
-        ...base, datum: d,
-        status: new Date(d)<new Date() ? 'faellig' : 'geplant',
-        seriesId, createdAt: serverTimestamp()
-      });
-    }
-    await addLog(`Wartung "${bez}" erstellt (${dates.length} Termin${dates.length>1?'e':''}, ${intervall})`, '#d97706');
+    // Rolling system: only create ONE entry per series. Next occurrence is auto-created on completion.
+    const seriesId = intervall !== 'einmalig' ? (bez.replace(/\s+/g,'_') + '_' + Date.now()) : null;
+    await addDoc(collection(db,'wartungen'), {
+      ...base, datum,
+      status: new Date(datum)<new Date() ? 'faellig' : 'geplant',
+      seriesId, createdAt: serverTimestamp()
+    });
+    const recurText = intervall !== 'einmalig' ? `, ${intervall} wiederkehrend (rolling)` : '';
+    await addLog(`Wartung "${bez}" erstellt (${fDate(datum)}${recurText})`, '#d97706');
   }
   closeModal('modal-wartung');
 };
@@ -1478,30 +1486,38 @@ window.updateWartungStatus = async (id, status) => {
   await updateDoc(doc(db,'wartungen',id), {status});
   const w = window.state.wartungen.find(w=>w.id===id);
   await addLog(`Wartung "${w?.bezeichnung||id}" → ${status}`, '#d97706');
-  // Auto-continue: if abgeschlossen or storniert AND recurring, create next occurrence after last planned
-  if((status==='abgeschlossen'||status==='storniert') && w && w.intervall && w.intervall!=='einmalig' && w.seriesId) {
-    // Find latest datum in same series that is still geplant or faellig
-    const sameSeries = window.state.wartungen.filter(x=>x.seriesId===w.seriesId && x.id!==id && x.status!=='abgeschlossen' && x.status!=='storniert');
-    if(sameSeries.length === 0) {
-      // All done – generate 2 more years from today
-      const nextStart = w.datum; // extend from this date
-      const newDates = generateRecurringDates(nextStart, w.intervall, true); // extension mode
-      const seriesId = w.seriesId;
-      for(const d of newDates){
-        // Only add if not already existing
-        const exists = window.state.wartungen.some(x=>x.seriesId===seriesId && x.datum===d);
-        if(!exists){
-          await addDoc(collection(db,'wartungen'), {
-            bezeichnung: w.bezeichnung, typ: w.typ,
-            geraetId: w.geraetId||'', geraetName: w.geraetName||'',
-            partnerId: w.partnerId||'', partnerName: w.partnerName||'',
-            intervall: w.intervall, notizen: w.notizen||'',
-            autoTicket: !!w.autoTicket,
-            datum: d, status: 'geplant', seriesId, createdAt: serverTimestamp()
-          });
-        }
+  // Rolling system: on completion of a recurring entry, create exactly ONE next occurrence
+  if(status === 'abgeschlossen' && w && w.intervall && w.intervall !== 'einmalig' && w.seriesId) {
+    // Check if there's already a future open entry in this series
+    const openInSeries = window.state.wartungen.filter(x =>
+      x.seriesId === w.seriesId && x.id !== id &&
+      x.status !== 'abgeschlossen' && x.status !== 'storniert'
+    );
+    if(openInSeries.length === 0) {
+      // Calculate next date from the completed entry's datum
+      const addMonths = (dateStr, m) => {
+        const d = new Date(dateStr + 'T00:00:00');
+        d.setMonth(d.getMonth() + m);
+        return d.toISOString().split('T')[0];
+      };
+      const steps = {monatlich:1, quartalsweise:3, halbjaehrlich:6, jaehrlich:12};
+      const step = steps[w.intervall] || 12;
+      const nextDatum = addMonths(w.datum, step);
+      // Avoid duplicates
+      const alreadyExists = window.state.wartungen.some(x => x.seriesId === w.seriesId && x.datum === nextDatum);
+      if(!alreadyExists) {
+        await addDoc(collection(db,'wartungen'), {
+          bezeichnung: w.bezeichnung, typ: w.typ,
+          geraetId: w.geraetId||'', geraetName: w.geraetName||'',
+          partnerId: w.partnerId||'', partnerName: w.partnerName||'',
+          intervall: w.intervall, notizen: w.notizen||'',
+          autoTicket: !!w.autoTicket,
+          datum: nextDatum,
+          status: new Date(nextDatum) < new Date() ? 'faellig' : 'geplant',
+          seriesId: w.seriesId, createdAt: serverTimestamp()
+        });
+        await addLog(`Nächste Wartung "${w.bezeichnung}" automatisch geplant für ${fDate(nextDatum)}`, '#d97706');
       }
-      await addLog(`Wartungsreihe "${w.bezeichnung}" automatisch verlängert`, '#d97706');
     }
   }
 };
@@ -1917,7 +1933,7 @@ function renderWartungen() {
   else if(state.wartungFilter!=='alle') data=data.filter(w=>w.status===state.wartungFilter);
   data.sort((a,b)=>new Date(a.datum)-new Date(b.datum));
   const tb=document.getElementById('wartung-table');
-  tb.innerHTML=data.length?data.map(w=>`<tr><td><span style="font-weight:500;">${w.bezeichnung}</span>${w.seriesId?`<div style="font-size:10.5px;color:var(--text3);">🔁 ${w.intervall}</div>`:''}</td><td>${w.geraetName||'–'}</td><td><span class="badge badge-gray">${w.typ}</span></td><td style="font-family:'DM Mono',monospace;font-size:12px;${new Date(w.datum)<new Date()&&w.status!=='abgeschlossen'&&w.status!=='storniert'?'color:var(--red);font-weight:600;':''}">${fDate(w.datum)}</td><td>${w.partnerName||'–'}</td><td><select onchange="updateWartungStatus('${w.id}',this.value)" style="border:1px solid var(--border2);border-radius:5px;padding:3px 8px;font-size:12px;background:var(--surface);"><option value="geplant" ${w.status==='geplant'?'selected':''}>Geplant</option><option value="faellig" ${w.status==='faellig'?'selected':''}>Fällig</option><option value="abgeschlossen" ${w.status==='abgeschlossen'?'selected':''}>Abgeschlossen</option><option value="storniert" ${w.status==='storniert'?'selected':''}>Storniert</option></select></td><td style="white-space:nowrap;"><button class="btn btn-sm btn-edit" onclick="editItem('wartungen','${w.id}')">✏️</button> <button class="btn btn-secondary btn-sm" onclick="deleteItem('wartungen','${w.id}')">🗑️</button></td></tr>`).join(''):`<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">🔧</div><p>Keine Wartungsaufträge</p></div></td></tr>`;
+  tb.innerHTML=data.length?data.map(w=>`<tr><td><span style="font-weight:500;">${w.bezeichnung}</span>${w.seriesId?`<div style="font-size:10.5px;color:var(--text3);">🔁 ${w.intervall} · rolling</div>`:''}</td><td>${w.geraetName||'–'}</td><td><span class="badge badge-gray">${w.typ}</span></td><td style="font-family:'DM Mono',monospace;font-size:12px;${new Date(w.datum)<new Date()&&w.status!=='abgeschlossen'&&w.status!=='storniert'?'color:var(--red);font-weight:600;':''}">${fDate(w.datum)}</td><td>${w.partnerName||'–'}</td><td><select onchange="updateWartungStatus('${w.id}',this.value)" style="border:1px solid var(--border2);border-radius:5px;padding:3px 8px;font-size:12px;background:var(--surface);"><option value="geplant" ${w.status==='geplant'?'selected':''}>Geplant</option><option value="faellig" ${w.status==='faellig'?'selected':''}>Fällig</option><option value="abgeschlossen" ${w.status==='abgeschlossen'?'selected':''}>Abgeschlossen</option><option value="storniert" ${w.status==='storniert'?'selected':''}>Storniert</option></select></td><td style="white-space:nowrap;"><button class="btn btn-sm btn-edit" onclick="editItem('wartungen','${w.id}')">✏️</button> <button class="btn btn-secondary btn-sm" onclick="deleteItem('wartungen','${w.id}')">🗑️</button></td></tr>`).join(''):`<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">🔧</div><p>Keine Wartungsaufträge</p></div></td></tr>`;
 }
 
 function renderGeraete() {
@@ -2303,15 +2319,72 @@ function filterWartung(f,btn){state.wartungFilter=f;btn.closest('.tabs').querySe
 function filterGeraete(f,btn){state.geraeteFilter=f;btn.closest('.tabs').querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));btn.classList.add('active');renderGeraete();}
 function filterPartner(f,btn){state.partnerFilter=f;btn.closest('.tabs').querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));btn.classList.add('active');renderPartner();}
 
+// ---- VIRTUAL OCCURRENCES for rolling series ----
+function getVirtualOccurrences(year, month) {
+  const addMonths = (dateStr, m) => {
+    const d = new Date(dateStr + 'T00:00:00');
+    d.setMonth(d.getMonth() + m);
+    return d;
+  };
+  const steps = {monatlich:1, quartalsweise:3, halbjaehrlich:6, jaehrlich:12};
+  const virtual = [];
+
+  // Group wartungen by seriesId, only rolling ones
+  const seriesMap = {};
+  for(const w of (state.wartungen||[])) {
+    if(!w.seriesId || !w.intervall || w.intervall==='einmalig') continue;
+    if(!seriesMap[w.seriesId]) seriesMap[w.seriesId] = [];
+    seriesMap[w.seriesId].push(w);
+  }
+
+  for(const [seriesId, entries] of Object.entries(seriesMap)) {
+    const step = steps[entries[0].intervall];
+    if(!step) continue;
+    const template = entries[0]; // use first for metadata
+
+    // Find the latest datum in this series (real entry)
+    const latestDatum = entries.reduce((max, e) => e.datum > max ? e.datum : max, entries[0].datum);
+    const existingDates = new Set(entries.map(e => e.datum));
+
+    // Project forward from latest datum until we're past the target month
+    const targetEnd = new Date(year, month + 1, 0); // last day of target month
+    let cur = addMonths(latestDatum, step);
+    let safety = 0;
+    while(cur <= targetEnd && safety++ < 500) {
+      const dateStr = cur.toISOString().split('T')[0];
+      const curMonth = cur.getMonth();
+      const curYear = cur.getFullYear();
+      if(!existingDates.has(dateStr)) {
+        if(curYear === year && curMonth === month) {
+          virtual.push({
+            id: '__virtual__' + seriesId + '_' + dateStr,
+            bezeichnung: template.bezeichnung,
+            typ: template.typ,
+            geraetName: template.geraetName||'',
+            partnerName: template.partnerName||'',
+            intervall: template.intervall,
+            seriesId,
+            datum: dateStr,
+            status: 'virtual',
+            virtual: true
+          });
+        }
+      }
+      cur = addMonths(dateStr, step);
+    }
+  }
+  return virtual;
+}
+
 function renderCalendar() {
   const year=state.calYear,month=state.calMonth;
-  // Populate year dropdown (current year ±5)
+  // Populate year dropdown
   const ySel=document.getElementById('cal-year-select');
   if(ySel){
     const curY=new Date().getFullYear();
-    if(!ySel.options.length||parseInt(ySel.options[0].value)!==curY-5){
+    if(!ySel.options.length||parseInt(ySel.options[0].value)!==curY-2){
       ySel.innerHTML='';
-      for(let y=curY-5;y<=curY+5;y++) ySel.innerHTML+=`<option value="${y}">${y}</option>`;
+      for(let y=curY-2;y<=curY+10;y++) ySel.innerHTML+=`<option value="${y}">${y}</option>`;
     }
     ySel.value=year;
   }
@@ -2320,18 +2393,36 @@ function renderCalendar() {
   document.getElementById('cal-header').innerHTML=['Mo','Di','Mi','Do','Fr','Sa','So'].map(d=>`<div class="cal-day-label">${d}</div>`).join('');
   const first=new Date(year,month,1),last=new Date(year,month+1,0),today=new Date();
   let sdow=first.getDay();if(sdow===0)sdow=7;
-  const events=state.wartungen.filter(w=>{const d=new Date(w.datum);return d.getMonth()===month&&d.getFullYear()===year;});
+
+  // Real entries for this month
+  const realEvents=state.wartungen.filter(w=>{const d=new Date(w.datum);return d.getMonth()===month&&d.getFullYear()===year;});
+  // Virtual (projected) entries for rolling series
+  const virtualEvents = getVirtualOccurrences(year, month);
+  // Merge: real takes priority (suppress virtual if real date already covered by same seriesId)
+  const realDatesPerSeries = {};
+  for(const w of realEvents) { if(w.seriesId) { realDatesPerSeries[w.seriesId+w.datum]=true; } }
+  const filteredVirtual = virtualEvents.filter(v => !realDatesPerSeries[v.seriesId+v.datum]);
+  const allEvents = [...realEvents, ...filteredVirtual];
+
   let cells=[];
   for(let i=1;i<sdow;i++) cells.push({date:new Date(year,month,1-(sdow-i)),curr:false});
   for(let i=1;i<=last.getDate();i++) cells.push({date:new Date(year,month,i),curr:true});
   while(cells.length%7!==0) cells.push({date:new Date(year,month+1,cells.length-last.getDate()-sdow+2),curr:false});
+
   document.getElementById('cal-body').innerHTML=cells.map(c=>{
     const isToday=c.curr&&c.date.getDate()===today.getDate()&&c.date.getMonth()===today.getMonth()&&c.date.getFullYear()===today.getFullYear();
-    const de=events.filter(w=>new Date(w.datum).getDate()===c.date.getDate());
-    return `<div class="cal-day ${!c.curr?'other-month':''} ${isToday?'today':''}"><div class="cal-day-num" style="${isToday?'color:var(--accent);font-weight:700;':''}">${c.date.getDate()}</div>${de.map(e=>`<div class="cal-event ${e.status==='abgeschlossen'?'badge-green':e.status==='faellig'?'badge-orange':'badge-blue'}">${e.bezeichnung}</div>`).join('')}</div>`;
+    const de=allEvents.filter(w=>new Date(w.datum).getDate()===c.date.getDate());
+    return `<div class="cal-day ${!c.curr?'other-month':''} ${isToday?'today':''}"><div class="cal-day-num" style="${isToday?'color:var(--accent);font-weight:700;':''}">${c.date.getDate()}</div>${de.map(e=>e.virtual
+      ? `<div class="cal-event" style="background:#f3f0ff;color:#7c3aed;border:1px dashed #c4b5fd;opacity:0.85;" title="Geplant (rolling) – wird automatisch erstellt">🔁 ${e.bezeichnung}</div>`
+      : `<div class="cal-event ${e.status==='abgeschlossen'?'badge-green':e.status==='faellig'?'badge-orange':'badge-blue'}">${e.bezeichnung}</div>`
+    ).join('')}</div>`;
   }).join('');
-  const mev=[...events].sort((a,b)=>new Date(a.datum)-new Date(b.datum));
-  document.getElementById('cal-events-list').innerHTML=mev.length?mev.map(w=>`<tr><td style="font-family:'DM Mono',monospace;font-size:12px;">${fDate(w.datum)}</td><td>${w.bezeichnung}</td><td>${w.geraetName||'–'}</td><td><span class="badge badge-gray">${w.typ}</span></td><td><span class="badge ${sBadge[w.status]}">${sLabel[w.status]}</span></td></tr>`).join(''):`<tr><td colspan="5"><div class="empty-state" style="padding:24px;"><p>Keine Wartungen in diesem Monat</p></div></td></tr>`;
+
+  const mev=[...allEvents].sort((a,b)=>new Date(a.datum)-new Date(b.datum));
+  document.getElementById('cal-events-list').innerHTML=mev.length?mev.map(w=>w.virtual
+    ? `<tr style="opacity:0.75;"><td style="font-family:'DM Mono',monospace;font-size:12px;">${fDate(w.datum)}</td><td><span style="color:#7c3aed;">🔁 ${w.bezeichnung}</span></td><td>${w.geraetName||'–'}</td><td><span class="badge badge-gray">${w.typ||'–'}</span></td><td><span class="badge badge-violet">Rolling-Vorschau</span></td></tr>`
+    : `<tr><td style="font-family:'DM Mono',monospace;font-size:12px;">${fDate(w.datum)}</td><td>${w.bezeichnung}</td><td>${w.geraetName||'–'}</td><td><span class="badge badge-gray">${w.typ}</span></td><td><span class="badge ${sBadge[w.status]}">${sLabel[w.status]}</span></td></tr>`
+  ).join(''):`<tr><td colspan="5"><div class="empty-state" style="padding:24px;"><p>Keine Wartungen in diesem Monat</p></div></td></tr>`;
 }
 
 function changeMonth(dir){state.calMonth+=dir;if(state.calMonth>11){state.calMonth=0;state.calYear++;}if(state.calMonth<0){state.calMonth=11;state.calYear--;}renderCalendar();}
