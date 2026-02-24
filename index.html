@@ -1641,6 +1641,34 @@ const fabActions = {
   notfall: () => openModal('modal-notfall'),
   dokumente: () => openModal('modal-dokument'),
 };
+
+function renderExportPage(){
+  const el = document.getElementById('page-export');
+  if(!el) return;
+  // If content already present, do nothing
+  if(el.querySelector('.card')) { el.dataset.built='1'; return; }
+  el.innerHTML = `
+    <div class="card">
+      <div class="card-header"><span class="card-title">📤 Daten exportieren</span></div>
+      <div class="card-body">
+        <p style="font-size:13px;color:var(--text2);margin-bottom:14px;">
+          Exportiert ausgewählte Daten als Excel-Datei. Die Datei wird lokal heruntergeladen.
+        </p>
+        <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;">
+          <button class="btn-primary" onclick="exportFacilityOS('all')">📦 Alles exportieren (Excel)</button>
+          <button class="btn-secondary" onclick="exportFacilityOS('tickets')">🎫 Tickets & Störungen</button>
+          <button class="btn-secondary" onclick="exportFacilityOS('wartungen')">🔧 Wartungsaufträge</button>
+          <button class="btn-secondary" onclick="exportFacilityOS('geraete')">⚙️ Geräte & Anlagen</button>
+          <button class="btn-secondary" onclick="exportFacilityOS('partner')">🏭 Partnerfirmen</button>
+          <button class="btn-secondary" onclick="exportFacilityOS('notfaelle')">🚨 Notfallkontakte</button>
+        </div>
+        <div id="export-result" style="margin-top:14px;"></div>
+        <div style="margin-top:14px;font-size:12px;color:var(--text3);">
+          Hinweis: Firestore-Timestamps werden als ISO-Datum exportiert. Dokument-IDs werden als Spalte <span class="badge">id</span mitgeführt.
+        </div>
+      </div>
+    </div>`;
+}
 window._currentPage = 'dashboard';
 window.handleFab = () => { const fn = fabActions[window._currentPage]; if(fn) fn(); };
 
@@ -1688,6 +1716,7 @@ function showPage(name, navBtn, isBack) {
 
   if(name==='kalender') renderCalendar();
   if(name==='aktivitaet') renderAktivitaet();
+  if(name==='export') renderExportPage();
 }
 
 function openModal(id) { populateSelects(); document.getElementById(id).classList.remove('hidden'); }
