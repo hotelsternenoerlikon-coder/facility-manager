@@ -527,7 +527,7 @@
         <button class="btn btn-primary" onclick="openModal('modal-wartung')">+ Neuer Wartungsauftrag</button>
       </div>
       <div class="card">
-        <div class="card-header"><span class="card-title">Wartungsaufträge & Serviceaufträge</span></div>
+        <div class="card-header"><span class="card-title">Wartungsaufträge & Serviceaufträge</span><div class="search-wrap"><span class="search-icon">🔍</span><input class="search-input" placeholder="Suchen..." oninput="state.wartungSearch=this.value;renderWartungen();renderWartungenMobile()"></div></div>
         <div class="table-wrap"><table><thead><tr><th>Bezeichnung</th><th>Gerät</th><th>Typ</th><th>Fällig am</th><th>Zuständig</th><th>Status</th><th></th></tr></thead><tbody id="wartung-table"></tbody></table></div>
         <div class="mobile-card-list" id="wartung-mobile"></div>
       </div>
@@ -572,6 +572,7 @@
         </div>
         <button class="btn btn-primary" onclick="openModal('modal-geraet')">+ Gerät hinzufügen</button>
       </div>
+      <div style="margin-bottom:14px;"><div class="search-wrap"><span class="search-icon">🔍</span><input class="search-input" style="width:280px;" placeholder="Gerät suchen..." oninput="state.geraeteSearch=this.value;renderGeraete()"></div></div>
       <div class="device-grid" id="geraete-grid"><div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">⚙️</div><p>Noch keine Geräte erfasst</p></div></div>
     </div>
 
@@ -596,6 +597,7 @@
         </div>
         <button class="btn btn-primary" onclick="openModal('modal-bereich')">+ Bereich hinzufügen</button>
       </div>
+      <div style="margin-bottom:14px;margin-top:-6px;"><div class="search-wrap"><span class="search-icon">🔍</span><input class="search-input" style="width:280px;" placeholder="Bereich suchen..." oninput="state.bereicheSearch=this.value;renderBereiche()"></div></div>
       <div class="grid-3" id="bereiche-grid"><div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">🏨</div><p>Noch keine Bereiche erfasst</p></div></div>
     </div>
 
@@ -616,6 +618,7 @@
         </div>
         <button class="btn btn-primary" onclick="openModal('modal-partner')">+ Partnerfirma hinzufügen</button>
       </div>
+      <div style="margin-bottom:14px;margin-top:-6px;"><div class="search-wrap"><span class="search-icon">🔍</span><input class="search-input" style="width:280px;" placeholder="Partnerfirma suchen..." oninput="state.partnerSearch=this.value;renderPartner()"></div></div>
       <div id="partner-grid" class="grid-3"></div>
     </div>
 
@@ -625,12 +628,13 @@
         <div style="background:var(--red-light);border:1px solid #fca5a5;border-radius:8px;padding:10px 16px;font-size:13px;color:var(--red);">🚨 Notfallkontakte – nur bei echten Notfällen kontaktieren</div>
         <button class="btn btn-primary" onclick="openModal('modal-notfall')">+ Kontakt hinzufügen</button>
       </div>
+      <div style="margin-bottom:14px;margin-top:-6px;"><div class="search-wrap"><span class="search-icon">🔍</span><input class="search-input" style="width:280px;" placeholder="Kontakt suchen..." oninput="state.notfallSearch=this.value;renderNotfall()"></div></div>
       <div id="notfall-grid" class="grid-3"></div>
     </div>
 
     <!-- LOG -->
     <div class="page page-hidden" id="page-aktivitaet">
-      <div class="card"><div class="card-header"><span class="card-title">Vollständiger Aktivitätslog</span><span style="font-size:11.5px;color:var(--text3);" id="log-count"></span></div><div class="card-body" id="aktivitaet-full" style="max-height:600px;overflow-y:auto;"></div></div>
+      <div class="card"><div class="card-header"><span class="card-title">Vollständiger Aktivitätslog</span><div style="display:flex;align-items:center;gap:12px;"><span style="font-size:11.5px;color:var(--text3);" id="log-count"></span><div class="search-wrap"><span class="search-icon">🔍</span><input class="search-input" style="width:220px;" placeholder="Log durchsuchen..." oninput="state.logSearch=this.value;renderAktivitaet()"></div></div></div><div class="card-body" id="aktivitaet-full" style="max-height:600px;overflow-y:auto;"></div></div>
     </div>
 
     <!-- BENUTZERVERWALTUNG (nur Admins) -->
@@ -850,6 +854,14 @@
       </div>
       <div class="grid-2"><div class="form-group"><label class="form-label">Zugewiesen an</label><select class="form-select" id="t-partner"><option value="">– auswählen –</option></select></div><div class="form-group"><label class="form-label">Gemeldet von</label><input class="form-input" id="t-gemeldet" placeholder="Name / Abteilung"></div></div>
       <div class="form-group"><label class="form-label">Beschreibung</label><textarea class="form-textarea" id="t-beschreibung" placeholder="Detaillierte Beschreibung..."></textarea></div>
+      <div class="form-group" style="margin-top:8px;">
+        <label class="form-label">📎 Anhänge</label>
+        <div id="t-attachments-list" style="margin-bottom:8px;"></div>
+        <label class="btn btn-secondary btn-sm" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
+          📤 Datei hinzufügen <input type="file" id="t-attachment-input" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt" style="display:none" onchange="handleAttachmentUpload(this,'tickets')">
+        </label>
+        <div id="t-upload-progress" style="margin-top:6px;font-size:12px;color:var(--text3);"></div>
+      </div>
     </div>
     <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('modal-ticket')">Abbrechen</button><button class="btn btn-primary" id="btn-save-ticket">Ticket erstellen</button></div>
   </div>
@@ -879,6 +891,14 @@
       <div class="grid-2"><div class="form-group"><label class="form-label">Raum / Detail</label><input class="form-input" id="g-raum" placeholder="z.B. Zimmer 312, Technikraum, Keller"></div><div class="form-group"><label class="form-label">&nbsp;</label><input type="hidden" id="g-standort"></div></div>
       <div class="grid-2"><div class="form-group"><label class="form-label">Nächste Wartung</label><input class="form-input" type="date" id="g-naechste-wartung"></div><div class="form-group"><label class="form-label">Zuständige Partnerfirma</label><select class="form-select" id="g-partner"><option value="">– auswählen –</option></select></div></div>
       <div class="form-group"><label class="form-label">Notizen</label><textarea class="form-textarea" id="g-notizen"></textarea></div>
+      <div class="form-group" style="margin-top:8px;">
+        <label class="form-label">📎 Anhänge</label>
+        <div id="g-attachments-list" style="margin-bottom:8px;"></div>
+        <label class="btn btn-secondary btn-sm" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
+          📤 Datei hinzufügen <input type="file" id="g-attachment-input" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt" style="display:none" onchange="handleAttachmentUpload(this,'geraete')">
+        </label>
+        <div id="g-upload-progress" style="margin-top:6px;font-size:12px;color:var(--text3);"></div>
+      </div>
       <div id="geraet-ticketlog" class="card" style="margin-top:16px; display:none;">
         <div class="card-header"><div class="card-title">Tickets & Störungen zu diesem Gerät</div></div>
         <div class="card-body" id="geraet-ticketlog-body"></div>
@@ -923,6 +943,14 @@
       <div class="grid-2"><div class="form-group"><label class="form-label">Bezeichnung *</label><input class="form-input" id="d-name"></div><div class="form-group"><label class="form-label">Dokumenttyp</label><select class="form-select" id="d-typ"><option>Betriebsanleitung</option><option>Wartungsprotokoll</option><option>Prüfbericht / TÜV</option><option>Schaltplan</option><option>Garantieurkunde</option><option>Vertrag</option><option>Zertifikat</option><option>Sonstiges</option></select></div></div>
       <div class="grid-2"><div class="form-group"><label class="form-label">Gerät / Anlage</label><select class="form-select" id="d-geraet"><option value="">– auswählen –</option></select></div><div class="form-group"><label class="form-label">Datum</label><input class="form-input" type="date" id="d-datum"></div></div>
       <div class="form-group"><label class="form-label">Notiz</label><textarea class="form-textarea" id="d-notiz"></textarea></div>
+      <div class="form-group" style="margin-top:8px;">
+        <label class="form-label">📎 Anhänge</label>
+        <div id="d-attachments-list" style="margin-bottom:8px;"></div>
+        <label class="btn btn-secondary btn-sm" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
+          📤 Datei hinzufügen <input type="file" id="d-attachment-input" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt" style="display:none" onchange="handleAttachmentUpload(this,'dokumente')">
+        </label>
+        <div id="d-upload-progress" style="margin-top:6px;font-size:12px;color:var(--text3);"></div>
+      </div>
     </div>
     <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('modal-dokument')">Abbrechen</button><button class="btn btn-primary" id="btn-save-dokument">Speichern</button></div>
   </div>
@@ -968,6 +996,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
 import { getFirestore, collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, getDoc, setDoc, serverTimestamp, query, orderBy } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 import { getAuth, GoogleAuthProvider, OAuthProvider, signInWithPopup, onAuthStateChanged, signOut as fbSignOut } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
+import { getStorage, ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-storage.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDcfrW2Q7Q61oqZFCo9D-CcLKpQYhiIkwM",
@@ -981,6 +1010,7 @@ const firebaseConfig = {
 const fbApp = initializeApp(firebaseConfig);
 const db = getFirestore(fbApp);
 const auth = getAuth(fbApp);
+const storage = getStorage(fbApp);
 const provider = new GoogleAuthProvider();
 const msProvider = new OAuthProvider('microsoft.com');
 msProvider.setCustomParameters({ tenant: 'common' });
@@ -1293,7 +1323,7 @@ function checkLoaded() { loadedCount++; if (loadedCount >= 8) { document.getElem
 // Ensure state exists before listeners render
 (function ensureState(){
   window.state = window.state || {};
-  const __stateDefaults = { tickets:[], wartungen:[], geraete:[], partner:[], notfaelle:[], dokumente:[], bereiche:[], log:[], ticketFilter:'alle', wartungFilter:'alle', geraeteFilter:'alle', partnerFilter:'alle', bereicheFilter:'alle', calMonth:new Date().getMonth(), calYear:new Date().getFullYear(), ticketSearch:'' };
+  const __stateDefaults = { tickets:[], wartungen:[], geraete:[], partner:[], notfaelle:[], dokumente:[], bereiche:[], log:[], ticketFilter:'alle', wartungFilter:'alle', geraeteFilter:'alle', partnerFilter:'alle', bereicheFilter:'alle', calMonth:new Date().getMonth(), calYear:new Date().getFullYear(), ticketSearch:'', wartungSearch:'', geraeteSearch:'', bereicheSearch:'', partnerSearch:'', notfallSearch:'', logSearch:'' };
   for (const k in __stateDefaults) { if (window.state[k] === undefined) window.state[k] = __stateDefaults[k]; }
 })();
 
@@ -1336,13 +1366,22 @@ document.getElementById('btn-save-ticket').onclick = async () => {
   };
   if(window._editId && window._editType==='tickets'){
     await updateDoc(doc(db,'tickets',window._editId), data);
+    const newAtts = await window._uploadPendingAttachments('tickets', window._editId);
+    if(newAtts.length){
+      const snap = await getDoc(doc(db,'tickets',window._editId));
+      const existing = snap.data()?.attachments||[];
+      await updateDoc(doc(db,'tickets',window._editId),{attachments:[...existing,...newAtts]});
+    }
     await addLog(`Ticket "${betreff}" bearbeitet`, '#2563eb');
   } else {
     data.ersteller = currentUser?.displayName||currentUser?.email||'';
-    data.status = 'offen'; data.createdAt = serverTimestamp();
-    await addDoc(collection(db,'tickets'), data);
+    data.status = 'offen'; data.createdAt = serverTimestamp(); data.attachments = [];
+    const ref = await addDoc(collection(db,'tickets'), data);
+    const atts = await window._uploadPendingAttachments('tickets', ref.id);
+    if(atts.length) await updateDoc(doc(db,'tickets',ref.id),{attachments:atts});
     await addLog(`Ticket erstellt: "${betreff}" (${currentUser?.displayName||''})`, '#dc2626');
   }
+  window._clearAttachmentState('tickets');
   closeModal('modal-ticket');
 };
 
@@ -1397,12 +1436,21 @@ document.getElementById('btn-save-geraet').onclick = async () => {
   };
   if(window._editId && window._editType==='geraete'){
     await updateDoc(doc(db,'geraete',window._editId), data);
+    const newAtts = await window._uploadPendingAttachments('geraete', window._editId);
+    if(newAtts.length){
+      const snap = await getDoc(doc(db,'geraete',window._editId));
+      const existing = snap.data()?.attachments||[];
+      await updateDoc(doc(db,'geraete',window._editId),{attachments:[...existing,...newAtts]});
+    }
     await addLog(`Gerät "${name}" bearbeitet`, '#16a34a');
   } else {
-    data.status = 'aktiv'; data.createdAt = serverTimestamp();
-    await addDoc(collection(db,'geraete'), data);
+    data.status = 'aktiv'; data.attachments = []; data.createdAt = serverTimestamp();
+    const ref = await addDoc(collection(db,'geraete'), data);
+    const atts = await window._uploadPendingAttachments('geraete', ref.id);
+    if(atts.length) await updateDoc(doc(db,'geraete',ref.id),{attachments:atts});
     await addLog(`Gerät "${name}" hinzugefügt`, '#16a34a');
   }
+  window._clearAttachmentState('geraete');
   closeModal('modal-geraet');
 };
 
@@ -1467,12 +1515,21 @@ document.getElementById('btn-save-dokument').onclick = async () => {
   };
   if(window._editId && window._editType==='dokumente'){
     await updateDoc(doc(db,'dokumente',window._editId), data);
+    const newAtts = await window._uploadPendingAttachments('dokumente', window._editId);
+    if(newAtts.length){
+      const snap = await getDoc(doc(db,'dokumente',window._editId));
+      const existing = snap.data()?.attachments||[];
+      await updateDoc(doc(db,'dokumente',window._editId),{attachments:[...existing,...newAtts]});
+    }
     await addLog(`Dokument "${name}" bearbeitet`, '#5a5850');
   } else {
-    data.createdAt = serverTimestamp();
-    await addDoc(collection(db,'dokumente'), data);
+    data.attachments = []; data.createdAt = serverTimestamp();
+    const ref = await addDoc(collection(db,'dokumente'), data);
+    const atts = await window._uploadPendingAttachments('dokumente', ref.id);
+    if(atts.length) await updateDoc(doc(db,'dokumente',ref.id),{attachments:atts});
     await addLog(`Dokument "${name}" erfasst`, '#5a5850');
   }
+  window._clearAttachmentState('dokumente');
   closeModal('modal-dokument');
 };
 
@@ -1597,6 +1654,10 @@ window.editItem = (type, id) => {
     document.getElementById('t-partner').value=item.partnerId||'';
     document.getElementById('t-gemeldet').value=item.gemeldetVon||item.gemeldet||'';
     document.getElementById('t-beschreibung').value=item.beschreibung||'';
+    if(!window._currentEditAttachments) window._currentEditAttachments={};
+    window._currentEditAttachments['tickets'] = item.attachments||[];
+    window._pendingAttachments['tickets'] = [];
+    window._renderAttachmentsList('tickets', item.attachments||[]);
     document.getElementById('modal-ticket').querySelector('.modal-title').textContent='Ticket bearbeiten';
     document.getElementById('btn-save-ticket').textContent='Änderungen speichern';
     document.getElementById('modal-ticket').classList.remove('hidden');
@@ -1624,6 +1685,10 @@ window.editItem = (type, id) => {
     document.getElementById('g-naechste-wartung').value=item.naechsteWartung||'';
     document.getElementById('g-partner').value=item.partnerId||'';
     document.getElementById('g-notizen').value=item.notizen||'';
+    if(!window._currentEditAttachments) window._currentEditAttachments={};
+    window._currentEditAttachments['geraete'] = item.attachments||[];
+    window._pendingAttachments['geraete'] = [];
+    window._renderAttachmentsList('geraete', item.attachments||[]);
     document.getElementById('modal-geraet').querySelector('.modal-title').textContent='Gerät bearbeiten';
     document.getElementById('btn-save-geraet').textContent='Änderungen speichern';
     document.getElementById('modal-geraet').classList.remove('hidden');
@@ -1658,6 +1723,10 @@ window.editItem = (type, id) => {
     document.getElementById('d-geraet').value=item.geraetId||'';
     document.getElementById('d-datum').value=item.datum||'';
     document.getElementById('d-notiz').value=item.notiz||'';
+    if(!window._currentEditAttachments) window._currentEditAttachments={};
+    window._currentEditAttachments['dokumente'] = item.attachments||[];
+    window._pendingAttachments['dokumente'] = [];
+    window._renderAttachmentsList('dokumente', item.attachments||[]);
     document.getElementById('modal-dokument').querySelector('.modal-title').textContent='Dokument bearbeiten';
     document.getElementById('btn-save-dokument').textContent='Änderungen speichern';
     document.getElementById('modal-dokument').classList.remove('hidden');
@@ -1679,7 +1748,7 @@ window.editItem = (type, id) => {
 
 <script>
 window.state = window.state || {};
-  const __stateDefaults = { tickets:[], wartungen:[], geraete:[], partner:[], notfaelle:[], dokumente:[], bereiche:[], log:[], ticketFilter:'alle', wartungFilter:'alle', geraeteFilter:'alle', partnerFilter:'alle', bereicheFilter:'alle', calMonth:new Date().getMonth(), calYear:new Date().getFullYear(), ticketSearch:'' };
+  const __stateDefaults = { tickets:[], wartungen:[], geraete:[], partner:[], notfaelle:[], dokumente:[], bereiche:[], log:[], ticketFilter:'alle', wartungFilter:'alle', geraeteFilter:'alle', partnerFilter:'alle', bereicheFilter:'alle', calMonth:new Date().getMonth(), calYear:new Date().getFullYear(), ticketSearch:'', wartungSearch:'', geraeteSearch:'', bereicheSearch:'', partnerSearch:'', notfallSearch:'', logSearch:'' };
   for (const k in __stateDefaults) { if (window.state[k] === undefined) window.state[k] = __stateDefaults[k]; }
 
 // Force responsive visibility (prevents table + mobile cards showing at the same time)
@@ -1773,8 +1842,12 @@ function showPage(name, navBtn, isBack) {
 function openModal(id) { populateSelects(); document.getElementById(id).classList.remove('hidden'); }
 function closeModal(id) {
   document.getElementById(id).classList.add('hidden');
-  document.querySelectorAll(`#${id} input,#${id} textarea`).forEach(e=>{ if(e.type==='checkbox') e.checked=false; else e.value=''; });
+  document.querySelectorAll(`#${id} input,#${id} textarea`).forEach(e=>{ if(e.type==='file') return; if(e.type==='checkbox') e.checked=false; else e.value=''; });
   document.querySelectorAll(`#${id} select`).forEach(e=>e.selectedIndex=0);
+  // Clear attachment UI and pending state
+  const colMap = {'modal-ticket':'tickets','modal-geraet':'geraete','modal-dokument':'dokumente'};
+  const col = colMap[id];
+  if(col && window._clearAttachmentState) window._clearAttachmentState(col);
   window._editId=null; window._editType=null;
   hideEntityTicketLogs();
   // Reset titles and button labels
@@ -1924,13 +1997,14 @@ function renderTickets() {
   if(state.ticketFilter!=='alle') data=data.filter(t=>t.status===state.ticketFilter);
   if(state.ticketSearch) data=data.filter(t=>t.betreff.toLowerCase().includes(state.ticketSearch.toLowerCase()));
   const tb=document.getElementById('tickets-table');
-  tb.innerHTML=data.length?data.map(t=>`<tr><td><span style="font-weight:500;">${t.betreff}</span>${t.autoGenerated?` <span class="badge badge-violet">🤖 Automatisch aus Wartung</span>`:''}${t.beschreibung?`<div style="font-size:12px;color:var(--text3);">${t.beschreibung.substring(0,60)}${t.beschreibung.length>60?'...':''}</div>`:''}</td><td>${t.geraetName||'–'}</td><td>${t.bereichName?`<span class="badge badge-blue">${t.bereichName}</span>`:'–'}</td><td><span class="badge ${pBadge[t.prioritaet]}">${pLabel[t.prioritaet]}</span></td><td><select onchange="updateTicketStatus('${t.id}',this.value)" style="border:1px solid var(--border2);border-radius:5px;padding:3px 8px;font-size:12px;background:var(--surface);"><option value="offen" ${t.status==='offen'?'selected':''}>Offen</option><option value="in_bearbeitung" ${t.status==='in_bearbeitung'?'selected':''}>In Bearbeitung</option><option value="erledigt" ${t.status==='erledigt'?'selected':''}>Erledigt</option></select></td><td style="font-size:12px;color:var(--text3);">${t.ersteller||t.gemeldet||'–'}</td><td>${t.partnerName||'–'}</td><td style="white-space:nowrap;"><button class="btn btn-sm btn-edit" onclick="editItem('tickets','${t.id}')">✏️</button> <button class="btn btn-secondary btn-sm" onclick="deleteItem('tickets','${t.id}')">🗑️</button></td></tr>`).join(''):`<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">🎫</div><p>Keine Tickets gefunden</p></div></td></tr>`;
+  tb.innerHTML=data.length?data.map(t=>`<tr><td><span style="font-weight:500;">${t.betreff}</span>${t.autoGenerated?` <span class="badge badge-violet">🤖 Automatisch aus Wartung</span>`:''}${t.attachments?.length?`<span style="font-size:11px;color:var(--text3);margin-left:6px;">📎 ${t.attachments.length}</span>`:''}${t.beschreibung?`<div style="font-size:12px;color:var(--text3);">${t.beschreibung.substring(0,60)}${t.beschreibung.length>60?'...':''}</div>`:''}</td><td>${t.geraetName||'–'}</td><td>${t.bereichName?`<span class="badge badge-blue">${t.bereichName}</span>`:'–'}</td><td><span class="badge ${pBadge[t.prioritaet]}">${pLabel[t.prioritaet]}</span></td><td><select onchange="updateTicketStatus('${t.id}',this.value)" style="border:1px solid var(--border2);border-radius:5px;padding:3px 8px;font-size:12px;background:var(--surface);"><option value="offen" ${t.status==='offen'?'selected':''}>Offen</option><option value="in_bearbeitung" ${t.status==='in_bearbeitung'?'selected':''}>In Bearbeitung</option><option value="erledigt" ${t.status==='erledigt'?'selected':''}>Erledigt</option></select></td><td style="font-size:12px;color:var(--text3);">${t.ersteller||t.gemeldet||'–'}</td><td>${t.partnerName||'–'}</td><td style="white-space:nowrap;"><button class="btn btn-sm btn-edit" onclick="editItem('tickets','${t.id}')">✏️</button> <button class="btn btn-secondary btn-sm" onclick="deleteItem('tickets','${t.id}')">🗑️</button></td></tr>`).join(''):`<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">🎫</div><p>Keine Tickets gefunden</p></div></td></tr>`;
 }
 
 function renderWartungen() {
   let data=[...state.wartungen];
   if(state.wartungFilter==='faellig') data=data.filter(w=>w.status==='faellig'||(new Date(w.datum)<new Date()&&w.status!=='abgeschlossen'&&w.status!=='storniert'));
   else if(state.wartungFilter!=='alle') data=data.filter(w=>w.status===state.wartungFilter);
+  if(state.wartungSearch){const q=state.wartungSearch.toLowerCase();data=data.filter(w=>(w.bezeichnung||'').toLowerCase().includes(q)||(w.geraetName||'').toLowerCase().includes(q)||(w.partnerName||'').toLowerCase().includes(q)||(w.typ||'').toLowerCase().includes(q));}
   data.sort((a,b)=>new Date(a.datum)-new Date(b.datum));
   const tb=document.getElementById('wartung-table');
   tb.innerHTML=data.length?data.map(w=>`<tr><td><span style="font-weight:500;">${w.bezeichnung}</span>${w.seriesId?`<div style="font-size:10.5px;color:var(--text3);">🔁 ${w.intervall} · rolling</div>`:''}</td><td>${w.geraetName||'–'}</td><td><span class="badge badge-gray">${w.typ}</span></td><td style="font-family:'DM Mono',monospace;font-size:12px;${new Date(w.datum)<new Date()&&w.status!=='abgeschlossen'&&w.status!=='storniert'?'color:var(--red);font-weight:600;':''}">${fDate(w.datum)}</td><td>${w.partnerName||'–'}</td><td><select onchange="updateWartungStatus('${w.id}',this.value)" style="border:1px solid var(--border2);border-radius:5px;padding:3px 8px;font-size:12px;background:var(--surface);"><option value="geplant" ${w.status==='geplant'?'selected':''}>Geplant</option><option value="faellig" ${w.status==='faellig'?'selected':''}>Fällig</option><option value="abgeschlossen" ${w.status==='abgeschlossen'?'selected':''}>Abgeschlossen</option><option value="storniert" ${w.status==='storniert'?'selected':''}>Storniert</option></select></td><td style="white-space:nowrap;"><button class="btn btn-sm btn-edit" onclick="editItem('wartungen','${w.id}')">✏️</button> <button class="btn btn-secondary btn-sm" onclick="deleteItem('wartungen','${w.id}')">🗑️</button></td></tr>`).join(''):`<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">🔧</div><p>Keine Wartungsaufträge</p></div></td></tr>`;
@@ -1940,11 +2014,12 @@ function renderGeraete() {
   let data=state.geraete;
   if(state.geraeteFilter==='aktiv') data=data.filter(g=>g.status==='aktiv');
   else if(state.geraeteFilter==='stoerung') data=data.filter(g=>g.status==='stoerung');
+  if(state.geraeteSearch){const q=state.geraeteSearch.toLowerCase();data=data.filter(g=>(g.name||'').toLowerCase().includes(q)||(g.hersteller||'').toLowerCase().includes(q)||(g.bereichName||'').toLowerCase().includes(q)||(g.seriennummer||'').toLowerCase().includes(q));}
   // Alphabetisch sortieren
   data = [...data].sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''), 'de', {sensitivity:'base', numeric:true}));
 
   const grid=document.getElementById('geraete-grid');
-  grid.innerHTML=data.length?data.map(g=>`<div class="device-card"><div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:8px;"><div style="font-size:28px;">${kIcons[g.kategorie]||'🔧'}</div><select onchange="changeGeraetStatus('${g.id}',this.value)" style="border:1px solid var(--border2);border-radius:5px;padding:2px 6px;font-size:11.5px;background:var(--surface);"><option value="aktiv" ${g.status==='aktiv'?'selected':''}>✅ Aktiv</option><option value="stoerung" ${g.status==='stoerung'?'selected':''}>🔴 Störung</option><option value="wartung" ${g.status==='wartung'?'selected':''}>🟡 Wartung</option><option value="ausser_betrieb" ${g.status==='ausser_betrieb'?'selected':''}>⚫ Außer Betrieb</option></select></div><div style="font-weight:600;font-size:14px;margin-bottom:4px;">${g.name}</div><div style="font-size:12px;color:var(--text3);margin-bottom:6px;">${(g.bereichName||g.standort||'–') + (g.raum?' / '+g.raum:'')}</div>${g.hersteller?`<div style="font-size:12px;color:var(--text3);margin-bottom:4px;">🏭 ${g.hersteller}${g.seriennummer?' · SN: '+g.seriennummer:''}</div>`:''}${g.naechsteWartung?`<div style="font-size:12px;color:${new Date(g.naechsteWartung)<new Date()?'var(--red)':'var(--text3)'};margin-bottom:4px;">🔧 Wartung: ${fDate(g.naechsteWartung)}</div>`:''}${g.partnerName?`<div style="font-size:12px;color:var(--text3);margin-bottom:4px;">🤝 ${g.partnerName}</div>`:''}${g.notizen?`<div style="font-size:11.5px;color:var(--text3);border-top:1px solid var(--border);padding-top:8px;margin-top:6px;">${g.notizen}</div>`:''}<div style="display:flex;justify-content:flex-end;gap:6px;margin-top:10px;"><button class="btn btn-sm btn-edit" onclick="editItem('geraete','${g.id}')">✏️ Bearbeiten</button><button class="btn btn-secondary btn-sm" onclick="deleteItem('geraete','${g.id}')">🗑️</button></div></div>`).join(''):`<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">⚙️</div><p>Noch keine Geräte erfasst</p></div>`;
+  grid.innerHTML=data.length?data.map(g=>`<div class="device-card"><div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:8px;"><div style="font-size:28px;">${kIcons[g.kategorie]||'🔧'}</div><select onchange="changeGeraetStatus('${g.id}',this.value)" style="border:1px solid var(--border2);border-radius:5px;padding:2px 6px;font-size:11.5px;background:var(--surface);"><option value="aktiv" ${g.status==='aktiv'?'selected':''}>✅ Aktiv</option><option value="stoerung" ${g.status==='stoerung'?'selected':''}>🔴 Störung</option><option value="wartung" ${g.status==='wartung'?'selected':''}>🟡 Wartung</option><option value="ausser_betrieb" ${g.status==='ausser_betrieb'?'selected':''}>⚫ Außer Betrieb</option></select></div><div style="font-weight:600;font-size:14px;margin-bottom:4px;">${g.name}</div><div style="font-size:12px;color:var(--text3);margin-bottom:6px;">${(g.bereichName||g.standort||'–') + (g.raum?' / '+g.raum:'')}</div>${g.hersteller?`<div style="font-size:12px;color:var(--text3);margin-bottom:4px;">🏭 ${g.hersteller}${g.seriennummer?' · SN: '+g.seriennummer:''}</div>`:''}${g.naechsteWartung?`<div style="font-size:12px;color:${new Date(g.naechsteWartung)<new Date()?'var(--red)':'var(--text3)'};margin-bottom:4px;">🔧 Wartung: ${fDate(g.naechsteWartung)}</div>`:''}${g.partnerName?`<div style="font-size:12px;color:var(--text3);margin-bottom:4px;">🤝 ${g.partnerName}</div>`:''}${g.notizen?`<div style="font-size:11.5px;color:var(--text3);border-top:1px solid var(--border);padding-top:8px;margin-top:6px;">${g.notizen}</div>`:''}<div style="display:flex;justify-content:flex-end;gap:6px;margin-top:10px;"><button class="btn btn-sm btn-edit" onclick="editItem('geraete','${g.id}')" style="display:inline-flex;">${g.attachments?.length?`<span style="font-size:11px;color:var(--text3);margin-right:4px;">📎${g.attachments.length}</span>`:''}✏️ Bearbeiten</button><button class="btn btn-secondary btn-sm" onclick="deleteItem('geraete','${g.id}')">🗑️</button></div></div>`).join(''):`<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">⚙️</div><p>Noch keine Geräte erfasst</p></div>`;
 }
 
 function formatUrl(u){
@@ -2078,6 +2153,7 @@ function renderPartner() {
   let data = (state.partnerFilter && state.partnerFilter!=='alle')
     ? state.partner.filter(p => (p.bereich||'Sonstiges') === state.partnerFilter)
     : state.partner;
+  if(state.partnerSearch){const q=state.partnerSearch.toLowerCase();data=data.filter(p=>(p.name||'').toLowerCase().includes(q)||(p.bereich||'').toLowerCase().includes(q)||(p.kontakt||'').toLowerCase().includes(q)||(p.email||'').toLowerCase().includes(q));}
 
 // Alphabetisch sortieren
 data = [...data].sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''), 'de', {sensitivity:'base', numeric:true}));
@@ -2125,7 +2201,9 @@ function renderNotfall() {
   const grid = document.getElementById('notfall-grid');
   if(!grid) return;
 
-  const data = [...state.notfaelle].sort((a,b)=>{
+  let data = [...state.notfaelle];
+  if(state.notfallSearch){const q=state.notfallSearch.toLowerCase();data=data.filter(n=>(n.name||'').toLowerCase().includes(q)||(n.kategorie||'').toLowerCase().includes(q)||(n.telefon||'').includes(q)||(n.notizen||'').toLowerCase().includes(q));}
+  data = data.sort((a,b)=>{
     const ap = !!a.pinned, bp = !!b.pinned;
     if(ap!==bp) return ap ? -1 : 1; // pinned zuerst
     return String(a.name||'').localeCompare(String(b.name||''), 'de', { sensitivity:'base', numeric:true });
@@ -2168,13 +2246,15 @@ function renderNotfall() {
 
 function renderDokumente() {
   const tb=document.getElementById('dokumente-table');
-  tb.innerHTML=state.dokumente.length?state.dokumente.map(d=>`<tr><td><span style="font-weight:500;">📄 ${d.name}</span></td><td><span class="badge badge-gray">${d.typ}</span></td><td>${d.geraetName||'–'}</td><td style="font-family:'DM Mono',monospace;font-size:12px;">${d.datum?fDate(d.datum):'–'}</td><td style="color:var(--text3);font-size:12.5px;">${d.notiz||'–'}</td><td style="white-space:nowrap;"><button class="btn btn-sm btn-edit" onclick="editItem('dokumente','${d.id}')">✏️</button> <button class="btn btn-secondary btn-sm" onclick="deleteItem('dokumente','${d.id}')">🗑️</button></td></tr>`).join(''):`<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">📄</div><p>Noch keine Dokumente</p></div></td></tr>`;
+  tb.innerHTML=state.dokumente.length?state.dokumente.map(d=>`<tr><td><span style="font-weight:500;">📄 ${d.name}</span>${d.attachments?.length?`<div style="font-size:11px;color:var(--text3);">📎 ${d.attachments.length} Anhang${d.attachments.length>1?'e':''}${d.attachments.filter(a=>a.name.match(/\.(jpg|jpeg|png|gif|webp)/i)).length?' · '+d.attachments.filter(a=>a.name.match(/\.(jpg|jpeg|png|gif|webp)/i)).length+' Bild(er)':''}</div>`:''}</td><td><span class="badge badge-gray">${d.typ}</span></td><td>${d.geraetName||'–'}</td><td style="font-family:'DM Mono',monospace;font-size:12px;">${d.datum?fDate(d.datum):'–'}</td><td style="color:var(--text3);font-size:12.5px;">${d.notiz||'–'}</td><td style="white-space:nowrap;"><button class="btn btn-sm btn-edit" onclick="editItem('dokumente','${d.id}')">✏️</button> <button class="btn btn-secondary btn-sm" onclick="deleteItem('dokumente','${d.id}')">🗑️</button></td></tr>`).join(''):`<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">📄</div><p>Noch keine Dokumente</p></div></td></tr>`;
 }
 
 function renderAktivitaet() {
   const el=document.getElementById('aktivitaet-full');
-  document.getElementById('log-count').textContent=state.log.length+' Einträge';
-  el.innerHTML=state.log.length?state.log.map(l=>`<div class="activity-item"><div class="activity-dot" style="background:${l.color}"></div><div style="flex:1;"><div class="activity-text">${l.text}</div><div class="activity-time">${fTs(l.createdAt)}${l.user?' · '+l.user:''}</div></div></div>`).join(''):'<div class="empty-state"><div class="empty-icon">📋</div><p>Noch keine Aktivitäten</p></div>';
+  let data = state.log;
+  if(state.logSearch){const q=state.logSearch.toLowerCase();data=data.filter(l=>(l.text||'').toLowerCase().includes(q)||(l.user||'').toLowerCase().includes(q));}
+  document.getElementById('log-count').textContent=(state.logSearch?data.length+' von ':'')+state.log.length+' Einträge';
+  el.innerHTML=data.length?data.map(l=>`<div class="activity-item"><div class="activity-dot" style="background:${l.color}"></div><div style="flex:1;"><div class="activity-text">${l.text}</div><div class="activity-time">${fTs(l.createdAt)}${l.user?' · '+l.user:''}</div></div></div>`).join(''):'<div class="empty-state"><div class="empty-icon">📋</div><p>Keine Einträge gefunden</p></div>';
 }
 
 function updateBadges() {
@@ -2220,6 +2300,7 @@ function renderWartungenMobile() {
   let data=[...state.wartungen];
   if(state.wartungFilter==='faellig') data=data.filter(w=>w.status==='faellig'||(new Date(w.datum)<new Date()&&w.status!=='abgeschlossen'&&w.status!=='storniert'));
   else if(state.wartungFilter!=='alle') data=data.filter(w=>w.status===state.wartungFilter);
+  if(state.wartungSearch){const q=state.wartungSearch.toLowerCase();data=data.filter(w=>(w.bezeichnung||'').toLowerCase().includes(q)||(w.geraetName||'').toLowerCase().includes(q)||(w.partnerName||'').toLowerCase().includes(q));}
   data.sort((a,b)=>new Date(a.datum)-new Date(b.datum));
   if(!data.length){el.innerHTML=`<div class="empty-state"><div class="empty-icon">🔧</div><p>Keine Wartungsaufträge</p></div>`;return;}
   el.innerHTML=data.map(w=>`<div class="mobile-card">
@@ -2267,6 +2348,7 @@ function renderDokumenteMobile() {
 function renderBereiche() {
   let data = state.bereiche;
   if(state.bereicheFilter && state.bereicheFilter!=='alle') data=data.filter(b=>b.kategorie===state.bereicheFilter);
+  if(state.bereicheSearch){const q=state.bereicheSearch.toLowerCase();data=data.filter(b=>(b.name||'').toLowerCase().includes(q)||(b.zimmernummer||'').toLowerCase().includes(q)||(b.etage||'').toLowerCase().includes(q)||(b.notizen||'').toLowerCase().includes(q));}
   // Alphabetisch sortieren (Zimmer am Schluss, nach Nummer aufsteigend)
   const rooms = [];
   const other = [];
@@ -2535,6 +2617,128 @@ window.exportAll = function() {
     alert('Export fehlgeschlagen: ' + e.message);
   }
 };
+
+
+// ========================================
+// ATTACHMENT SYSTEM (Firebase Storage)
+// ========================================
+window._pendingAttachments = {}; // { 'tickets': [], 'geraete': [], 'dokumente': [] }
+const PREFIX_MAP = { tickets:'t', geraete:'g', dokumente:'d' };
+
+function getAttachmentIcon(name) {
+  const ext = (name||'').split('.').pop().toLowerCase();
+  if(['jpg','jpeg','png','gif','webp','svg'].includes(ext)) return '🖼️';
+  if(ext==='pdf') return '📕';
+  if(['doc','docx'].includes(ext)) return '📝';
+  if(['xls','xlsx'].includes(ext)) return '📊';
+  if(['txt','csv'].includes(ext)) return '📄';
+  return '📎';
+}
+
+function renderAttachmentsList(col, existingAttachments) {
+  const prefix = PREFIX_MAP[col];
+  const listEl = document.getElementById(`${prefix}-attachments-list`);
+  if(!listEl) return;
+  const pending = window._pendingAttachments[col] || [];
+  let html = '';
+  // Existing (saved) attachments
+  (existingAttachments||[]).forEach((a,i) => {
+    html += `<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:7px;margin-bottom:5px;font-size:13px;">
+      <span>${getAttachmentIcon(a.name)}</span>
+      <a href="${a.url}" target="_blank" rel="noopener" style="flex:1;color:var(--accent);text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${a.name}">${a.name}</a>
+      <span style="font-size:11px;color:var(--text3);">${a.size||''}</span>
+      <button onclick="deleteAttachment('${col}','${a.path}',${i})" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:14px;padding:2px 4px;" title="Anhang löschen">×</button>
+    </div>`;
+  });
+  // Pending (not yet uploaded) attachments
+  pending.forEach((f,i) => {
+    html += `<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:#fefce8;border:1px solid #fde68a;border-radius:7px;margin-bottom:5px;font-size:13px;">
+      <span>${getAttachmentIcon(f.name)}</span>
+      <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${f.name}">${f.name}</span>
+      <span class="badge badge-yellow">Ausstehend</span>
+      <button onclick="removePendingAttachment('${col}',${i})" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:14px;padding:2px 4px;" title="Entfernen">×</button>
+    </div>`;
+  });
+  listEl.innerHTML = html || '';
+}
+
+window.handleAttachmentUpload = function(input, col) {
+  const files = Array.from(input.files);
+  if(!files.length) return;
+  if(!window._pendingAttachments[col]) window._pendingAttachments[col] = [];
+  // Limit: max 10 files, max 20MB each
+  for(const f of files) {
+    if(f.size > 20*1024*1024) { alert(`Datei "${f.name}" ist zu gross (max. 20 MB).`); continue; }
+    window._pendingAttachments[col].push(f);
+  }
+  input.value = '';
+  const currentAttachments = window._currentEditAttachments?.[col] || [];
+  renderAttachmentsList(col, currentAttachments);
+};
+
+window.removePendingAttachment = function(col, idx) {
+  if(window._pendingAttachments[col]) window._pendingAttachments[col].splice(idx, 1);
+  const currentAttachments = window._currentEditAttachments?.[col] || [];
+  renderAttachmentsList(col, currentAttachments);
+};
+
+window.deleteAttachment = async function(col, path, idx) {
+  if(!confirm('Anhang wirklich löschen?')) return;
+  try {
+    const fileRef = storageRef(storage, path);
+    await deleteObject(fileRef);
+    // Remove from Firestore doc
+    const docId = window._editId;
+    if(docId) {
+      const docSnap = await getDoc(doc(db, col, docId));
+      if(docSnap.exists()) {
+        const atts = [...(docSnap.data().attachments||[])];
+        atts.splice(idx,1);
+        await updateDoc(doc(db,col,docId), { attachments: atts });
+      }
+    }
+    if(!window._currentEditAttachments) window._currentEditAttachments = {};
+    if(window._currentEditAttachments[col]) window._currentEditAttachments[col].splice(idx,1);
+    renderAttachmentsList(col, window._currentEditAttachments[col]||[]);
+  } catch(e) { alert('Löschen fehlgeschlagen: '+e.message); }
+};
+
+async function uploadPendingAttachments(col, docId) {
+  const prefix = PREFIX_MAP[col];
+  const progressEl = document.getElementById(`${prefix}-upload-progress`);
+  const files = window._pendingAttachments[col] || [];
+  if(!files.length) return [];
+  const uploaded = [];
+  for(let i=0; i<files.length; i++) {
+    const f = files[i];
+    if(progressEl) progressEl.textContent = `⏳ Lade hoch: ${f.name} (${i+1}/${files.length})…`;
+    const path = `${col}/${docId}/${Date.now()}_${f.name}`;
+    const ref = storageRef(storage, path);
+    await uploadBytes(ref, f);
+    const url = await getDownloadURL(ref);
+    const sizeKb = f.size < 1024*1024 ? Math.round(f.size/1024)+'KB' : (f.size/1024/1024).toFixed(1)+'MB';
+    uploaded.push({ name: f.name, url, path, size: sizeKb });
+  }
+  if(progressEl) progressEl.textContent = '';
+  window._pendingAttachments[col] = [];
+  return uploaded;
+}
+
+function clearAttachmentState(col) {
+  window._pendingAttachments[col] = [];
+  if(!window._currentEditAttachments) window._currentEditAttachments = {};
+  window._currentEditAttachments[col] = [];
+  const prefix = PREFIX_MAP[col];
+  const listEl = document.getElementById(`${prefix}-attachments-list`);
+  if(listEl) listEl.innerHTML = '';
+  const progEl = document.getElementById(`${prefix}-upload-progress`);
+  if(progEl) progEl.textContent = '';
+}
+
+// Expose helpers for save handlers
+window._uploadPendingAttachments = uploadPendingAttachments;
+window._clearAttachmentState = clearAttachmentState;
+window._renderAttachmentsList = renderAttachmentsList;
 
 // ---- EXCEL IMPORT / EXPORT ----
 const TEMPLATES = {
