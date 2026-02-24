@@ -457,6 +457,7 @@
         <button class="nav-item" onclick="showPage('aktivitaet')"><span class="nav-icon">📋</span> Aktivitätslog</button>
         <button class="nav-item" id="nav-benutzer" onclick="showPage('benutzer')" style="display:none"><span class="nav-icon">👥</span> Benutzerverwaltung <span class="nav-badge" id="access-req-badge" style="display:none">0</span></button>
         <button class="nav-item" id="nav-import" onclick="showPage('import')" style="display:none"><span class="nav-icon">📥</span> Daten importieren</button>
+        <button class="nav-item" id="nav-export" onclick="showPage('export')" style="display:none"><span class="nav-icon">📤</span> Daten exportieren</button>
       </div>
     </nav>
     <div style="padding:16px 20px;border-top:1px solid rgba(255,255,255,0.08);font-size:12px;color:rgba(255,255,255,0.3);">
@@ -716,7 +717,34 @@
             <div id="import-result-wartung" style="margin-top:12px;"></div>
           </div>
         </div>
+      
+    <!-- EXPORT -->
+    <div class="page page-hidden" id="page-export">
+      <div class="card">
+        <div class="card-header"><span class="card-title">📤 Daten exportieren</span></div>
+        <div class="card-body">
+          <p style="font-size:13px;color:var(--text2);margin-bottom:14px;">
+            Exportiert ausgewählte Daten als Excel-Datei (mehrere Tabellenblätter). Die Datei wird lokal heruntergeladen.
+          </p>
+
+          <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;">
+            <button class="btn-primary" onclick="exportFacilityOS('all')">📦 Alles exportieren (Excel)</button>
+            <button class="btn-secondary" onclick="exportFacilityOS('tickets')">🎫 Tickets</button>
+            <button class="btn-secondary" onclick="exportFacilityOS('wartungen')">🔧 Wartungsaufträge</button>
+            <button class="btn-secondary" onclick="exportFacilityOS('geraete')">⚙️ Geräte</button>
+            <button class="btn-secondary" onclick="exportFacilityOS('partner')">🏭 Partnerfirmen</button>
+            <button class="btn-secondary" onclick="exportFacilityOS('notfaelle')">🚨 Notfallkontakte</button>
+          </div>
+
+          <div id="export-result" style="margin-top:14px;"></div>
+
+          <div style="margin-top:14px;padding:12px 14px;border-radius:10px;border:1px solid var(--border);background:var(--surface2);font-size:12px;color:var(--text2);">
+            Hinweis: Exportiert wird der aktuelle Stand aus Firestore (inkl. Dokument-ID als <span style="font-family:'DM Mono',monospace;">id</span>).
+          </div>
+        </div>
       </div>
+    </div>
+</div>
     </div>
     <div class="page page-hidden" id="page-mehr">
       <div style="display:flex;flex-direction:column;gap:10px;">
@@ -728,6 +756,7 @@
         <button class="mobile-mehr-item" onclick="showPage('aktivitaet')">📋<span>Aktivitätslog</span><span style="margin-left:auto;color:var(--text3);">›</span></button>
         <button class="mobile-mehr-item" id="mehr-benutzer" onclick="showPage('benutzer')" style="display:none">👥<span>Benutzerverwaltung</span><span style="margin-left:auto;color:var(--text3);">›</span></button>
         <button class="mobile-mehr-item" id="mehr-import" onclick="showPage('import')" style="display:none">📥<span>Daten importieren</span><span style="margin-left:auto;color:var(--text3);">›</span></button>
+        <button class="mobile-mehr-item" id="mehr-export" onclick="showPage('export')" style="display:none">📤<span>Daten exportieren</span><span style="margin-left:auto;color:var(--text3);">›</span></button>
         <div style="margin-top:8px;">
           <button onclick="fbSignOutMobile()" style="width:100%;padding:14px;border-radius:10px;border:1px solid var(--red);background:var(--red-light);color:var(--red);font-size:14px;font-weight:500;cursor:pointer;">⏏️ Abmelden</button>
         </div>
@@ -777,6 +806,10 @@
       <div class="grid-2"><div class="form-group"><label class="form-label">Raum / Detail</label><input class="form-input" id="g-raum" placeholder="z.B. Zimmer 312, Technikraum, Keller"></div><div class="form-group"><label class="form-label">&nbsp;</label><input type="hidden" id="g-standort"></div></div>
       <div class="grid-2"><div class="form-group"><label class="form-label">Nächste Wartung</label><input class="form-input" type="date" id="g-naechste-wartung"></div><div class="form-group"><label class="form-label">Zuständige Partnerfirma</label><select class="form-select" id="g-partner"><option value="">– auswählen –</option></select></div></div>
       <div class="form-group"><label class="form-label">Notizen</label><textarea class="form-textarea" id="g-notizen"></textarea></div>
+      <div id="geraet-ticketlog" class="card" style="margin-top:16px; display:none;">
+        <div class="card-header"><div class="card-title">Tickets & Störungen zu diesem Gerät</div></div>
+        <div class="card-body" id="geraet-ticketlog-body"></div>
+      </div>
     </div>
     <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('modal-geraet')">Abbrechen</button><button class="btn btn-primary" id="btn-save-geraet">Gerät speichern</button></div>
   </div>
@@ -849,6 +882,10 @@
         <div class="form-group"><label class="form-label">Kapazität / Grösse</label><input class="form-input" id="b-kapazitaet" placeholder="z.B. 2 Pers., 80m²"></div>
       </div>
       <div class="form-group"><label class="form-label">Notizen</label><textarea class="form-textarea" id="b-notizen"></textarea></div>
+      <div id="bereich-ticketlog" class="card" style="margin-top:16px; display:none;">
+        <div class="card-header"><div class="card-title">Tickets & Störungen zu diesem Bereich</div></div>
+        <div class="card-body" id="bereich-ticketlog-body"></div>
+      </div>
     </div>
     <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('modal-bereich')">Abbrechen</button><button class="btn btn-primary" id="btn-save-bereich">Bereich speichern</button></div>
   </div>
@@ -856,7 +893,7 @@
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
-import { getFirestore, collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, getDoc, setDoc, serverTimestamp, query, orderBy } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+import { getFirestore, collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, getDoc, getDocs, setDoc, serverTimestamp, query, orderBy  } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 import { getAuth, GoogleAuthProvider, OAuthProvider, signInWithPopup, onAuthStateChanged, signOut as fbSignOut } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
 
 const firebaseConfig = {
@@ -976,7 +1013,9 @@ onAuthStateChanged(auth, async user => {
       }
       // Import available for all users
       const ni = document.getElementById('nav-import'); if(ni) ni.style.display='';
+      const ne = document.getElementById('nav-export'); if(ne) ne.style.display='';
       const mi = document.getElementById('mehr-import'); if(mi) mi.style.display='';
+      const me = document.getElementById('mehr-export'); if(me) me.style.display='';
       startListeners();
     } else if (access === 'pending') {
       // ⏳ Show waiting screen
@@ -1180,6 +1219,13 @@ async function generateTicketsFromDueWartungen() {
 
 function checkLoaded() { loadedCount++; if (loadedCount >= 8) { document.getElementById('loading-overlay').classList.add('hidden'); if(!_wartungTicketGenDone){ _wartungTicketGenDone=true; generateTicketsFromDueWartungen(); } } }
 
+// Ensure state exists before listeners render
+(function ensureState(){
+  window.state = window.state || {};
+  const __stateDefaults = { tickets:[], wartungen:[], geraete:[], partner:[], notfaelle:[], dokumente:[], bereiche:[], log:[], ticketFilter:'alle', wartungFilter:'alle', geraeteFilter:'alle', partnerFilter:'alle', bereicheFilter:'alle', calMonth:new Date().getMonth(), calYear:new Date().getFullYear(), ticketSearch:'' };
+  for (const k in __stateDefaults) { if (window.state[k] === undefined) window.state[k] = __stateDefaults[k]; }
+})();
+
 function startListeners() {
   loadedCount = 0;
   document.getElementById('loading-overlay').classList.remove('hidden');
@@ -1325,6 +1371,9 @@ document.getElementById('btn-save-notfall').onclick = async () => {
     erreichbar: document.getElementById('n-erreichbar').value,
     notizen: document.getElementById('n-notizen').value,
   };
+  const existingPinned = (window._editId && window._editType==='notfaelle') ? !!(window.state.notfaelle.find(n=>n.id===window._editId)?.pinned) : false;
+  data.pinned = existingPinned;
+
   if(window._editId && window._editType==='notfaelle'){
     await updateDoc(doc(db,'notfaelle',window._editId), data);
     await addLog(`Notfallkontakt "${name}" bearbeitet`, '#dc2626');
@@ -1402,6 +1451,17 @@ window.deleteItem = async (col, id) => {
   if (!confirm('Wirklich löschen?')) return;
   await deleteDoc(doc(db,col,id));
   await addLog(`Eintrag gelöscht (${col})`, '#9a9890');
+};
+
+window.toggleNotfallPin = async (id, pinned) => {
+  try{
+    await updateDoc(doc(db,'notfaelle',id), { pinned: !pinned });
+    const name = window.state.notfaelle.find(n=>n.id===id)?.name || id;
+    await addLog(`Notfallkontakt ${!pinned?'angeheftet':'losgelöst'}: "${name}"`, '#dc2626');
+  }catch(e){
+    console.error(e);
+    alert('Konnte den Kontakt nicht anheften/loslösen.');
+  }
 };
 
 // ---- HELPERS ----
@@ -1487,6 +1547,7 @@ window.editItem = (type, id) => {
     document.getElementById('modal-geraet').querySelector('.modal-title').textContent='Gerät bearbeiten';
     document.getElementById('btn-save-geraet').textContent='Änderungen speichern';
     document.getElementById('modal-geraet').classList.remove('hidden');
+    showGeraetTicketLog(id);
   } else if(type==='partner'){
     document.getElementById('p-name').value=item.name||'';
     document.getElementById('p-bereich').value=item.bereich||'';
@@ -1531,12 +1592,15 @@ window.editItem = (type, id) => {
     document.getElementById('modal-bereich').querySelector('.modal-title').textContent='Bereich bearbeiten';
     document.getElementById('btn-save-bereich').textContent='Änderungen speichern';
     document.getElementById('modal-bereich').classList.remove('hidden');
+    showBereichTicketLog(id);
   }
 };
 </script>
 
 <script>
-window.state = { tickets:[], wartungen:[], geraete:[], partner:[], notfaelle:[], dokumente:[], bereiche:[], log:[], ticketFilter:'alle', wartungFilter:'alle', geraeteFilter:'alle', partnerFilter:'alle', bereicheFilter:'alle', calMonth:new Date().getMonth(), calYear:new Date().getFullYear(), ticketSearch:'' };
+window.state = window.state || {};
+  const __stateDefaults = { tickets:[], wartungen:[], geraete:[], partner:[], notfaelle:[], dokumente:[], bereiche:[], log:[], ticketFilter:'alle', wartungFilter:'alle', geraeteFilter:'alle', partnerFilter:'alle', bereicheFilter:'alle', calMonth:new Date().getMonth(), calYear:new Date().getFullYear(), ticketSearch:'' };
+  for (const k in __stateDefaults) { if (window.state[k] === undefined) window.state[k] = __stateDefaults[k]; }
 
 // Force responsive visibility (prevents table + mobile cards showing at the same time)
 function applyResponsiveVisibility(){
@@ -1553,7 +1617,7 @@ applyResponsiveVisibility();
 
 
 
-const pageLabels = {dashboard:'Dashboard',tickets:'Tickets & Störungen',wartung:'Wartungsaufträge',kalender:'Wartungskalender',geraete:'Geräte & Anlagen',bereiche:'Hotelbereiche',dokumente:'Dokumente',partner:'Partnerfirmen',notfall:'Notfallkontakte',aktivitaet:'Aktivitätslog',benutzer:'Benutzerverwaltung',import:'Daten importieren',mehr:'Mehr'};
+const pageLabels = {dashboard:'Dashboard',tickets:'Tickets & Störungen',wartung:'Wartungsaufträge',kalender:'Wartungskalender',geraete:'Geräte & Anlagen',bereiche:'Hotelbereiche',dokumente:'Dokumente',partner:'Partnerfirmen',notfall:'Notfallkontakte',aktivitaet:'Aktivitätslog',benutzer:'Benutzerverwaltung',import:'Daten importieren',export:'Daten exportieren',mehr:'Mehr'};
 
 // Pages reachable directly from bottom nav (no back button needed)
 const mainPages = new Set(['dashboard','tickets','geraete','notfall','mehr']);
@@ -1577,6 +1641,34 @@ const fabActions = {
   notfall: () => openModal('modal-notfall'),
   dokumente: () => openModal('modal-dokument'),
 };
+
+function renderExportPage(){
+  const el = document.getElementById('page-export');
+  if(!el) return;
+  // If content already present, do nothing
+  if(el.querySelector('.card')) { el.dataset.built='1'; return; }
+  el.innerHTML = `
+    <div class="card">
+      <div class="card-header"><span class="card-title">📤 Daten exportieren</span></div>
+      <div class="card-body">
+        <p style="font-size:13px;color:var(--text2);margin-bottom:14px;">
+          Exportiert ausgewählte Daten als Excel-Datei. Die Datei wird lokal heruntergeladen.
+        </p>
+        <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;">
+          <button class="btn-primary" onclick="exportFacilityOS('all')">📦 Alles exportieren (Excel)</button>
+          <button class="btn-secondary" onclick="exportFacilityOS('tickets')">🎫 Tickets & Störungen</button>
+          <button class="btn-secondary" onclick="exportFacilityOS('wartungen')">🔧 Wartungsaufträge</button>
+          <button class="btn-secondary" onclick="exportFacilityOS('geraete')">⚙️ Geräte & Anlagen</button>
+          <button class="btn-secondary" onclick="exportFacilityOS('partner')">🏭 Partnerfirmen</button>
+          <button class="btn-secondary" onclick="exportFacilityOS('notfaelle')">🚨 Notfallkontakte</button>
+        </div>
+        <div id="export-result" style="margin-top:14px;"></div>
+        <div style="margin-top:14px;font-size:12px;color:var(--text3);">
+          Hinweis: Firestore-Timestamps werden als ISO-Datum exportiert. Dokument-IDs werden als Spalte <span class="badge">id</span mitgeführt.
+        </div>
+      </div>
+    </div>`;
+}
 window._currentPage = 'dashboard';
 window.handleFab = () => { const fn = fabActions[window._currentPage]; if(fn) fn(); };
 
@@ -1624,6 +1716,7 @@ function showPage(name, navBtn, isBack) {
 
   if(name==='kalender') renderCalendar();
   if(name==='aktivitaet') renderAktivitaet();
+  if(name==='export') renderExportPage();
 }
 
 function openModal(id) { populateSelects(); document.getElementById(id).classList.remove('hidden'); }
@@ -1632,6 +1725,7 @@ function closeModal(id) {
   document.querySelectorAll(`#${id} input,#${id} textarea`).forEach(e=>{ if(e.type==='checkbox') e.checked=false; else e.value=''; });
   document.querySelectorAll(`#${id} select`).forEach(e=>e.selectedIndex=0);
   window._editId=null; window._editType=null;
+  hideEntityTicketLogs();
   // Reset titles and button labels
   const titleMap={'modal-ticket':'Neues Ticket / Störungsmeldung','modal-wartung':'Wartungsauftrag erfassen','modal-geraet':'Gerät / Anlage hinzufügen','modal-partner':'Partnerfirma hinzufügen','modal-notfall':'Notfallkontakt hinzufügen','modal-dokument':'Dokument erfassen','modal-bereich':'Hotelbereich hinzufügen'};
   const btnMap={'modal-ticket':'btn-save-ticket','modal-wartung':'btn-save-wartung','modal-geraet':'btn-save-geraet','modal-partner':'btn-save-partner','modal-notfall':'btn-save-notfall','modal-dokument':'btn-save-dokument','modal-bereich':'btn-save-bereich'};
@@ -1640,13 +1734,54 @@ function closeModal(id) {
   if(btnMap[id]) document.getElementById(btnMap[id]).textContent=saveLabelMap[id];
 }
 
+function _lc(a,b){
+  return String(a||'').localeCompare(String(b||''), 'de', { sensitivity:'base', numeric:true });
+}
+function _optEsc(str){
+  if(str===null||str===undefined) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function _isZimmerBereich(b){
+  if(!b) return false;
+  if(b.kategorie==='zimmer') return true;
+  if(b.zimmernummer) return true;
+  return /^\s*zimmer\s*\d+/i.test(b.name||'') || /^\s*\d+\s*$/.test(b.name||'');
+}
+function _zimmerNum(b){
+  if(!b) return null;
+  const zn = (b.zimmernummer||'').toString().trim();
+  if(zn && /^\d+$/.test(zn)) return parseInt(zn,10);
+  const m = (b.name||'').match(/(\d+)/);
+  return m ? parseInt(m[1],10) : null;
+}
+function _sortBereicheForUi(arr){
+  const rooms = [];
+  const other = [];
+  (arr||[]).forEach(b=> (_isZimmerBereich(b)?rooms:other).push(b));
+  other.sort((a,b)=>_lc(a.name,b.name));
+  rooms.sort((a,b)=>{
+    const an=_zimmerNum(a), bn=_zimmerNum(b);
+    if(an!=null && bn!=null) return an-bn;
+    if(an!=null) return -1;
+    if(bn!=null) return 1;
+    return _lc(a.name,b.name);
+  });
+  return other.concat(rooms);
+}
+
 function populateSelects() {
-  const g = state.geraete.map(g=>{
+  const geraeteSorted = [...state.geraete].sort((a,b)=>_lc(a.name,b.name));
+  const partnerSorted = [...state.partner].sort((a,b)=>_lc(a.name,b.name));
+  const bereicheSorted = _sortBereicheForUi(state.bereiche);
+
+  const g = geraeteSorted.map(g=>{
     const loc = (g.bereichName||g.standort||'') + (g.raum?' / '+g.raum:'');
-    return `<option value="${g.id}">${g.name}${loc?' ('+loc+')':''}</option>`;
+    return `<option value="${g.id}">${_optEsc(g.name||'')}${loc?' ('+_optEsc(loc)+')':''}</option>`;
   }).join('');
-  const p = state.partner.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
-  const b = state.bereiche.map(b=>`<option value="${b.id}">${b.name}</option>`).join('');
+
+  const p = partnerSorted.map(p=>`<option value="${p.id}">${_optEsc(p.name||'')}</option>`).join('');
+  const b = bereicheSorted.map(b=>`<option value="${b.id}">${_optEsc(b.name||'')}</option>`).join('');
+
   ['t-geraet','w-geraet','d-geraet'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML='<option value="">– auswählen –</option>'+g;});
   ['t-partner','w-partner'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML='<option value="">– auswählen –</option>'+p;});
   const gp=document.getElementById('g-partner');if(gp)gp.innerHTML='<option value="">– auswählen –</option>'+p;
@@ -1754,6 +1889,9 @@ function renderGeraete() {
   let data=state.geraete;
   if(state.geraeteFilter==='aktiv') data=data.filter(g=>g.status==='aktiv');
   else if(state.geraeteFilter==='stoerung') data=data.filter(g=>g.status==='stoerung');
+  // Alphabetisch sortieren
+  data = [...data].sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''), 'de', {sensitivity:'base', numeric:true}));
+
   const grid=document.getElementById('geraete-grid');
   grid.innerHTML=data.length?data.map(g=>`<div class="device-card"><div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:8px;"><div style="font-size:28px;">${kIcons[g.kategorie]||'🔧'}</div><select onchange="changeGeraetStatus('${g.id}',this.value)" style="border:1px solid var(--border2);border-radius:5px;padding:2px 6px;font-size:11.5px;background:var(--surface);"><option value="aktiv" ${g.status==='aktiv'?'selected':''}>✅ Aktiv</option><option value="stoerung" ${g.status==='stoerung'?'selected':''}>🔴 Störung</option><option value="wartung" ${g.status==='wartung'?'selected':''}>🟡 Wartung</option><option value="ausser_betrieb" ${g.status==='ausser_betrieb'?'selected':''}>⚫ Außer Betrieb</option></select></div><div style="font-weight:600;font-size:14px;margin-bottom:4px;">${g.name}</div><div style="font-size:12px;color:var(--text3);margin-bottom:6px;">${(g.bereichName||g.standort||'–') + (g.raum?' / '+g.raum:'')}</div>${g.hersteller?`<div style="font-size:12px;color:var(--text3);margin-bottom:4px;">🏭 ${g.hersteller}${g.seriennummer?' · SN: '+g.seriennummer:''}</div>`:''}${g.naechsteWartung?`<div style="font-size:12px;color:${new Date(g.naechsteWartung)<new Date()?'var(--red)':'var(--text3)'};margin-bottom:4px;">🔧 Wartung: ${fDate(g.naechsteWartung)}</div>`:''}${g.partnerName?`<div style="font-size:12px;color:var(--text3);margin-bottom:4px;">🤝 ${g.partnerName}</div>`:''}${g.notizen?`<div style="font-size:11.5px;color:var(--text3);border-top:1px solid var(--border);padding-top:8px;margin-top:6px;">${g.notizen}</div>`:''}<div style="display:flex;justify-content:flex-end;gap:6px;margin-top:10px;"><button class="btn btn-sm btn-edit" onclick="editItem('geraete','${g.id}')">✏️ Bearbeiten</button><button class="btn btn-secondary btn-sm" onclick="deleteItem('geraete','${g.id}')">🗑️</button></div></div>`).join(''):`<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">⚙️</div><p>Noch keine Geräte erfasst</p></div>`;
 }
@@ -1794,6 +1932,81 @@ function telHref(raw){
   return cleaned || s;
 }
 
+function _tsToDate(x){
+  if(!x) return null;
+  // Firestore Timestamp -> Date
+  if(typeof x === 'object' && typeof x.toDate === 'function') return x.toDate();
+  const d = new Date(x);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+function renderTicketLogList(tickets){
+  const data = [...tickets].sort((a,b)=>{
+    const ad=_tsToDate(a.createdAt), bd=_tsToDate(b.createdAt);
+    const at=ad?ad.getTime():0, bt=bd?bd.getTime():0;
+    return bt-at;
+  });
+
+  if(!data.length){
+    return `<div style="color:var(--text3);">Keine Tickets zugeordnet.</div>`;
+  }
+
+  return `<div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Datum</th>
+          <th>Betreff</th>
+          <th>Status</th>
+          <th>Prio</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        ${data.map(t=>{
+          const dt = t.createdAt ? fTs(t.createdAt) : '–';
+          const st = `<span class="badge ${sBadge[t.status]||'badge-gray'}">${sLabel[t.status]||t.status||'–'}</span>`;
+          const pr = `<span class="badge ${pBadge[t.prioritaet]||'badge-gray'}">${pLabel[t.prioritaet]||t.prioritaet||'–'}</span>`;
+          return `<tr>
+            <td style="font-family:'DM Mono',monospace;font-size:12px;">${dt}</td>
+            <td><span style="font-weight:500;">${esc(t.betreff||'')}</span></td>
+            <td>${st}</td>
+            <td>${pr}</td>
+            <td style="white-space:nowrap;">
+              <button class="btn btn-sm btn-edit" onclick="editItem('tickets','${t.id}')">✏️</button>
+            </td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>
+  </div>`;
+}
+
+function showGeraetTicketLog(geraetId){
+  const box = document.getElementById('geraet-ticketlog');
+  const body = document.getElementById('geraet-ticketlog-body');
+  if(!box || !body) return;
+  const tickets = (state.tickets||[]).filter(t=>t.geraetId===geraetId);
+  body.innerHTML = renderTicketLogList(tickets);
+  box.style.display = 'block';
+}
+
+function showBereichTicketLog(bereichId){
+  const box = document.getElementById('bereich-ticketlog');
+  const body = document.getElementById('bereich-ticketlog-body');
+  if(!box || !body) return;
+  const tickets = (state.tickets||[]).filter(t=>t.bereichId===bereichId);
+  body.innerHTML = renderTicketLogList(tickets);
+  box.style.display = 'block';
+}
+
+function hideEntityTicketLogs(){
+  const gb=document.getElementById('geraet-ticketlog'); if(gb) gb.style.display='none';
+  const bb=document.getElementById('bereich-ticketlog'); if(bb) bb.style.display='none';
+  const gbb=document.getElementById('geraet-ticketlog-body'); if(gbb) gbb.innerHTML='';
+  const bbb=document.getElementById('bereich-ticketlog-body'); if(bbb) bbb.innerHTML='';
+}
+
 function bereichIcon(b){
   const x=(b||'').toLowerCase();
   if(x.includes('aufzug')) return '🛗';
@@ -1811,9 +2024,12 @@ function renderPartner() {
   const grid = document.getElementById('partner-grid');
   if(!grid) return;
 
-  const data = (state.partnerFilter && state.partnerFilter!=='alle')
+  let data = (state.partnerFilter && state.partnerFilter!=='alle')
     ? state.partner.filter(p => (p.bereich||'Sonstiges') === state.partnerFilter)
     : state.partner;
+
+// Alphabetisch sortieren
+data = [...data].sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''), 'de', {sensitivity:'base', numeric:true}));
 
   if(!data.length){
     grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">🏭</div><p>Keine Partnerfirmen in dieser Kategorie.</p></div>`;
@@ -1855,8 +2071,48 @@ function renderPartner() {
 
 
 function renderNotfall() {
-  const grid=document.getElementById('notfall-grid');
-  grid.innerHTML=state.notfaelle.length?state.notfaelle.map(n=>`<div class="card" style="border-left:3px solid var(--red);"><div class="card-body"><div style="font-weight:600;font-size:15px;margin-bottom:6px;">${n.name}</div><div style="margin-bottom:12px;"><span class="badge badge-red">${n.kategorie}</span> <span class="badge badge-gray">${n.erreichbar}</span></div><div style="font-size:20px;font-weight:700;margin-bottom:8px;">📞 <a href="tel:${n.telefon}" style="color:var(--red);text-decoration:none;">${n.telefon}</a></div>${n.mobile?`<div style="font-size:13px;margin-bottom:8px;">📱 <a href="tel:${n.mobile}" style="color:var(--red);text-decoration:none;">${n.mobile}</a></div>`:''}${n.notizen?`<div style="font-size:12px;color:var(--text3);">${n.notizen}</div>`:''}<div style="display:flex;justify-content:flex-end;gap:6px;margin-top:10px;"><button class="btn btn-sm btn-edit" onclick="editItem('notfaelle','${n.id}')">✏️ Bearbeiten</button><button class="btn btn-secondary btn-sm" onclick="deleteItem('notfaelle','${n.id}')">🗑️</button></div></div></div>`).join(''):`<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">🚨</div><p>Noch keine Notfallkontakte</p></div>`;
+  const grid = document.getElementById('notfall-grid');
+  if(!grid) return;
+
+  const data = [...state.notfaelle].sort((a,b)=>{
+    const ap = !!a.pinned, bp = !!b.pinned;
+    if(ap!==bp) return ap ? -1 : 1; // pinned zuerst
+    return String(a.name||'').localeCompare(String(b.name||''), 'de', { sensitivity:'base', numeric:true });
+  });
+
+  if(!data.length){
+    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">🚨</div><p>Noch keine Notfallkontakte</p></div>`;
+    return;
+  }
+
+  grid.innerHTML = data.map(n=>{
+    const tel = n.telefon ? `<a href="tel:${telHref(n.telefon)}" style="color:var(--red);text-decoration:none;font-weight:700;">${esc(n.telefon)}</a>` : '–';
+    const mob = n.mobile ? `<a href="tel:${telHref(n.mobile)}" style="color:var(--red);text-decoration:none;">${esc(n.mobile)}</a>` : '';
+    const pinLbl = n.pinned ? '⭐ Angeheftet' : '☆ Anheften';
+
+    return `<div class="card" style="border-left:3px solid var(--red);">
+      <div class="card-body">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;">
+          <div style="font-weight:700;font-size:15px;line-height:1.2;">${esc(n.name||'')}</div>
+          <button class="btn btn-secondary btn-sm" onclick="toggleNotfallPin('${n.id}', ${n.pinned? 'true':'false'})" title="Kontakt anheften/loslösen">${pinLbl}</button>
+        </div>
+
+        <div style="margin-top:10px;margin-bottom:12px;">
+          <span class="badge badge-red">${esc(n.kategorie||'')}</span>
+          <span class="badge badge-gray">${esc(n.erreichbar||'')}</span>
+        </div>
+
+        <div style="font-size:18px;font-weight:800;margin-bottom:8px;">📞 ${tel}</div>
+        ${mob?`<div style="font-size:13px;margin-bottom:8px;">📱 ${mob}</div>`:''}
+        ${n.notizen?`<div style="font-size:12px;color:var(--text3);">${esc(n.notizen)}</div>`:''}
+
+        <div style="display:flex;justify-content:flex-end;gap:6px;margin-top:10px;">
+          <button class="btn btn-sm btn-edit" onclick="editItem('notfaelle','${n.id}')">✏️ Bearbeiten</button>
+          <button class="btn btn-secondary btn-sm" onclick="deleteItem('notfaelle','${n.id}')">🗑️</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
 }
 
 function renderDokumente() {
@@ -1960,10 +2216,25 @@ function renderDokumenteMobile() {
 function renderBereiche() {
   let data = state.bereiche;
   if(state.bereicheFilter && state.bereicheFilter!=='alle') data=data.filter(b=>b.kategorie===state.bereicheFilter);
-  data=[...data].sort((a,b)=>{
-    if(a.kategorie===b.kategorie) return (a.zimmernummer||a.name).localeCompare(b.zimmernummer||b.name, 'de', {numeric:true});
-    return a.kategorie.localeCompare(b.kategorie);
+  // Alphabetisch sortieren (Zimmer am Schluss, nach Nummer aufsteigend)
+  const rooms = [];
+  const other = [];
+  data.forEach(b=>{
+    const isRoom = (b.kategorie==='zimmer') || !!b.zimmernummer || /^\s*zimmer\s*\d+/i.test(b.name||'') || /^\s*\d+\s*$/.test(b.name||'');
+    (isRoom ? rooms : other).push(b);
   });
+  other.sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''), 'de', {sensitivity:'base', numeric:true}));
+  rooms.sort((a,b)=>{
+    const an = (a.zimmernummer && /^\d+$/.test(String(a.zimmernummer).trim())) ? parseInt(String(a.zimmernummer).trim(),10) : (a.name||'').match(/(\d+)/)?.[1];
+    const bn = (b.zimmernummer && /^\d+$/.test(String(b.zimmernummer).trim())) ? parseInt(String(b.zimmernummer).trim(),10) : (b.name||'').match(/(\d+)/)?.[1];
+    const ai = an!=null ? parseInt(an,10) : null;
+    const bi = bn!=null ? parseInt(bn,10) : null;
+    if(ai!=null && bi!=null) return ai-bi;
+    if(ai!=null) return -1;
+    if(bi!=null) return 1;
+    return String(a.name||'').localeCompare(String(b.name||''), 'de', {sensitivity:'base', numeric:true});
+  });
+  data = other.concat(rooms);
   const grid=document.getElementById('bereiche-grid');
   if(!grid) return;
   grid.innerHTML=data.length?data.map(b=>`<div class="card">
@@ -2105,6 +2376,112 @@ window.handleImport = async function(input, type) {
     resultEl.innerHTML=`<div style="background:var(--red-light);color:var(--red);padding:10px 12px;border-radius:7px;font-size:13px;">❌ Fehler: ${e.message}</div>`;
   }
 };
+
+
+// -------------------- EXPORT (Excel) --------------------
+function _tsToISO(v){
+  try{
+    if(!v) return v;
+    // Firestore Timestamp (has toDate)
+    if(typeof v === 'object' && typeof v.toDate === 'function'){
+      return v.toDate().toISOString();
+    }
+    // JS Date
+    if(v instanceof Date) return v.toISOString();
+    return v;
+  }catch(e){ return v; }
+}
+
+function _deepConvert(obj){
+  if(obj === null || obj === undefined) return obj;
+  if(Array.isArray(obj)) return obj.map(_deepConvert);
+  if(typeof obj === 'object'){
+    // Timestamp / Date handled here:
+    if(typeof obj.toDate === 'function' || obj instanceof Date) return _tsToISO(obj);
+    const out = {};
+    Object.keys(obj).forEach(k=>{
+      out[k] = _deepConvert(obj[k]);
+    });
+    return out;
+  }
+  return obj;
+}
+
+async function _fetchCollectionData(colName){
+  const snap = await getDocs(collection(db, colName));
+  const arr = [];
+  snap.forEach(d=>{
+    const data = d.data ? d.data() : {};
+    const row = _deepConvert(data || {});
+    row.id = d.id;
+    arr.push(row);
+  });
+  return arr;
+}
+
+function _downloadWorkbook(wb, filename){
+  XLSX.writeFile(wb, filename, { compression: true });
+}
+
+window.exportFacilityOS = async function(mode){
+  const resultEl = document.getElementById('export-result');
+  if(resultEl) resultEl.innerHTML = '<div style="background:var(--surface2);border:1px solid var(--border);padding:10px 12px;border-radius:8px;font-size:13px;">⏳ Export läuft…</div>';
+
+  try{
+    if(typeof XLSX === 'undefined') throw new Error('SheetJS (XLSX) ist nicht geladen.');
+
+    const mapping = {
+      tickets: {col:'tickets', sheet:'Tickets'},
+      wartungen: {col:'wartungen', sheet:'Wartungen'},
+      geraete: {col:'geraete', sheet:'Geraete'},
+      partner: {col:'partner', sheet:'Partner'},
+      notfaelle: {col:'notfaelle', sheet:'Notfaelle'},
+    };
+
+    const wb = XLSX.utils.book_new();
+
+    const tasks = [];
+    if(mode === 'all'){
+      Object.keys(mapping).forEach(k=>tasks.push(k));
+    } else {
+      if(!mapping[mode]) throw new Error('Unbekannter Export-Typ: '+mode);
+      tasks.push(mode);
+    }
+
+    for(const key of tasks){
+      const info = mapping[key];
+      const rows = await _fetchCollectionData(info.col);
+
+      // Optionale Sortierung fürs Export-Excel (stabil, nachvollziehbar)
+      if(info.col === 'partner') rows.sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),'de',{sensitivity:'base',numeric:true}));
+      if(info.col === 'notfaelle') rows.sort((a,b)=>{
+        const ap=!!a.pinned, bp=!!b.pinned; if(ap!==bp) return ap?-1:1;
+        return String(a.name||'').localeCompare(String(b.name||''),'de',{sensitivity:'base',numeric:true});
+      });
+      if(info.col === 'geraete') rows.sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),'de',{sensitivity:'base',numeric:true}));
+      if(info.col === 'wartungen') rows.sort((a,b)=>String(a.titel||a.name||'').localeCompare(String(b.titel||b.name||''),'de',{sensitivity:'base',numeric:true}));
+      if(info.col === 'tickets') rows.sort((a,b)=>{
+        const ad = (a.updatedAt||a.createdAt||a.datum||''); 
+        const bd = (b.updatedAt||b.createdAt||b.datum||'');
+        return String(bd).localeCompare(String(ad)); // neueste zuerst
+      });
+
+      const ws = XLSX.utils.json_to_sheet(rows);
+      XLSX.utils.book_append_sheet(wb, ws, info.sheet);
+    }
+
+    const now = new Date();
+    const pad = (n)=>String(n).padStart(2,'0');
+    const fname = `FacilityOS_Export_${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}.xlsx`;
+    _downloadWorkbook(wb, fname);
+
+    if(resultEl) resultEl.innerHTML = `<div style="background:var(--green-light);color:var(--green);padding:10px 12px;border-radius:8px;font-size:13px;">✅ Export erstellt: <span style="font-family:'DM Mono',monospace;">${fname}</span></div>`;
+  }catch(e){
+    console.error('exportFacilityOS failed', e);
+    if(resultEl) resultEl.innerHTML = `<div style="background:var(--red-light);color:var(--red);padding:10px 12px;border-radius:8px;font-size:13px;">❌ Export fehlgeschlagen: ${esc(e.message||e)}</div>`;
+  }
+};
+
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script></body>
 </html>
