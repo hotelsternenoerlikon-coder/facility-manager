@@ -575,7 +575,21 @@
 
     <!-- PARTNER -->
     <div class="page page-hidden" id="page-partner">
-      <div class="section-header mb-24"><span></span><button class="btn btn-primary" onclick="openModal('modal-partner')">+ Partnerfirma hinzufügen</button></div>
+      <div class="section-header mb-24">
+        <div class="tabs">
+          <button class="tab active" onclick="filterPartner('alle',this)">Alle</button>
+          <button class="tab" onclick="filterPartner('Aufzugstechnik',this)">Aufzug</button>
+          <button class="tab" onclick="filterPartner('Heizung & Sanitär',this)">Heizung/Sanitär</button>
+          <button class="tab" onclick="filterPartner('Elektrotechnik',this)">Elektro</button>
+          <button class="tab" onclick="filterPartner('Klimatechnik',this)">Klima</button>
+          <button class="tab" onclick="filterPartner('Brandschutz',this)">Brandschutz</button>
+          <button class="tab" onclick="filterPartner('Sicherheitstechnik',this)">Sicherheit</button>
+          <button class="tab" onclick="filterPartner('IT & Netzwerk',this)">IT/Netzwerk</button>
+          <button class="tab" onclick="filterPartner('Allgemeiner Gebäudeservice',this)">Gebäudeservice</button>
+          <button class="tab" onclick="filterPartner('Sonstiges',this)">Sonstiges</button>
+        </div>
+        <button class="btn btn-primary" onclick="openModal('modal-partner')">+ Partnerfirma hinzufügen</button>
+      </div>
       <div id="partner-grid" class="grid-3"></div>
     </div>
 
@@ -1506,7 +1520,7 @@ window.editItem = (type, id) => {
 </script>
 
 <script>
-window.state = { tickets:[], wartungen:[], geraete:[], partner:[], notfaelle:[], dokumente:[], bereiche:[], log:[], ticketFilter:'alle', wartungFilter:'alle', geraeteFilter:'alle', bereicheFilter:'alle', calMonth:new Date().getMonth(), calYear:new Date().getFullYear(), ticketSearch:'' };
+window.state = { tickets:[], wartungen:[], geraete:[], partner:[], notfaelle:[], dokumente:[], bereiche:[], log:[], ticketFilter:'alle', wartungFilter:'alle', geraeteFilter:'alle', partnerFilter:'alle', bereicheFilter:'alle', calMonth:new Date().getMonth(), calYear:new Date().getFullYear(), ticketSearch:'' };
 
 // Force responsive visibility (prevents table + mobile cards showing at the same time)
 function applyResponsiveVisibility(){
@@ -1738,7 +1752,13 @@ function formatUrl(u){
 
 function renderPartner() {
   const grid=document.getElementById('partner-grid');
-  grid.innerHTML=state.partner.length?state.partner.map(p=>`<div class="card"><div class="card-body"><div style="font-weight:600;font-size:15px;margin-bottom:4px;">${p.name}</div><div style="margin-bottom:12px;"><span class="badge badge-blue">${p.bereich}</span></div>${p.kontakt?`<div style="font-size:13px;margin-bottom:4px;">👤 ${p.kontakt}</div>`:''}${p.telefon?`<div style="font-size:13px;margin-bottom:4px;">📞 <a href="tel:${p.telefon}" style="color:var(--accent);text-decoration:none;">${p.telefon}</a></div>`:''}${p.mobile?`<div style="font-size:13px;margin-bottom:4px;">📱 <a href="tel:${p.mobile}" style="color:var(--accent);text-decoration:none;">${p.mobile}</a></div>`:''}${p.email?`<div style="font-size:13px;margin-bottom:4px;">📧 <a href="mailto:${p.email}" style="color:var(--accent);text-decoration:none;">${p.email}</a></div>`:''}${p.website?`<div style="font-size:13px;margin-bottom:4px;">🌐 <a href="${formatUrl(p.website)}" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none;">${p.website}</a></div>`:''}${p.adresse?`<div style="font-size:12.5px;color:var(--text3);margin-bottom:4px;">📍 ${p.adresse}</div>`:''}${p.vertrag?`<div style="font-size:11.5px;color:var(--text3);font-family:'DM Mono',monospace;margin-bottom:8px;">Vertrag: ${p.vertrag}</div>`:''}${p.notizen?`<div style="font-size:12px;color:var(--text3);border-top:1px solid var(--border);padding-top:8px;margin-top:4px;">${p.notizen}</div>`:''}<div style="display:flex;justify-content:flex-end;gap:6px;margin-top:10px;"><button class="btn btn-sm btn-edit" onclick="editItem('partner','${p.id}')">✏️ Bearbeiten</button><button class="btn btn-secondary btn-sm" onclick="deleteItem('partner','${p.id}')">🗑️</button></div></div></div>`).join(''):`<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">🏭</div><p>Noch keine Partnerfirmen erfasst</p></div>`;
+  const data = (state.partnerFilter && state.partnerFilter!=='alle')
+    ? state.partner.filter(p => (p.bereich||'Sonstiges') === state.partnerFilter)
+    : state.partner;
+
+  grid.innerHTML = data.length
+    ? data.map(p=>`<div class="card"><div class="card-body"><div style="font-weight:800">${esc(p.name||'')}</div><div class="muted">${esc(p.bereich||'')}</div><div class="spacer"></div><div class="pill">${esc(p.kontakt||'')}</div><div class="pill">${esc(p.telefon||'')}</div><div class="pill">${esc(p.email||'')}</div><div class="spacer"></div><div class="actions"><button class="btn btn-ghost" onclick="openPartner('${p.id}')">Öffnen</button><button class="btn btn-danger" onclick="deletePartner('${p.id}')">Löschen</button></div></div></div>`).join('')
+    : `<div class="empty">Keine Partnerfirmen in dieser Kategorie.</div>`;
 }
 
 function renderNotfall() {
@@ -1872,6 +1892,7 @@ function renderBereiche() {
 function filterBereiche(f,btn){state.bereicheFilter=f;btn.closest('.tabs').querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));btn.classList.add('active');renderBereiche();}
 function filterWartung(f,btn){state.wartungFilter=f;btn.closest('.tabs').querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));btn.classList.add('active');renderWartungen();renderWartungenMobile();}
 function filterGeraete(f,btn){state.geraeteFilter=f;btn.closest('.tabs').querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));btn.classList.add('active');renderGeraete();}
+function filterPartner(f,btn){state.partnerFilter=f;btn.closest('.tabs').querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));btn.classList.add('active');renderPartner();}
 
 function renderCalendar() {
   const year=state.calYear,month=state.calMonth;
