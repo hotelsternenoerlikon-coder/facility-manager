@@ -1188,6 +1188,13 @@ async function generateTicketsFromDueWartungen() {
 
 function checkLoaded() { loadedCount++; if (loadedCount >= 8) { document.getElementById('loading-overlay').classList.add('hidden'); if(!_wartungTicketGenDone){ _wartungTicketGenDone=true; generateTicketsFromDueWartungen(); } } }
 
+// Ensure state exists before listeners render
+(function ensureState(){
+  window.state = window.state || {};
+  const __stateDefaults = { tickets:[], wartungen:[], geraete:[], partner:[], notfaelle:[], dokumente:[], bereiche:[], log:[], ticketFilter:'alle', wartungFilter:'alle', geraeteFilter:'alle', partnerFilter:'alle', bereicheFilter:'alle', calMonth:new Date().getMonth(), calYear:new Date().getFullYear(), ticketSearch:'' };
+  for (const k in __stateDefaults) { if (window.state[k] === undefined) window.state[k] = __stateDefaults[k]; }
+})();
+
 function startListeners() {
   loadedCount = 0;
   document.getElementById('loading-overlay').classList.remove('hidden');
@@ -1560,7 +1567,9 @@ window.editItem = (type, id) => {
 </script>
 
 <script>
-window.state = { tickets:[], wartungen:[], geraete:[], partner:[], notfaelle:[], dokumente:[], bereiche:[], log:[], ticketFilter:'alle', wartungFilter:'alle', geraeteFilter:'alle', partnerFilter:'alle', bereicheFilter:'alle', calMonth:new Date().getMonth(), calYear:new Date().getFullYear(), ticketSearch:'' };
+window.state = window.state || {};
+  const __stateDefaults = { tickets:[], wartungen:[], geraete:[], partner:[], notfaelle:[], dokumente:[], bereiche:[], log:[], ticketFilter:'alle', wartungFilter:'alle', geraeteFilter:'alle', partnerFilter:'alle', bereicheFilter:'alle', calMonth:new Date().getMonth(), calYear:new Date().getFullYear(), ticketSearch:'' };
+  for (const k in __stateDefaults) { if (window.state[k] === undefined) window.state[k] = __stateDefaults[k]; }
 
 // Force responsive visibility (prevents table + mobile cards showing at the same time)
 function applyResponsiveVisibility(){
@@ -2166,8 +2175,6 @@ function renderBereiche() {
     return String(a.name||'').localeCompare(String(b.name||''), 'de', {sensitivity:'base', numeric:true});
   });
   data = other.concat(rooms);
-    return a.kategorie.localeCompare(b.kategorie);
-  });
   const grid=document.getElementById('bereiche-grid');
   if(!grid) return;
   grid.innerHTML=data.length?data.map(b=>`<div class="card">
