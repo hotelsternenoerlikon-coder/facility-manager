@@ -1,1 +1,2448 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FacilityOS – Gebäudemanagement</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f4f3ef; --surface: #ffffff; --surface2: #f9f8f5;
+    --border: #e2e0d8; --border2: #d0cec4;
+    --text: #1a1916; --text2: #5a5850; --text3: #9a9890;
+    --accent: #2563eb; --accent-light: #dbeafe;
+    --green: #16a34a; --green-light: #dcfce7;
+    --red: #dc2626; --red-light: #fee2e2;
+    --yellow: #d97706; --yellow-light: #fef3c7;
+    --orange: #ea580c; --orange-light: #ffedd5;
+    --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+    --shadow-md: 0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04);
+    --radius: 10px; --sidebar-w: 240px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); font-size: 14px; line-height: 1.5; }
+  button { font-family: inherit; cursor: pointer; }
+  input, textarea, select { font-family: inherit; }
 
+  .login-screen { position: fixed; inset: 0; background: var(--text); display: flex; align-items: center; justify-content: center; z-index: 999; flex-direction: column; gap: 24px; }
+  .login-screen.hidden { display: none; }
+  .pending-screen { position: fixed; inset: 0; background: var(--text); display: none; align-items: center; justify-content: center; z-index: 999; flex-direction: column; gap: 24px; }
+  .pending-screen.visible { display: flex; }
+  .pending-box { background: #fff; border-radius: 16px; padding: 40px 48px; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.3); width: 420px; max-width: 90vw; }
+  .rejected-screen { position: fixed; inset: 0; background: var(--text); display: none; align-items: center; justify-content: center; z-index: 999; flex-direction: column; gap: 24px; }
+  .rejected-screen.visible { display: flex; }
+  .rejected-box { background: #fff; border-radius: 16px; padding: 40px 48px; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.3); width: 420px; max-width: 90vw; }
+  .login-box { background: #fff; border-radius: 16px; padding: 40px 48px; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.3); width: 380px; }
+  .login-logo { font-size: 40px; margin-bottom: 12px; }
+  .login-title { font-size: 22px; font-weight: 600; margin-bottom: 6px; }
+  .login-sub { font-size: 13px; color: var(--text3); margin-bottom: 28px; }
+  .btn-google { display: flex; align-items: center; justify-content: center; gap: 12px; width: 100%; padding: 12px; border: 2px solid var(--border2); border-radius: 10px; background: #fff; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.15s; color: var(--text); }
+  .btn-google:hover { background: var(--bg); border-color: var(--accent); }
+  .btn-google img { width: 20px; height: 20px; }
+  .login-hint { font-size: 11.5px; color: var(--text3); margin-top: 16px; }
+
+  .loading-overlay { position: fixed; inset: 0; background: rgba(255,255,255,0.9); display: flex; align-items: center; justify-content: center; z-index: 500; font-size: 14px; color: var(--text2); flex-direction: column; gap: 12px; }
+  .loading-overlay.hidden { display: none; }
+  .spinner { width: 32px; height: 32px; border: 3px solid var(--border2); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .layout { display: flex; min-height: 100vh; }
+  .sidebar { width: var(--sidebar-w); background: var(--text); color: #fff; position: fixed; top: 0; left: 0; height: 100vh; display: flex; flex-direction: column; z-index: 100; overflow-y: auto; }
+  .sidebar-logo { padding: 24px 20px 20px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+  .sidebar-logo .logo-name { font-size: 17px; font-weight: 600; letter-spacing: -0.3px; }
+  .sidebar-logo .logo-sub { font-size: 11px; color: rgba(255,255,255,0.4); margin-top: 2px; font-family: 'DM Mono', monospace; }
+  .nav-section { padding: 16px 12px 8px; }
+  .nav-label { font-size: 10px; font-weight: 600; letter-spacing: 0.08em; color: rgba(255,255,255,0.3); text-transform: uppercase; padding: 0 8px; margin-bottom: 4px; }
+  .nav-item { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 7px; cursor: pointer; color: rgba(255,255,255,0.65); font-size: 13.5px; font-weight: 400; transition: all 0.15s; margin-bottom: 2px; border: none; background: none; width: 100%; text-align: left; }
+  .nav-item:hover { background: rgba(255,255,255,0.07); color: #fff; }
+  .nav-item.active { background: rgba(37,99,235,0.35); color: #fff; font-weight: 500; }
+  .nav-item .nav-icon { font-size: 16px; width: 20px; text-align: center; flex-shrink: 0; }
+  .nav-badge { margin-left: auto; background: var(--red); color: #fff; font-size: 10px; font-weight: 600; padding: 1px 6px; border-radius: 10px; font-family: 'DM Mono', monospace; }
+
+  .main { margin-left: var(--sidebar-w); flex: 1; display: flex; flex-direction: column; min-height: 100vh; }
+  .topbar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 28px; height: 56px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 50; }
+  .topbar-title { font-size: 16px; font-weight: 600; letter-spacing: -0.2px; }
+  .topbar-actions { display: flex; gap: 8px; align-items: center; }
+  .page { padding: 28px; flex: 1; }
+  .page-hidden { display: none; }
+
+  .user-avatar { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; border: 2px solid var(--border2); }
+  .user-name { font-size: 13px; color: var(--text2); }
+  .btn-logout { padding: 5px 12px; border-radius: 7px; border: 1px solid var(--border2); background: var(--surface); font-size: 12.5px; color: var(--text2); cursor: pointer; }
+  .btn-logout:hover { background: var(--red-light); color: var(--red); border-color: var(--red); }
+  .sync-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); display: inline-block; margin-right: 6px; }
+  .sync-label { font-size: 12px; color: var(--text3); display: flex; align-items: center; }
+
+  .btn { padding: 7px 16px; border-radius: 7px; border: none; font-size: 13.5px; font-weight: 500; display: inline-flex; align-items: center; gap: 6px; transition: all 0.15s; cursor: pointer; }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: #1d4ed8; }
+  .btn-secondary { background: var(--surface); border: 1px solid var(--border2); color: var(--text2); }
+  .btn-secondary:hover { background: var(--bg); }
+  .btn-sm { padding: 5px 12px; font-size: 12.5px; }
+  .btn-edit { background: var(--accent-light); border: 1px solid #bfdbfe; color: var(--accent); }
+  .btn-edit:hover { background: #bfdbfe; }
+  .mobile-mehr-item {
+    display: flex; align-items: center; gap: 14px; width: 100%; padding: 16px;
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    font-size: 15px; font-weight: 500; color: var(--text); cursor: pointer; text-align: left;
+    box-shadow: var(--shadow);
+  }
+  .mobile-mehr-item:active { background: var(--surface2); }
+
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); }
+  .card-header { padding: 18px 20px 14px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+  .card-title { font-size: 14px; font-weight: 600; }
+  .card-body { padding: 20px; }
+
+  .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+  .kpi-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; box-shadow: var(--shadow); }
+  .kpi-label { font-size: 12px; color: var(--text3); font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
+  .kpi-value { font-size: 28px; font-weight: 600; letter-spacing: -1px; line-height: 1; margin-bottom: 6px; font-family: 'DM Mono', monospace; }
+  .kpi-sub { font-size: 12px; color: var(--text3); }
+  .kpi-accent { border-left: 3px solid var(--accent); }
+  .kpi-green { border-left: 3px solid var(--green); }
+  .kpi-red { border-left: 3px solid var(--red); }
+  .kpi-yellow { border-left: 3px solid var(--yellow); }
+
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  th { text-align: left; padding: 10px 14px; font-size: 11.5px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  td { padding: 11px 14px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--surface2); }
+
+  .badge { display: inline-flex; align-items: center; padding: 2px 9px; border-radius: 20px; font-size: 11.5px; font-weight: 500; white-space: nowrap; }
+  .badge-green { background: var(--green-light); color: var(--green); }
+  .badge-red { background: var(--red-light); color: var(--red); }
+  .badge-yellow { background: var(--yellow-light); color: var(--yellow); }
+  .badge-blue { background: var(--accent-light); color: var(--accent); }
+  .badge-violet { background: #f3e8ff; color: #7c3aed; }
+  .badge-orange { background: var(--orange-light); color: var(--orange); }
+  .badge-gray { background: #f1f0eb; color: var(--text2); }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+  .mb-16 { margin-bottom: 16px; }
+  .mb-24 { margin-bottom: 24px; }
+
+  .form-group { margin-bottom: 16px; }
+  .form-label { display: block; font-size: 12.5px; font-weight: 500; color: var(--text2); margin-bottom: 6px; }
+  .form-input, .form-select, .form-textarea { width: 100%; padding: 8px 12px; border: 1px solid var(--border2); border-radius: 7px; font-size: 13.5px; color: var(--text); background: var(--surface); outline: none; transition: border 0.15s; }
+  .form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+  .form-textarea { resize: vertical; min-height: 80px; }
+
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.35); z-index: 200; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(2px); }
+  .modal-overlay.hidden { display: none; }
+  .modal { background: var(--surface); border-radius: 14px; box-shadow: 0 20px 60px rgba(0,0,0,0.18); width: 540px; max-width: 95vw; max-height: 90vh; overflow-y: auto; }
+  .modal-header { padding: 22px 24px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+  .modal-title { font-size: 16px; font-weight: 600; }
+  .modal-close { background: none; border: none; font-size: 20px; color: var(--text3); cursor: pointer; padding: 4px; border-radius: 5px; line-height: 1; }
+  .modal-close:hover { color: var(--text); background: var(--bg); }
+  .modal-body { padding: 24px; }
+  .modal-footer { padding: 16px 24px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 8px; }
+
+  .tabs { display: flex; gap: 2px; background: var(--bg); padding: 4px; border-radius: 8px; margin-bottom: 20px; width: fit-content; }
+  .tab { padding: 6px 16px; border-radius: 6px; border: none; background: none; font-size: 13px; font-weight: 500; color: var(--text2); cursor: pointer; transition: all 0.15s; }
+  .tab.active { background: var(--surface); color: var(--text); box-shadow: var(--shadow); }
+
+  .activity-item { display: flex; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .activity-item:last-child { border-bottom: none; }
+  .activity-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 6px; flex-shrink: 0; }
+  .activity-time { font-size: 11.5px; color: var(--text3); font-family: 'DM Mono', monospace; margin-top: 2px; }
+  .activity-text { font-size: 13px; }
+
+  .search-input { padding: 7px 12px 7px 34px; border: 1px solid var(--border2); border-radius: 7px; font-size: 13.5px; background: var(--surface); outline: none; width: 240px; transition: border 0.15s; }
+  .search-input:focus { border-color: var(--accent); }
+  .search-wrap { position: relative; }
+  .search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--text3); font-size: 14px; }
+
+  .device-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .device-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; box-shadow: var(--shadow); transition: box-shadow 0.15s; }
+  .device-card:hover { box-shadow: var(--shadow-md); }
+
+  /* ===== PARTNER CARDS ===== */
+  .partner-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow); transition: box-shadow 0.15s; display:flex; flex-direction:column; gap: 10px; }
+  .partner-card:hover { box-shadow: var(--shadow-md); }
+  .partner-top { display:flex; gap: 12px; align-items:flex-start; }
+  .partner-icon { width: 42px; height: 42px; border-radius: 10px; background: var(--surface2); border: 1px solid var(--border); display:flex; align-items:center; justify-content:center; font-size: 20px; flex-shrink:0; }
+  .partner-name { font-weight: 700; font-size: 14px; line-height: 1.2; margin-top: 2px; }
+  .partner-sub { margin-top: 6px; display:flex; gap: 6px; flex-wrap:wrap; }
+  .partner-row { display:flex; align-items:center; gap: 10px; font-size: 12.5px; color: var(--text2); }
+  .partner-row-label { color: var(--text3); min-width: 56px; }
+  .partner-row-value { color: var(--text2); font-weight: 500; }
+  .partner-links { display:flex; flex-wrap:wrap; gap: 8px; }
+  .link-pill { display:inline-flex; align-items:center; gap: 6px; padding: 6px 10px; border-radius: 999px; background: var(--surface2); border: 1px solid var(--border); color: var(--text2); text-decoration: none; font-size: 12.5px; max-width: 100%; }
+  .link-pill:hover { border-color: var(--accent); color: var(--accent); background: #eef4ff; }
+  .partner-actions { display:flex; justify-content:flex-end; gap: 8px; padding-top: 6px; border-top: 1px solid var(--border); }
+
+
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+  .cal-day-label { text-align: center; font-size: 11px; font-weight: 600; color: var(--text3); text-transform: uppercase; padding: 6px 0; }
+  .cal-day { min-height: 80px; padding: 6px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); }
+  .cal-day.other-month { background: var(--surface2); opacity: 0.5; }
+  .cal-day.today { border-color: var(--accent); }
+  .cal-day-num { font-size: 12px; font-weight: 500; margin-bottom: 4px; }
+  .cal-event { font-size: 10.5px; padding: 2px 5px; border-radius: 3px; margin-bottom: 2px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+
+  .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+  .dot-green { background: var(--green); }
+  .dot-red { background: var(--red); }
+  .dot-yellow { background: var(--yellow); }
+
+  .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .empty-state { text-align: center; padding: 48px 20px; color: var(--text3); }
+  .empty-state .empty-icon { font-size: 40px; margin-bottom: 12px; }
+  .empty-state p { font-size: 13.5px; }
+
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+  /* ===== MOBILE BOTTOM NAV ===== */
+  .mobile-nav {
+    display: none; position: fixed; bottom: 0; left: 0; right: 0; z-index: 100;
+    background: var(--text); border-top: 1px solid rgba(255,255,255,0.1);
+    padding: 6px 0 calc(6px + env(safe-area-inset-bottom));
+    justify-content: space-around;
+  }
+  .mobile-nav-item {
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    padding: 6px 10px; border-radius: 8px; border: none; background: none;
+    color: rgba(255,255,255,0.5); font-size: 10px; font-weight: 500; cursor: pointer;
+    transition: all 0.15s; min-width: 52px; position: relative;
+  }
+  .mobile-nav-item .mnav-icon { font-size: 20px; line-height: 1; }
+  .mobile-nav-item.active { color: #fff; }
+  .mobile-nav-item.active .mnav-icon { transform: scale(1.1); }
+  .mobile-badge {
+    position: absolute; top: 4px; right: 8px; background: var(--red); color: #fff;
+    font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 10px; display: none;
+  }
+
+  /* ===== MOBILE FAB (floating action button) ===== */
+  .fab {
+    display: none; position: fixed; bottom: calc(72px + env(safe-area-inset-bottom)); right: 16px;
+    width: 52px; height: 52px; border-radius: 50%; background: var(--accent); color: #fff;
+    font-size: 24px; border: none; box-shadow: 0 4px 16px rgba(37,99,235,0.4);
+    align-items: center; justify-content: center; z-index: 90; cursor: pointer;
+    transition: transform 0.15s;
+  }
+  .fab:active { transform: scale(0.93); }
+
+  .mobile-topbar {
+    display: none;
+    background: var(--text); color: #fff;
+    padding: 0 16px;
+    padding-top: env(safe-area-inset-top);
+    height: calc(52px + env(safe-area-inset-top));
+    align-items: center; justify-content: space-between;
+    position: fixed; top: 0; left: 0; right: 0; z-index: 150;
+    width: 100%;
+  }
+  .mobile-topbar-title { font-size: 15px; font-weight: 600; }
+  .mobile-topbar-right { display: flex; align-items: center; gap: 10px; }
+  .mobile-user-avatar { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; border: 1.5px solid rgba(255,255,255,0.3); }
+  .mobile-back-btn { background: none; border: none; color: rgba(255,255,255,0.8); font-size: 22px; cursor: pointer; padding: 4px 8px 4px 0; line-height: 1; display: none; }
+
+  /* When mobile topbar is shown, push content down */
+  @media (max-width: 768px) {
+    .main { padding-top: calc(52px + env(safe-area-inset-top)); }
+  }
+
+  /* ===== MOBILE CARDS (replace tables on mobile) ===== */
+  /* Desktop: hide the mobile card lists; they are shown only on small screens */
+  .mobile-card-list { display: none; flex-direction: column; gap: 10px; }
+  .mobile-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 14px 16px; box-shadow: var(--shadow);
+  }
+  .mobile-card-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 8px; gap: 8px; }
+  .mobile-card-title { font-weight: 600; font-size: 14px; flex: 1; }
+  .mobile-card-meta { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+  .mobile-card-actions { display: flex; gap: 8px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
+  .mobile-card-actions .btn { flex: 1; justify-content: center; }
+
+  /* ===== RESPONSIVE BREAKPOINTS ===== */
+  @media (max-width: 768px) {
+    /* Hide desktop elements */
+    .sidebar { display: none !important; }
+    .topbar { display: none !important; }
+
+    /* Show mobile elements */
+    .mobile-nav { display: flex !important; }
+    .mobile-topbar { display: flex !important; }
+    .fab { display: flex !important; }
+
+    /* Layout - critical: remove sidebar margin */
+    .main { margin-left: 0 !important; padding-bottom: calc(72px + env(safe-area-inset-bottom)); }
+    .layout { display: block; }
+    .page { padding: 14px; }
+
+    /* KPI grid: 2 columns on mobile */
+    .kpi-grid { grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+    .kpi-card { padding: 14px; }
+    .kpi-value { font-size: 22px; }
+    .kpi-label { font-size: 11px; }
+
+    /* Grids: single column on mobile */
+    .grid-2, .grid-3, .device-grid { grid-template-columns: 1fr; gap: 10px; }
+
+    /* Tables: hidden on mobile, replaced by mobile cards */
+    .table-wrap { display: none !important; }
+    .mobile-card-list { display: flex; }
+
+    /* Calendar: simplified */
+    .cal-day { min-height: 48px; padding: 4px; }
+    .cal-day-label { font-size: 9px; padding: 4px 0; }
+    .cal-day-num { font-size: 11px; }
+    .cal-event { font-size: 9px; padding: 1px 3px; }
+
+    /* Modals: full screen bottom sheet on mobile */
+    .modal-overlay { align-items: flex-end; padding: 0; }
+    .modal {
+      width: 100% !important; max-width: 100% !important;
+      border-radius: 20px 20px 0 0;
+      max-height: 92vh; margin: 0;
+    }
+    .modal-body { padding: 16px; }
+    .modal-header { padding: 16px 16px 12px; }
+    .modal-footer { padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); }
+
+    /* Forms: larger touch targets, prevent iOS zoom */
+    .form-input, .form-select, .form-textarea { padding: 10px 12px; font-size: 16px; }
+    .form-group { margin-bottom: 14px; }
+
+    /* Buttons: larger on mobile */
+    .btn { padding: 10px 16px; font-size: 14px; }
+    .btn-sm { padding: 7px 12px; font-size: 13px; }
+
+    /* Grid-2 in modals: single column */
+    .modal .grid-2 { grid-template-columns: 1fr; gap: 0; }
+
+    /* Section header stacked */
+    .section-header { flex-direction: column; align-items: flex-start; gap: 10px; }
+    .section-header .tabs { overflow-x: auto; width: 100%; }
+
+    /* Login box */
+    .login-box { width: 90vw; padding: 28px 24px; }
+
+    /* Card headers on mobile */
+    .card-header { flex-wrap: wrap; gap: 8px; }
+
+    .mb-16, .mb-24 { margin-bottom: 12px; }
+  }
+
+  @media (max-width: 480px) {
+    .kpi-value { font-size: 20px; }
+    .page { padding: 10px; }
+  }
+
+.checkbox{display:flex;align-items:flex-start;gap:10px;font-size:13px;color:var(--text2);} .checkbox input{margin-top:3px;}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div class="login-screen" id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">🏢</div>
+    <div class="login-title">FacilityOS</div>
+    <div class="login-sub">Gebäudemanagement · Hotel</div>
+    <button class="btn-google" id="btn-google-login">
+      <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google">
+      Mit Google anmelden
+    </button>
+    <button class="btn-google" id="btn-ms-login" style="margin-top:10px;">
+      <img src="https://upload.wikimedia.org/wikipedia/commons/4/44/Microsoft_logo.svg" alt="Microsoft" style="width:18px;height:18px;">
+      Mit Microsoft anmelden
+    </button>
+    <div class="login-hint">Nur autorisierte Mitarbeiter haben Zugriff</div>
+  </div>
+</div>
+
+<!-- WARTET AUF GENEHMIGUNG -->
+<div class="pending-screen" id="pending-screen">
+  <div class="pending-box">
+    <div style="font-size:48px;margin-bottom:16px;">⏳</div>
+    <div style="font-size:20px;font-weight:600;margin-bottom:8px;">Zugang beantragt</div>
+    <div style="font-size:13.5px;color:#5a5850;margin-bottom:8px;">Deine Anfrage wurde an die Administratoren gesendet. Du erhältst Zugang sobald dein Konto genehmigt wurde.</div>
+    <div id="pending-email" style="font-size:12px;color:#9a9890;margin-bottom:24px;font-family:monospace;"></div>
+    <button onclick="fbSignOutPending()" style="width:100%;padding:10px;border-radius:8px;border:1px solid #e2e0d8;background:#f4f3ef;font-size:13.5px;cursor:pointer;">Mit anderem Konto anmelden</button>
+  </div>
+</div>
+
+<!-- ABGELEHNT -->
+<div class="rejected-screen" id="rejected-screen">
+  <div class="rejected-box">
+    <div style="font-size:48px;margin-bottom:16px;">🚫</div>
+    <div style="font-size:20px;font-weight:600;margin-bottom:8px;">Zugang verweigert</div>
+    <div style="font-size:13.5px;color:#5a5850;margin-bottom:24px;">Dein Konto wurde nicht genehmigt. Bitte wende dich an einen Administrator.</div>
+    <button onclick="fbSignOutPending()" style="width:100%;padding:10px;border-radius:8px;border:1px solid #e2e0d8;background:#f4f3ef;font-size:13.5px;cursor:pointer;">Abmelden</button>
+  </div>
+</div>
+
+<!-- LOADING -->
+<div class="loading-overlay" id="loading-overlay">
+  <div class="spinner"></div>
+  <span>Daten werden geladen…</span>
+</div>
+
+<!-- APP -->
+<div class="layout">
+
+  <!-- MOBILE TOPBAR -->
+  <div class="mobile-topbar">
+    <div style="display:flex;align-items:center;gap:4px;">
+      <button class="mobile-back-btn" id="mobile-back-btn" onclick="goBack()">‹</button>
+      <div class="mobile-topbar-title" id="mobile-page-title">DDashboard</div>
+    </div>
+    <div class="mobile-topbar-right">
+      <div><span class="sync-dot" id="sync-dot-mobile" style="background:var(--yellow)"></span></div>
+      <img class="mobile-user-avatar" id="user-avatar-mobile" src="" alt="" style="display:none">
+      <button onclick="fbSignOutMobile()" style="background:none;border:none;color:rgba(255,255,255,0.6);font-size:13px;cursor:pointer;padding:4px;">Abmelden</button>
+    </div>
+  </div>
+
+  <!-- MOBILE BOTTOM NAV -->
+  <nav class="mobile-nav">
+    <button class="mobile-nav-item active" onclick="showPage('dashboard',this)" data-page="dashboard">
+      <span class="mnav-icon">📊</span><span>Dashboard</span>
+    </button>
+    <button class="mobile-nav-item" onclick="showPage('tickets',this)" data-page="tickets">
+      <span class="mnav-icon">🎫</span><span>Tickets</span>
+      <span class="mobile-badge" id="mobile-ticket-badge">0</span>
+    </button>
+    <button class="mobile-nav-item" onclick="showPage('geraete',this)" data-page="geraete">
+      <span class="mnav-icon">⚙️</span><span>Geräte</span>
+    </button>
+    <button class="mobile-nav-item" onclick="showPage('notfall',this)" data-page="notfall">
+      <span class="mnav-icon">🚨</span><span>Notfall</span>
+    </button>
+    <button class="mobile-nav-item" onclick="showPage('mehr',this)" data-page="mehr">
+      <span class="mnav-icon">☰</span><span>Mehr</span>
+    </button>
+  </nav>
+
+  <!-- MOBILE FAB -->
+  <button class="fab" id="fab-btn" onclick="handleFab()">＋</button>
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-name">🏢 FacilityOS</div>
+      <div class="logo-sub">GEBÄUDEMANAGEMENT v2.0</div>
+    </div>
+    <nav style="flex:1;padding-bottom:20px;">
+      <div class="nav-section">
+        <div class="nav-label">Übersicht</div>
+        <button class="nav-item active" onclick="showPage('dashboard')"><span class="nav-icon">📊</span> Dashboard</button>
+      </div>
+      <div class="nav-section">
+        <div class="nav-label">Betrieb</div>
+        <button class="nav-item" onclick="showPage('tickets')"><span class="nav-icon">🎫</span> Tickets & Störungen <span class="nav-badge" id="ticket-count-badge" style="display:none">0</span></button>
+        <button class="nav-item" onclick="showPage('wartung')"><span class="nav-icon">🔧</span> Wartungsaufträge</button>
+        <button class="nav-item" onclick="showPage('kalender')"><span class="nav-icon">📅</span> Wartungskalender</button>
+      </div>
+      <div class="nav-section">
+        <div class="nav-label">Bestand</div>
+        <button class="nav-item" onclick="showPage('geraete')"><span class="nav-icon">⚙️</span> Geräte & Anlagen</button>
+        <button class="nav-item" onclick="showPage('bereiche')"><span class="nav-icon">🏨</span> Hotelbereiche</button>
+        <button class="nav-item" onclick="showPage('dokumente')"><span class="nav-icon">📄</span> Dokumente</button>
+      </div>
+      <div class="nav-section">
+        <div class="nav-label">Kontakte</div>
+        <button class="nav-item" onclick="showPage('partner')"><span class="nav-icon">🏭</span> Partnerfirmen</button>
+        <button class="nav-item" onclick="showPage('notfall')"><span class="nav-icon">🚨</span> Notfallkontakte</button>
+      </div>
+      <div class="nav-section">
+        <div class="nav-label">System</div>
+        <button class="nav-item" onclick="showPage('aktivitaet')"><span class="nav-icon">📋</span> Aktivitätslog</button>
+        <button class="nav-item" id="nav-benutzer" onclick="showPage('benutzer')" style="display:none"><span class="nav-icon">👥</span> Benutzerverwaltung <span class="nav-badge" id="access-req-badge" style="display:none">0</span></button>
+        <button class="nav-item" id="nav-import" onclick="showPage('import')" style="display:none"><span class="nav-icon">📥</span> Daten importieren</button>
+        <button class="nav-item" id="nav-export" onclick="showPage(\'export\')"><span class="nav-icon">📤</span> Daten exportieren</button>
+      </div>
+    </nav>
+    <div style="padding:16px 20px;border-top:1px solid rgba(255,255,255,0.08);font-size:12px;color:rgba(255,255,255,0.3);">
+      Standort: Hauptgebäude<br>
+      <span style="font-family:'DM Mono',monospace;" id="clock"></span>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div class="topbar-title" id="page-title">Dashboard</div>
+      <div class="topbar-actions">
+        <div class="sync-label"><span class="sync-dot" id="sync-dot" style="background:var(--yellow)"></span><span id="sync-label">Verbinde…</span></div>
+        <div style="width:1px;height:24px;background:var(--border);margin:0 4px;"></div>
+        <span class="user-name" id="user-name"></span>
+        <img class="user-avatar" id="user-avatar" src="" alt="" style="display:none">
+        <button class="btn-logout" id="btn-logout">Abmelden</button>
+      </div>
+    </div>
+
+    <!-- DASHBOARD -->
+    <div class="page" id="page-dashboard">
+      <div class="kpi-grid">
+        <div class="kpi-card kpi-accent" onclick="showPage('geraete')" style="cursor:pointer;" title="Geräte anzeigen"><div class="kpi-label">Geräte gesamt</div><div class="kpi-value" id="kpi-geraete">–</div><div class="kpi-sub">in Betrieb: <span id="kpi-geraete-ok">–</span></div></div>
+        <div class="kpi-card kpi-red" onclick="showPage('tickets')" style="cursor:pointer;" title="Tickets anzeigen"><div class="kpi-label">Offene Tickets</div><div class="kpi-value" id="kpi-tickets">–</div><div class="kpi-sub">davon kritisch: <span id="kpi-tickets-krit">–</span></div></div>
+        <div class="kpi-card kpi-yellow" onclick="showPage('wartung')" style="cursor:pointer;" title="Wartungen anzeigen"><div class="kpi-label">Wartungen (30 Tage)</div><div class="kpi-value" id="kpi-wartungen">–</div><div class="kpi-sub">fällig: <span id="kpi-wartungen-faellig">–</span></div></div>
+        <div class="kpi-card kpi-green" onclick="showPage('partner')" style="cursor:pointer;" title="Partner anzeigen"><div class="kpi-label">Partnerfirmen</div><div class="kpi-value" id="kpi-partner">–</div><div class="kpi-sub">aktiv & verfügbar</div></div>
+      </div>
+      <div class="grid-2 mb-16">
+        <div class="card"><div class="card-header"><span class="card-title">⚠️ Kritische Tickets</span><button class="btn btn-secondary btn-sm" onclick="showPage('tickets')">Alle ansehen</button></div><div class="card-body" id="dash-tickets"><div class="empty-state"><div class="empty-icon">✅</div><p>Keine offenen Tickets</p></div></div></div>
+        <div class="card"><div class="card-header"><span class="card-title">🔔 Anstehende Wartungen</span><button class="btn btn-secondary btn-sm" onclick="showPage('wartung')">Alle ansehen</button></div><div class="card-body" id="dash-wartungen"><div class="empty-state"><div class="empty-icon">📅</div><p>Keine anstehenden Wartungen</p></div></div></div>
+      </div>
+      <div class="grid-2">
+        <div class="card"><div class="card-header"><span class="card-title">⚙️ Gerätestatus</span></div><div class="card-body" id="dash-geraete"><div class="empty-state"><div class="empty-icon">⚙️</div><p>Noch keine Geräte erfasst</p></div></div></div>
+        <div class="card"><div class="card-header"><span class="card-title">📋 Letzte Aktivitäten</span></div><div class="card-body" id="dash-aktivitaet" style="max-height:260px;overflow-y:auto;"><div class="empty-state"><div class="empty-icon">📋</div><p>Noch keine Aktivitäten</p></div></div></div>
+      </div>
+    </div>
+
+    <!-- TICKETS -->
+    <div class="page page-hidden" id="page-tickets">
+      <div class="section-header mb-24">
+        <div class="tabs">
+          <button class="tab active" onclick="filterTickets('alle',this)">Alle</button>
+          <button class="tab" onclick="filterTickets('offen',this)">Offen</button>
+          <button class="tab" onclick="filterTickets('in_bearbeitung',this)">In Bearbeitung</button>
+          <button class="tab" onclick="filterTickets('erledigt',this)">Erledigt</button>
+        </div>
+        <button class="btn btn-primary" onclick="openModal('modal-ticket')">+ Neues Ticket</button>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Tickets & Störungsmeldungen</span><div class="search-wrap"><span class="search-icon">🔍</span><input class="search-input" placeholder="Suchen..." oninput="state.ticketSearch=this.value;renderTickets();renderTicketsMobile()"></div></div>
+        <div class="table-wrap"><table><thead><tr><th>Betreff</th><th>Gerät</th><th>Bereich</th><th>Priorität</th><th>Status</th><th>Erstellt von</th><th>Zugewiesen</th><th></th></tr></thead><tbody id="tickets-table"></tbody></table></div>
+        <div class="mobile-card-list" id="tickets-mobile"></div>
+      </div>
+    </div>
+
+    <!-- WARTUNG -->
+    <div class="page page-hidden" id="page-wartung">
+      <div class="section-header mb-24">
+        <div class="tabs">
+          <button class="tab active" onclick="filterWartung('alle',this)">Alle</button>
+          <button class="tab" onclick="filterWartung('geplant',this)">Geplant</button>
+          <button class="tab" onclick="filterWartung('faellig',this)">Fällig</button>
+          <button class="tab" onclick="filterWartung('abgeschlossen',this)">Abgeschlossen</button>
+          <button class="tab" onclick="filterWartung('storniert',this)">Storniert</button>
+        </div>
+        <button class="btn btn-primary" onclick="openModal('modal-wartung')">+ Neuer Wartungsauftrag</button>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Wartungsaufträge & Serviceaufträge</span></div>
+        <div class="table-wrap"><table><thead><tr><th>Bezeichnung</th><th>Gerät</th><th>Typ</th><th>Fällig am</th><th>Zuständig</th><th>Status</th><th></th></tr></thead><tbody id="wartung-table"></tbody></table></div>
+        <div class="mobile-card-list" id="wartung-mobile"></div>
+      </div>
+    </div>
+
+    <!-- KALENDER -->
+    <div class="page page-hidden" id="page-kalender">
+      <div class="section-header mb-24">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <button class="btn btn-secondary btn-sm" onclick="changeMonth(-1)">←</button>
+          <select id="cal-month-select" onchange="state.calMonth=parseInt(this.value);renderCalendar()" style="border:1px solid var(--border2);border-radius:7px;padding:6px 10px;font-size:13.5px;background:var(--surface);font-family:'DM Sans',sans-serif;cursor:pointer;">
+            <option value="0">Januar</option><option value="1">Februar</option><option value="2">März</option>
+            <option value="3">April</option><option value="4">Mai</option><option value="5">Juni</option>
+            <option value="6">Juli</option><option value="7">August</option><option value="8">September</option>
+            <option value="9">Oktober</option><option value="10">November</option><option value="11">Dezember</option>
+          </select>
+          <select id="cal-year-select" onchange="state.calYear=parseInt(this.value);renderCalendar()" style="border:1px solid var(--border2);border-radius:7px;padding:6px 10px;font-size:13.5px;background:var(--surface);font-family:'DM Sans',sans-serif;cursor:pointer;"></select>
+          <button class="btn btn-secondary btn-sm" onclick="changeMonth(1)">→</button>
+        </div>
+        <button class="btn btn-primary" onclick="openModal('modal-wartung')">+ Wartung planen</button>
+      </div>
+      <div class="card"><div class="card-body"><div class="cal-grid" id="cal-header"></div><div class="cal-grid" id="cal-body" style="margin-top:4px;"></div></div></div>
+      <div class="card" style="margin-top:16px;"><div class="card-header"><span class="card-title">Ereignisse dieses Monats</span></div><div class="table-wrap"><table><thead><tr><th>Datum</th><th>Bezeichnung</th><th>Gerät</th><th>Typ</th><th>Status</th></tr></thead><tbody id="cal-events-list"></tbody></table></div></div>
+    </div>
+
+    <!-- GERÄTE -->
+    <div class="page page-hidden" id="page-geraete">
+      <div class="section-header mb-24">
+        <div class="tabs">
+          <button class="tab active" onclick="filterGeraete('alle',this)">Alle</button>
+          <button class="tab" onclick="filterGeraete('aktiv',this)">Aktiv</button>
+          <button class="tab" onclick="filterGeraete('stoerung',this)">Störung</button>
+        </div>
+        <button class="btn btn-primary" onclick="openModal('modal-geraet')">+ Gerät hinzufügen</button>
+      </div>
+      <div class="device-grid" id="geraete-grid"><div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">⚙️</div><p>Noch keine Geräte erfasst</p></div></div>
+    </div>
+
+    <!-- DOKUMENTE -->
+    <div class="page page-hidden" id="page-dokumente">
+      <div class="section-header mb-24"><span></span><button class="btn btn-primary" onclick="openModal('modal-dokument')">+ Dokument erfassen</button></div>
+      <div class="card"><div class="card-header"><span class="card-title">Dokumente & Handbücher</span></div><div class="table-wrap"><table><thead><tr><th>Bezeichnung</th><th>Typ</th><th>Gerät</th><th>Datum</th><th>Notiz</th><th></th></tr></thead><tbody id="dokumente-table"></tbody></table></div><div class="mobile-card-list" id="dokumente-mobile" style="padding:12px;"></div></div>
+    </div>
+
+    <!-- HOTELBEREICHE -->
+    <div class="page page-hidden" id="page-bereiche">
+      <div class="section-header mb-24">
+        <div class="tabs">
+          <button class="tab active" onclick="filterBereiche('alle',this)">Alle</button>
+          <button class="tab" onclick="filterBereiche('zimmer',this)">Zimmer</button>
+          <button class="tab" onclick="filterBereiche('seminar',this)">Seminar</button>
+          <button class="tab" onclick="filterBereiche('restaurant',this)">Restaurant/Bar</button>
+          <button class="tab" onclick="filterBereiche('allgemein',this)">Allgemein</button>
+          <button class="tab" onclick="filterBereiche('kueche',this)">Küche</button>
+          <button class="tab" onclick="filterBereiche('technik',this)">Technik</button>
+          <button class="tab" onclick="filterBereiche('aussen',this)">Aussen</button>
+        </div>
+        <button class="btn btn-primary" onclick="openModal('modal-bereich')">+ Bereich hinzufügen</button>
+      </div>
+      <div class="grid-3" id="bereiche-grid"><div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">🏨</div><p>Noch keine Bereiche erfasst</p></div></div>
+    </div>
+
+    <!-- PARTNER -->
+    <div class="page page-hidden" id="page-partner">
+      <div class="section-header mb-24">
+        <div class="tabs">
+          <button class="tab active" onclick="filterPartner('alle',this)">Alle</button>
+          <button class="tab" onclick="filterPartner('Aufzugstechnik',this)">Aufzug</button>
+          <button class="tab" onclick="filterPartner('Heizung & Sanitär',this)">Heizung/Sanitär</button>
+          <button class="tab" onclick="filterPartner('Elektrotechnik',this)">Elektro</button>
+          <button class="tab" onclick="filterPartner('Klimatechnik',this)">Klima</button>
+          <button class="tab" onclick="filterPartner('Brandschutz',this)">Brandschutz</button>
+          <button class="tab" onclick="filterPartner('Sicherheitstechnik',this)">Sicherheit</button>
+          <button class="tab" onclick="filterPartner('IT & Netzwerk',this)">IT/Netzwerk</button>
+          <button class="tab" onclick="filterPartner('Allgemeiner Gebäudeservice',this)">Gebäudeservice</button>
+          <button class="tab" onclick="filterPartner('Sonstiges',this)">Sonstiges</button>
+        </div>
+        <button class="btn btn-primary" onclick="openModal('modal-partner')">+ Partnerfirma hinzufügen</button>
+      </div>
+      <div id="partner-grid" class="grid-3"></div>
+    </div>
+
+    <!-- NOTFALL -->
+    <div class="page page-hidden" id="page-notfall">
+      <div class="section-header mb-24">
+        <div style="background:var(--red-light);border:1px solid #fca5a5;border-radius:8px;padding:10px 16px;font-size:13px;color:var(--red);">🚨 Notfallkontakte – nur bei echten Notfällen kontaktieren</div>
+        <button class="btn btn-primary" onclick="openModal('modal-notfall')">+ Kontakt hinzufügen</button>
+      </div>
+      <div id="notfall-grid" class="grid-3"></div>
+    </div>
+
+    <!-- LOG -->
+    <div class="page page-hidden" id="page-aktivitaet">
+      <div class="card"><div class="card-header"><span class="card-title">Vollständiger Aktivitätslog</span><span style="font-size:11.5px;color:var(--text3);" id="log-count"></span></div><div class="card-body" id="aktivitaet-full" style="max-height:600px;overflow-y:auto;"></div></div>
+    </div>
+
+    <!-- BENUTZERVERWALTUNG (nur Admins) -->
+    <div class="page page-hidden" id="page-benutzer">
+      <div class="grid-2 mb-16" style="gap:20px;">
+        <div class="card">
+          <div class="card-header"><span class="card-title">⏳ Zugriffsanfragen</span><span id="req-count" style="font-size:11.5px;color:var(--text3);"></span></div>
+          <div id="access-requests-list"><div class="card-body"><div class="empty-state"><div class="empty-icon">✅</div><p>Keine offenen Anfragen</p></div></div></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><span class="card-title">✅ Genehmigte Nutzer</span></div>
+          <div id="approved-users-list"><div class="card-body"><div class="empty-state"><div class="empty-icon">👥</div><p>Noch keine genehmigten Nutzer</p></div></div></div>
+        </div>
+      </div>
+      <div class="card" style="margin-top:16px;">
+        <div class="card-header"><span class="card-title">🛡️ Admins</span><span style="font-size:12px;color:var(--text3);">Admins können Nutzer verwalten und haben vollen Zugriff</span></div>
+        <div id="admins-list"><div class="card-body"><div class="empty-state"><div class="empty-icon">🛡️</div><p>Wird geladen…</p></div></div></div>
+      </div>
+    </div>
+
+    <!-- IMPORT -->
+    <div class="page page-hidden" id="page-import">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;" id="import-grid">
+
+        <!-- Partnerfirmen -->
+        <div class="card">
+          <div class="card-header"><span class="card-title">🏭 Partnerfirmen importieren</span></div>
+          <div class="card-body">
+            <p style="font-size:13px;color:var(--text2);margin-bottom:16px;">Excel-Vorlage herunterladen, ausfüllen und hochladen.</p>
+            <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:14px;font-size:12px;color:var(--text3);">
+              <strong>Spalten:</strong> Name, Bereich, Kontakt, Telefon, Mobile, Email, Website, Adresse, Vertrag, Notizen
+            </div>
+            <div style="display:flex;gap:8px;flex-direction:column;">
+              <button class="btn btn-secondary" onclick="downloadTemplate('partner')">⬇️ Vorlage herunterladen</button>
+              <label class="btn btn-primary" style="justify-content:center;cursor:pointer;">
+                📤 Excel hochladen <input type="file" accept=".xlsx,.xls" style="display:none" onchange="handleImport(this,'partner')">
+              </label>
+            </div>
+            <div id="import-result-partner" style="margin-top:12px;"></div>
+          </div>
+        </div>
+
+        <!-- Notfallkontakte -->
+        <div class="card">
+          <div class="card-header"><span class="card-title">🚨 Notfallkontakte importieren</span></div>
+          <div class="card-body">
+            <p style="font-size:13px;color:var(--text2);margin-bottom:16px;">Excel-Vorlage herunterladen, ausfüllen und hochladen.</p>
+            <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:14px;font-size:12px;color:var(--text3);">
+              <strong>Spalten:</strong> Name, Kategorie, Telefon, Mobile, Erreichbar, Notizen
+            </div>
+            <div style="display:flex;gap:8px;flex-direction:column;">
+              <button class="btn btn-secondary" onclick="downloadTemplate('notfall')">⬇️ Vorlage herunterladen</button>
+              <label class="btn btn-primary" style="justify-content:center;cursor:pointer;">
+                📤 Excel hochladen <input type="file" accept=".xlsx,.xls" style="display:none" onchange="handleImport(this,'notfall')">
+              </label>
+            </div>
+            <div id="import-result-notfall" style="margin-top:12px;"></div>
+          </div>
+        </div>
+
+        <!-- Geräte -->
+        <div class="card">
+          <div class="card-header"><span class="card-title">⚙️ Geräte & Anlagen importieren</span></div>
+          <div class="card-body">
+            <p style="font-size:13px;color:var(--text2);margin-bottom:16px;">Excel-Vorlage herunterladen, ausfüllen und hochladen.</p>
+            <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:14px;font-size:12px;color:var(--text3);">
+              <strong>Spalten:</strong> Name, Kategorie, Hersteller, Seriennummer, Standort, Baujahr, NaechsteWartung, Notizen
+            </div>
+            <div style="display:flex;gap:8px;flex-direction:column;">
+              <button class="btn btn-secondary" onclick="downloadTemplate('geraete')">⬇️ Vorlage herunterladen</button>
+              <label class="btn btn-primary" style="justify-content:center;cursor:pointer;">
+                📤 Excel hochladen <input type="file" accept=".xlsx,.xls" style="display:none" onchange="handleImport(this,'geraete')">
+              </label>
+            </div>
+            <div id="import-result-geraete" style="margin-top:12px;"></div>
+          </div>
+        </div>
+
+         <!-- Wartungsaufträge -->
+         <div class="card">
+           <div class="card-header"><span class="card-title">🔧 Wartungsaufträge importieren</span></div>
+           <div class="card-body">
+             <p style="font-size:13px;color:var(--text2);margin-bottom:16px;">Excel-Vorlage herunterladen, ausfüllen und hochladen.</p>
+             <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:14px;font-size:12px;color:var(--text3);">
+               <strong>Spalten:</strong> Bezeichnung, Typ, Datum (JJJJ-MM-TT), Intervall, GerätName, PartnerName, Notizen
+             </div>
+             <div style="display:flex;gap:8px;flex-direction:column;">
+               <button class="btn btn-secondary" onclick="downloadTemplate('wartung')">⬇️ Vorlage herunterladen</button>
+               <label class="btn btn-primary" style="justify-content:center;cursor:pointer;">
+                 📤 Excel hochladen <input type="file" accept=".xlsx,.xls" style="display:none" onchange="handleImport(this,'wartung')">
+               </label>
+             </div>
+             <div id="import-result-wartung" style="margin-top:12px;"></div>
+           </div>
+         </div>
+-      
++      </div>
++    </div>
++
+     <!-- EXPORT -->
+     <div class="page page-hidden" id="page-export">
+       <div class="card">
+         <div class="card-header"><span class="card-title">📤 Daten exportieren</span></div>
+         <div class="card-body">
+           <p style="font-size:13px;color:var(--text2);margin-bottom:14px;">
+             Exportiert ausgewählte Daten als Excel-Datei (mehrere Tabellenblätter). Die Datei wird lokal heruntergeladen.
+           </p>
+ 
+           <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;">
+             <button class="btn-primary" onclick="exportFacilityOS('all')">📦 Alles exportieren (Excel)</button>
+             <button class="btn-secondary" onclick="exportFacilityOS('tickets')">🎫 Tickets</button>
+             <button class="btn-secondary" onclick="exportFacilityOS('wartungen')">🔧 Wartungsaufträge</button>
+             <button class="btn-secondary" onclick="exportFacilityOS('geraete')">⚙️ Geräte</button>
+             <button class="btn-secondary" onclick="exportFacilityOS('partner')">🏭 Partnerfirmen</button>
+             <button class="btn-secondary" onclick="exportFacilityOS('notfaelle')">🚨 Notfallkontakte</button>
+           </div>
+ 
+           <div id="export-result" style="margin-top:14px;"></div>
+ 
+           <div style="margin-top:14px;padding:12px 14px;border-radius:10px;border:1px solid var(--border);background:var(--surface2);font-size:12px;color:var(--text2);">
+             Hinweis: Exportiert wird der aktuelle Stand aus Firestore (inkl. Dokument-ID als <span style="font-family:'DM Mono',monospace;">id</span>).
+           </div>
+         </div>
+       </div>
+     </div>
+-</div>
+-    </div>
++
+     <div class="page page-hidden" id="page-mehr">
+       <div style="display:flex;flex-direction:column;gap:10px;">
+         <button class="mobile-mehr-item" onclick="showPage('wartung')">🔧<span>Wartungsaufträge</span><span style="margin-left:auto;color:var(--text3);">›</span></button>
+         <button class="mobile-mehr-item" onclick="showPage('kalender')">📅<span>Wartungskalender</span><span style="margin-left:auto;color:var(--text3);">›</span></button>
+         <button class="mobile-mehr-item" onclick="showPage('bereiche')">🏨<span>Hotelbereiche</span><span style="margin-left:auto;color:var(--text3);">›</span></button>
+         <button class="mobile-mehr-item" onclick="showPage('dokumente')">📄<span>Dokumente</span><span style="margin-left:auto;color:var(--text3);">›</span></button>
+         <button class="mobile-mehr-item" onclick="showPage('partner')">🏭<span>Partnerfirmen</span><span style="margin-left:auto;color:var(--text3);">›</span></button>
+         <button class="mobile-mehr-item" onclick="showPage('aktivitaet')">📋<span>Aktivitätslog</span><span style="margin-left:auto;color:var(--text3);">›</span></button>
+         <button class="mobile-mehr-item" id="mehr-benutzer" onclick="showPage('benutzer')" style="display:none">👥<span>Benutzerverwaltung</span><span style="margin-left:auto;color:var(--text3);">›</span></button>
+         <button class="mobile-mehr-item" id="mehr-import" onclick="showPage('import')" style="display:none">📥<span>Daten importieren</span><span style="margin-left:auto;color:var(--text3);">›</span></button>
+         <button class="mobile-mehr-item" id="mehr-export" onclick="showPage('export')" style="display:none">📤<span>Daten exportieren</span><span style="margin-left:auto;color:var(--text3);">›</span></button>
+         <div style="margin-top:8px;">
+           <button onclick="fbSignOutMobile()" style="width:100%;padding:14px;border-radius:10px;border:1px solid var(--red);background:var(--red-light);color:var(--red);font-size:14px;font-weight:500;cursor:pointer;">⏏️ Abmelden</button>
+         </div>
+       </div>
+     </div>
+   </main>
+ </div>
+ 
+<!-- MODALS -->
+<div class="modal-overlay hidden" id="modal-ticket">
+  <div class="modal">
+    <div class="modal-header"><span class="modal-title">Neues Ticket / Störungsmeldung</span><button class="modal-close" onclick="closeModal('modal-ticket')">×</button></div>
+    <div class="modal-body">
+      <div class="grid-2"><div class="form-group"><label class="form-label">Betreff *</label><input class="form-input" id="t-betreff" placeholder="Kurze Beschreibung"></div><div class="form-group"><label class="form-label">Priorität *</label><select class="form-select" id="t-prioritaet"><option value="kritisch">🔴 Kritisch</option><option value="hoch">🟠 Hoch</option><option value="mittel" selected>🟡 Mittel</option><option value="niedrig">🟢 Niedrig</option></select></div></div>
+      <div class="grid-2">
+        <div class="form-group"><label class="form-label">Gerät / Anlage</label><select class="form-select" id="t-geraet" onchange="onTicketGeraetChange(this.value)"><option value="">– auswählen –</option></select></div>
+        <div class="form-group"><label class="form-label">Hotelbereich</label><select class="form-select" id="t-bereich"><option value="">– auswählen –</option></select></div>
+      </div>
+      <div class="grid-2"><div class="form-group"><label class="form-label">Zugewiesen an</label><select class="form-select" id="t-partner"><option value="">– auswählen –</option></select></div><div class="form-group"><label class="form-label">Gemeldet von</label><input class="form-input" id="t-gemeldet" placeholder="Name / Abteilung"></div></div>
+      <div class="form-group"><label class="form-label">Beschreibung</label><textarea class="form-textarea" id="t-beschreibung" placeholder="Detaillierte Beschreibung..."></textarea></div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('modal-ticket')">Abbrechen</button><button class="btn btn-primary" id="btn-save-ticket">Ticket erstellen</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="modal-wartung">
+  <div class="modal">
+    <div class="modal-header"><span class="modal-title">Wartungsauftrag erfassen</span><button class="modal-close" onclick="closeModal('modal-wartung')">×</button></div>
+    <div class="modal-body">
+      <div class="grid-2"><div class="form-group"><label class="form-label">Bezeichnung *</label><input class="form-input" id="w-bezeichnung"></div><div class="form-group"><label class="form-label">Typ</label><select class="form-select" id="w-typ"><option value="inspektion">Inspektion</option><option value="wartung">Wartung</option><option value="reparatur">Reparatur</option><option value="pruefung">Prüfung/TÜV</option><option value="service">Serviceauftrag</option></select></div></div>
+      <div class="grid-2"><div class="form-group"><label class="form-label">Gerät / Anlage</label><select class="form-select" id="w-geraet" onchange="onWartungGeraetChange(this.value)"><option value="">– auswählen –</option></select></div><div class="form-group"><label class="form-label">Zuständige Firma</label><select class="form-select" id="w-partner"><option value="">– auswählen –</option></select></div></div>
+      <div class="grid-2"><div class="form-group"><label class="form-label">Fälligkeitsdatum *</label><input class="form-input" type="date" id="w-datum"></div><div class="form-group"><label class="form-label">Wiederholung</label><select class="form-select" id="w-intervall"><option value="einmalig">Einmalig</option><option value="monatlich">Monatlich</option><option value="quartalsweise">Quartalsweise</option><option value="halbjaehrlich">Halbjährlich</option><option value="jaehrlich">Jährlich</option></select></div></div>
+      <div class="form-group" style="margin-top:-6px;"><label class="checkbox"><input type="checkbox" id="w-autoTicket"> <span>Ticket automatisch erstellen (bei Fälligkeit wird beim Öffnen der App ein Ticket erstellt)</span></label></div>
+      <div class="form-group"><label class="form-label">Notizen</label><textarea class="form-textarea" id="w-notizen"></textarea></div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('modal-wartung')">Abbrechen</button><button class="btn btn-primary" id="btn-save-wartung">Auftrag erstellen</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="modal-geraet">
+  <div class="modal">
+    <div class="modal-header"><span class="modal-title">Gerät / Anlage hinzufügen</span><button class="modal-close" onclick="closeModal('modal-geraet')">×</button></div>
+    <div class="modal-body">
+      <div class="grid-2"><div class="form-group"><label class="form-label">Bezeichnung *</label><input class="form-input" id="g-name"></div><div class="form-group"><label class="form-label">Kategorie *</label><select class="form-select" id="g-kategorie"><option value="aufzug">🛗 Aufzug</option><option value="heizung">🔥 Heizung/HVAC</option><option value="klima">❄️ Klimaanlage</option><option value="lueftung">💨 Lüftungstechnik</option><option value="elektro">⚡ Elektro/USV</option><option value="brandschutz">🧯 Brandschutz</option><option value="sicherheit">🔒 Sicherheitssystem</option><option value="sanitaer">🚿 Sanitär</option><option value="kueche">🍳 Küchengeräte</option><option value="it">💻 IT-Infrastruktur</option><option value="solar">☀️ Solar/PV</option><option value="sonstiges">🔧 Sonstiges</option></select></div></div>
+      <div class="grid-2"><div class="form-group"><label class="form-label">Hersteller</label><input class="form-input" id="g-hersteller"></div><div class="form-group"><label class="form-label">Seriennummer</label><input class="form-input" id="g-seriennummer"></div></div>
+      <div class="grid-2"><div class="form-group"><label class="form-label">Installationsdatum</label><input class="form-input" type="date" id="g-baujahr"></div><div class="form-group"><label class="form-label">Hotelbereich *</label><select class="form-select" id="g-bereich"><option value="">– auswählen –</option></select></div></div>
+      <div class="grid-2"><div class="form-group"><label class="form-label">Raum / Detail</label><input class="form-input" id="g-raum" placeholder="z.B. Zimmer 312, Technikraum, Keller"></div><div class="form-group"><label class="form-label">&nbsp;</label><input type="hidden" id="g-standort"></div></div>
+      <div class="grid-2"><div class="form-group"><label class="form-label">Nächste Wartung</label><input class="form-input" type="date" id="g-naechste-wartung"></div><div class="form-group"><label class="form-label">Zuständige Partnerfirma</label><select class="form-select" id="g-partner"><option value="">– auswählen –</option></select></div></div>
+      <div class="form-group"><label class="form-label">Notizen</label><textarea class="form-textarea" id="g-notizen"></textarea></div>
+      <div id="geraet-ticketlog" class="card" style="margin-top:16px; display:none;">
+        <div class="card-header"><div class="card-title">Tickets & Störungen zu diesem Gerät</div></div>
+        <div class="card-body" id="geraet-ticketlog-body"></div>
+      </div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('modal-geraet')">Abbrechen</button><button class="btn btn-primary" id="btn-save-geraet">Gerät speichern</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="modal-partner">
+  <div class="modal">
+    <div class="modal-header"><span class="modal-title">Partnerfirma hinzufügen</span><button class="modal-close" onclick="closeModal('modal-partner')">×</button></div>
+    <div class="modal-body">
+      <div class="grid-2"><div class="form-group"><label class="form-label">Firmenname *</label><input class="form-input" id="p-name"></div><div class="form-group"><label class="form-label">Fachbereich</label><select class="form-select" id="p-bereich"><option>Aufzugstechnik</option><option>Heizung & Sanitär</option><option>Elektrotechnik</option><option>Klimatechnik</option><option>Brandschutz</option><option>Sicherheitstechnik</option><option>IT & Netzwerk</option><option>Allgemeiner Gebäudeservice</option><option>Sonstiges</option></select></div></div>
+      <div class="grid-2"><div class="form-group"><label class="form-label">Ansprechpartner</label><input class="form-input" id="p-kontakt"></div><div class="form-group"><label class="form-label">Telefon</label><input class="form-input" id="p-telefon"></div></div>
+      <div class="grid-2"><div class="form-group"><label class="form-label">Mobile</label><input class="form-input" id="p-mobile"></div><div class="form-group"><label class="form-label">E-Mail</label><input class="form-input" id="p-email" type="email"></div></div>
+      <div class="grid-2"><div class="form-group"><label class="form-label">Website</label><input class="form-input" id="p-web" type="url" placeholder="https://..."></div><div class="form-group"><label class="form-label">Vertragsnummer</label><input class="form-input" id="p-vertrag"></div></div>
+      <div class="form-group"><label class="form-label">Adresse</label><input class="form-input" id="p-adresse"></div>
+      <div class="form-group"><label class="form-label">Notizen</label><textarea class="form-textarea" id="p-notizen"></textarea></div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('modal-partner')">Abbrechen</button><button class="btn btn-primary" id="btn-save-partner">Firma speichern</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="modal-notfall">
+  <div class="modal">
+    <div class="modal-header"><span class="modal-title">Notfallkontakt hinzufügen</span><button class="modal-close" onclick="closeModal('modal-notfall')">×</button></div>
+    <div class="modal-body">
+      <div class="grid-2"><div class="form-group"><label class="form-label">Name / Funktion *</label><input class="form-input" id="n-name"></div><div class="form-group"><label class="form-label">Kategorie</label><select class="form-select" id="n-kategorie"><option>Intern</option><option>Feuerwehr / Rettung</option><option>Polizei</option><option>Aufzugnotdienst</option><option>Heizungsnotdienst</option><option>Elektronotdienst</option><option>Wassernotdienst</option><option>Facility Management</option><option>Sonstiges</option></select></div></div>
+      <div class="grid-2"><div class="form-group"><label class="form-label">Telefon *</label><input class="form-input" id="n-telefon"></div><div class="form-group"><label class="form-label">Erreichbar</label><select class="form-select" id="n-erreichbar"><option value="24/7">24/7</option><option value="werktags">Werktags</option><option value="auf-abruf">Auf Abruf</option></select></div></div>
+      <div class="form-group"><label class="form-label">Mobile</label><input class="form-input" id="n-mobile"></div>
+      <div class="form-group"><label class="form-label">Notizen</label><textarea class="form-textarea" id="n-notizen"></textarea></div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('modal-notfall')">Abbrechen</button><button class="btn btn-primary" id="btn-save-notfall">Kontakt speichern</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="modal-dokument">
+  <div class="modal">
+    <div class="modal-header"><span class="modal-title">Dokument erfassen</span><button class="modal-close" onclick="closeModal('modal-dokument')">×</button></div>
+    <div class="modal-body">
+      <div class="grid-2"><div class="form-group"><label class="form-label">Bezeichnung *</label><input class="form-input" id="d-name"></div><div class="form-group"><label class="form-label">Dokumenttyp</label><select class="form-select" id="d-typ"><option>Betriebsanleitung</option><option>Wartungsprotokoll</option><option>Prüfbericht / TÜV</option><option>Schaltplan</option><option>Garantieurkunde</option><option>Vertrag</option><option>Zertifikat</option><option>Sonstiges</option></select></div></div>
+      <div class="grid-2"><div class="form-group"><label class="form-label">Gerät / Anlage</label><select class="form-select" id="d-geraet"><option value="">– auswählen –</option></select></div><div class="form-group"><label class="form-label">Datum</label><input class="form-input" type="date" id="d-datum"></div></div>
+      <div class="form-group"><label class="form-label">Notiz</label><textarea class="form-textarea" id="d-notiz"></textarea></div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('modal-dokument')">Abbrechen</button><button class="btn btn-primary" id="btn-save-dokument">Speichern</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="modal-bereich">
+  <div class="modal">
+    <div class="modal-header"><span class="modal-title">Hotelbereich hinzufügen</span><button class="modal-close" onclick="closeModal('modal-bereich')">×</button></div>
+    <div class="modal-body">
+      <div class="grid-2">
+        <div class="form-group"><label class="form-label">Bezeichnung *</label><input class="form-input" id="b-name" placeholder="z.B. Zimmer 101, Seminarraum A"></div>
+        <div class="form-group"><label class="form-label">Kategorie *</label>
+          <select class="form-select" id="b-kategorie" onchange="onBereichKatChange(this.value)">
+            <option value="zimmer">🛏️ Zimmer</option>
+            <option value="seminar">🎓 Seminarraum</option>
+            <option value="restaurant">🍽️ Restaurant / Bar</option>
+            <option value="kueche">🍳 Küche</option>
+            <option value="allgemein">🏛️ Allgemeinbereich</option>
+            <option value="technik">🔧 Technikraum</option>
+            <option value="aussen">🌿 Aussenbereich</option>
+          </select>
+        </div>
+      </div>
+      <div id="zimmer-nummer-group" class="form-group" style="display:none">
+        <label class="form-label">Zimmernummer</label>
+        <input class="form-input" id="b-zimmernummer" placeholder="z.B. 101">
+      </div>
+      <div class="grid-2">
+        <div class="form-group"><label class="form-label">Etage / Lage</label><input class="form-input" id="b-etage" placeholder="z.B. 1. OG, Erdgeschoss"></div>
+        <div class="form-group"><label class="form-label">Kapazität / Grösse</label><input class="form-input" id="b-kapazitaet" placeholder="z.B. 2 Pers., 80m²"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Notizen</label><textarea class="form-textarea" id="b-notizen"></textarea></div>
+      <div id="bereich-ticketlog" class="card" style="margin-top:16px; display:none;">
+        <div class="card-header"><div class="card-title">Tickets & Störungen zu diesem Bereich</div></div>
+        <div class="card-body" id="bereich-ticketlog-body"></div>
+      </div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('modal-bereich')">Abbrechen</button><button class="btn btn-primary" id="btn-save-bereich">Bereich speichern</button></div>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+import { getFirestore, collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, getDoc, setDoc, serverTimestamp, query, orderBy, getDocs } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+import { getAuth, GoogleAuthProvider, OAuthProvider, signInWithPopup, onAuthStateChanged, signOut as fbSignOut } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDcfrW2Q7Q61oqZFCo9D-CcLKpQYhiIkwM",
+  authDomain: "facility-manager-c4e2a.firebaseapp.com",
+  projectId: "facility-manager-c4e2a",
+  storageBucket: "facility-manager-c4e2a.firebasestorage.app",
+  messagingSenderId: "604174388916",
+  appId: "1:604174388916:web:c8193668c30453691cd1e1"
+};
+
+const fbApp = initializeApp(firebaseConfig);
+const db = getFirestore(fbApp);
+const auth = getAuth(fbApp);
+const provider = new GoogleAuthProvider();
+const msProvider = new OAuthProvider('microsoft.com');
+msProvider.setCustomParameters({ tenant: 'common' });
+
+let currentUser = null;
+
+// Auth
+document.getElementById('btn-google-login').onclick = () => signInWithPopup(auth, provider).catch(e => alert('Anmeldung fehlgeschlagen: ' + e.message));
+document.getElementById('btn-ms-login').onclick = () => signInWithPopup(auth, msProvider).catch(e => alert('Microsoft-Anmeldung fehlgeschlagen: ' + e.message));
+document.getElementById('btn-logout').onclick = () => fbSignOut(auth);
+window.fbSignOutPending = () => fbSignOut(auth);
+
+// ---- ACCESS CONTROL ----
+async function checkUserAccess(user) {
+  const emailKey = user.email.replace(/[@.]/g, '_');
+
+  // 1. Check if admin
+  const adminDoc = await getDoc(doc(db, 'admins', emailKey));
+  if (adminDoc.exists()) { window._userRole = 'admin'; return 'admin'; }
+
+  // 2. Check approved users
+  const approvedDoc = await getDoc(doc(db, 'approvedUsers', emailKey));
+  if (approvedDoc.exists()) {
+    const data = approvedDoc.data();
+    if (data.status === 'approved') { window._userRole = data.role || 'reception'; return 'approved'; }
+    if (data.status === 'rejected') return 'rejected';
+  }
+
+  // 3. New user – create access request
+  const reqRef = doc(db, 'accessRequests', emailKey);
+  const existing = await getDoc(reqRef);
+  if (!existing.exists()) {
+    await setDoc(reqRef, {
+      email: user.email,
+      name: user.displayName || '',
+      photoURL: user.photoURL || '',
+      status: 'pending',
+      createdAt: serverTimestamp()
+    });
+    // Send email notification via EmailJS
+    sendAccessRequestEmail(user);
+  } else if (existing.data().status === 'rejected') {
+    return 'rejected';
+  }
+  return 'pending';
+}
+
+async function sendAccessRequestEmail(user) {
+  try {
+    // EmailJS – kostenlos bis 200 E-Mails/Monat
+    // Setup: https://www.emailjs.com → Service ID + Template ID + Public Key eintragen
+    const EMAILJS_SERVICE_ID  = 'DEIN_SERVICE_ID';   // ← hier eintragen
+    const EMAILJS_TEMPLATE_ID = 'DEIN_TEMPLATE_ID';  // ← hier eintragen
+    const EMAILJS_PUBLIC_KEY  = 'DEIN_PUBLIC_KEY';    // ← hier eintragen
+    const ADMIN_EMAIL         = 'admin@hotel.ch';     // ← Admin E-Mail hier eintragen
+
+    if (EMAILJS_SERVICE_ID === 'DEIN_SERVICE_ID') return; // nicht konfiguriert
+
+    await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        service_id: EMAILJS_SERVICE_ID,
+        template_id: EMAILJS_TEMPLATE_ID,
+        user_id: EMAILJS_PUBLIC_KEY,
+        template_params: {
+          to_email: ADMIN_EMAIL,
+          user_name: user.displayName || 'Unbekannt',
+          user_email: user.email,
+          message: `Neue Zugriffsanfrage für FacilityOS von ${user.displayName} (${user.email})`
+        }
+      })
+    });
+  } catch(e) { console.log('EmailJS nicht konfiguriert:', e); }
+}
+
+onAuthStateChanged(auth, async user => {
+  // Hide all screens first
+  document.getElementById('login-screen').classList.add('hidden');
+  document.getElementById('pending-screen').classList.remove('visible');
+  document.getElementById('rejected-screen').classList.remove('visible');
+
+  if (user) {
+    currentUser = user;
+    document.getElementById('loading-overlay').classList.remove('hidden');
+
+    const access = await checkUserAccess(user);
+
+    if (access === 'admin' || access === 'approved') {
+      // ✅ Grant access
+      document.getElementById('user-name').textContent = user.displayName || user.email;
+      if (user.photoURL) {
+        const av = document.getElementById('user-avatar'); av.src = user.photoURL; av.style.display = '';
+        const avm = document.getElementById('user-avatar-mobile'); if(avm){avm.src=user.photoURL;avm.style.display='';}
+      }
+      window._fbSignOut = () => fbSignOut(auth);
+      window._isAdmin = (access === 'admin');
+      // Show admin UI elements
+      if (access === 'admin') {
+        const nb = document.getElementById('nav-benutzer'); if(nb) nb.style.display='';
+        const mb = document.getElementById('mehr-benutzer'); if(mb) mb.style.display='';
+        startAdminListeners();
+      }
+      // Import available for all users
+      const ni = document.getElementById('nav-import'); if(ni) ni.style.display='';
+      const mi = document.getElementById('mehr-import'); if(mi) mi.style.display='';
+      startListeners();
+    } else if (access === 'pending') {
+      // ⏳ Show waiting screen
+      document.getElementById('loading-overlay').classList.add('hidden');
+      document.getElementById('pending-email').textContent = user.email;
+      document.getElementById('pending-screen').classList.add('visible');
+    } else if (access === 'rejected') {
+      // 🚫 Show rejected screen
+      document.getElementById('loading-overlay').classList.add('hidden');
+      document.getElementById('rejected-screen').classList.add('visible');
+    }
+  } else {
+    currentUser = null;
+    document.getElementById('login-screen').classList.remove('hidden');
+    document.getElementById('loading-overlay').classList.add('hidden');
+  }
+});
+
+// ---- ADMIN: Listen to access requests ----
+function startAdminListeners() {
+  onSnapshot(query(collection(db, 'accessRequests'), orderBy('createdAt', 'desc')), snap => {
+    const requests = snap.docs.map(d => ({id: d.id, ...d.data()}));
+    const pending = requests.filter(r => r.status === 'pending');
+
+    // Badge
+    const badge = document.getElementById('access-req-badge');
+    if (badge) { badge.textContent = pending.length; badge.style.display = pending.length > 0 ? '' : 'none'; }
+    document.getElementById('req-count').textContent = pending.length + ' offen';
+
+    // Requests list
+    const el = document.getElementById('access-requests-list');
+    el.innerHTML = pending.length ? pending.map(r => `
+      <div style="display:flex;align-items:center;gap:12px;padding:14px 20px;border-bottom:1px solid var(--border);">
+        ${r.photoURL ? `<img src="${r.photoURL}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;">` : '<div style="width:36px;height:36px;border-radius:50%;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:18px;">👤</div>'}
+        <div style="flex:1;">
+          <div style="font-weight:600;font-size:13.5px;">${r.name || '–'}</div>
+          <div style="font-size:12px;color:var(--text3);">${r.email}</div>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <select id="role-${r.id}" style="border:1px solid var(--border2);border-radius:6px;padding:6px 8px;font-size:12px;background:var(--surface);">
+            <option value="reception">Reception</option>
+            <option value="hauswart">Hauswart</option>
+          </select>
+          <button class="btn btn-sm" style="background:var(--green-light);color:var(--green);border:1px solid #86efac;" onclick="approveUser('${r.id}','${r.email}','${r.name}',document.getElementById('role-${r.id}').value)">✅ Genehmigen</button>
+          <button class="btn btn-sm" style="background:var(--red-light);color:var(--red);border:1px solid #fca5a5;" onclick="rejectUser('${r.id}')">🚫 Ablehnen</button>
+        </div>
+      </div>`).join('') : '<div class="card-body"><div class="empty-state"><div class="empty-icon">✅</div><p>Keine offenen Anfragen</p></div></div>';
+  });
+
+  onSnapshot(query(collection(db, 'approvedUsers'), orderBy('createdAt', 'desc')), snap => {
+    const users = snap.docs.map(d => ({id: d.id, ...d.data()}));
+    const el = document.getElementById('approved-users-list');
+    el.innerHTML = users.length ? users.map(u => `
+      <div style="display:flex;align-items:center;gap:12px;padding:12px 20px;border-bottom:1px solid var(--border);">
+        <div style="font-size:20px;">👤</div>
+        <div style="flex:1;">
+          <div style="font-weight:500;font-size:13.5px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <span>${u.name || u.email}</span>
+            <span class="badge badge-gray" style="text-transform:capitalize;">${(u.role||'reception').replace('hauswart','Hauswart').replace('reception','Reception')}</span>
+          </div>
+          <div style="font-size:12px;color:var(--text3);">${u.email}</div>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <select onchange="setUserRole('${u.id}',this.value)" style="border:1px solid var(--border2);border-radius:6px;padding:6px 8px;font-size:12px;background:var(--surface);">
+            <option value="reception" ${(u.role||'reception')==='reception'?'selected':''}>Reception</option>
+            <option value="hauswart" ${(u.role||'reception')==='hauswart'?'selected':''}>Hauswart</option>
+          </select>
+
+          <button class="btn btn-sm" style="background:var(--accent-light);color:var(--accent);border:1px solid #bfdbfe;" onclick="makeAdmin('${u.id}','${u.email}','${u.name||u.email}')">🛡️ Admin machen</button>
+          <button class="btn btn-sm btn-secondary" onclick="revokeUser('${u.id}','${u.email}')">Zugang entziehen</button>
+        </div>
+      </div>`).join('') : '<div class="card-body"><div class="empty-state"><div class="empty-icon">👥</div><p>Noch keine genehmigten Nutzer</p></div></div>';
+  });
+
+  onSnapshot(query(collection(db, 'admins'), orderBy('createdAt', 'desc')), snap => {
+    const admins = snap.docs.map(d => ({id: d.id, ...d.data()}));
+    const el = document.getElementById('admins-list');
+    const myKey = currentUser?.email?.replace(/[@.]/g,'_');
+    el.innerHTML = admins.length ? admins.map(a => `
+      <div style="display:flex;align-items:center;gap:12px;padding:12px 20px;border-bottom:1px solid var(--border);">
+        <div style="font-size:20px;">🛡️</div>
+        <div style="flex:1;">
+          <div style="font-weight:500;font-size:13.5px;">${a.name||a.email||a.id.replace(/_/g,'.')}</div>
+          <div style="font-size:12px;color:var(--text3);">${a.email||a.id.replace(/_/g,'.')}</div>
+        </div>
+        ${a.id !== myKey ? `<button class="btn btn-sm" style="background:var(--red-light);color:var(--red);border:1px solid #fca5a5;" onclick="removeAdmin('${a.id}','${a.email||a.id}')">Admin entfernen</button>` : '<span style="font-size:12px;color:var(--text3);">Du</span>'}
+      </div>`).join('') : '<div class="card-body"><div class="empty-state"><div class="empty-icon">🛡️</div><p>Keine Admins gefunden</p></div></div>';
+  });
+}
+
+window.makeAdmin = async (emailKey, email, name) => {
+  if(!confirm(`${name} zum Admin machen?`)) return;
+  await setDoc(doc(db, 'admins', emailKey), { email, name, role: 'admin', createdAt: serverTimestamp() });
+  await addLog(`${name} zum Admin ernannt`, '#7c3aed');
+};
+
+window.removeAdmin = async (emailKey, email) => {
+  if(!confirm(`Admin-Rechte von ${email} entziehen?`)) return;
+  await deleteDoc(doc(db, 'admins', emailKey));
+  await addLog(`Admin-Rechte entzogen: ${email}`, '#dc2626');
+};
+
+window.approveUser = async (emailKey, email, name, role='reception') => {
+  await setDoc(doc(db, 'approvedUsers', emailKey), { email, name, role: role||'reception', status: 'approved', createdAt: serverTimestamp() });
+  await updateDoc(doc(db, 'accessRequests', emailKey), { status: 'approved' });
+  await addLog(`Nutzer "${name||email}" genehmigt`, '#16a34a');
+};
+
+window.rejectUser = async (emailKey) => {
+  if(!confirm('Diesen Nutzer wirklich ablehnen?')) return;
+  await updateDoc(doc(db, 'accessRequests', emailKey), { status: 'rejected' });
+  await addLog(`Zugriffsanfrage abgelehnt (${emailKey.replace(/_/g,'.')})`, '#dc2626');
+};
+
+window.revokeUser = async (emailKey, email) => {
+  if(!confirm(`Zugang von ${email} wirklich entziehen?`)) return;
+  await deleteDoc(doc(db, 'approvedUsers', emailKey));
+  await addLog(`Zugang entzogen: ${email}`, '#dc2626');
+};
+
+
+window.setUserRole = async (emailKey, role) => {
+  try{
+    await updateDoc(doc(db,'approvedUsers', emailKey), { role: role||'reception' });
+    await addLog(`Rolle aktualisiert: ${emailKey.replace(/_/g,'.')} → ${role}`, '#2563eb');
+  }catch(e){
+    console.error(e);
+    alert('Rolle konnte nicht geändert werden: ' + e.message);
+  }
+};
+
+// Expose Firebase functions for import
+window._addDoc = (colName, data) => addDoc(collection(db, colName), data);
+window._serverTimestamp = () => serverTimestamp();
+window._addLog = addLog;
+
+// Firestore
+function col(name) { return query(collection(db, name), orderBy('createdAt', 'desc')); }
+
+let loadedCount = 0;
+
+let _wartungTicketGenDone = false;
+
+async function generateTicketsFromDueWartungen() {
+  try{
+    if(!currentUser) return;
+    const today = new Date();
+    const todayStr = today.toISOString().slice(0,10); // YYYY-MM-DD
+    const due = (window.state.wartungen||[]).filter(w=>{
+      if(!w) return false;
+      if(!w.autoTicket) return false;
+      if(!w.datum) return false;
+      if(w.status==='abgeschlossen' || w.status==='storniert') return false;
+      return String(w.datum) <= todayStr;
+    });
+
+    for(const w of due){
+      // Prevent duplicates
+      if(w.ticketId) continue;
+      if((window.state.tickets||[]).some(t=>t.wartungId===w.id)) {
+        // backfill wartung doc to avoid future checks
+        try{ await updateDoc(doc(db,'wartungen',w.id), {ticketId: 'existing'}); }catch(e){}
+        continue;
+      }
+
+      const betreff = `Wartung: ${w.bezeichnung||'Wartungsauftrag'}`;
+      const parts = [];
+      parts.push(`Automatisch erstellt aus Wartungsauftrag.`);
+      if(w.datum) parts.push(`Fällig am: ${fDate(w.datum)}`);
+      if(w.partnerName) parts.push(`Firma: ${w.partnerName}`);
+      if(w.geraetName) parts.push(`Gerät/Anlage: ${w.geraetName}`);
+      const beschreibung = parts.join('\n');
+
+      const data = {
+        betreff,
+        beschreibung,
+        prioritaet: 'normal',
+        status: 'offen',
+        ersteller: 'System',
+        createdAt: serverTimestamp(),
+        wartungId: w.id,
+        wartungSeriesId: w.seriesId||'',
+        wartungDatum: w.datum,
+        geraetId: w.geraetId||'',
+        geraetName: w.geraetName||'',
+        partnerId: w.partnerId||'',
+        partnerName: w.partnerName||'',
+        bereichId: '',
+        bereichName: 'Wartung',
+        autoGenerated: true
+      };
+
+      const ref = await addDoc(collection(db,'tickets'), data);
+      await updateDoc(doc(db,'wartungen',w.id), {ticketId: ref.id});
+      await addLog(`Ticket (Wartung) erstellt: "${betreff}"`, '#dc2626');
+    }
+  } catch(err){
+    console.error('generateTicketsFromDueWartungen failed', err);
+  }
+}
+
+function checkLoaded() { loadedCount++; if (loadedCount >= 8) { document.getElementById('loading-overlay').classList.add('hidden'); if(!_wartungTicketGenDone){ _wartungTicketGenDone=true; generateTicketsFromDueWartungen(); } } }
+
+// Ensure state exists before listeners render
+(function ensureState(){
+  window.state = window.state || {};
+  const __stateDefaults = { tickets:[], wartungen:[], geraete:[], partner:[], notfaelle:[], dokumente:[], bereiche:[], log:[], ticketFilter:'alle', wartungFilter:'alle', geraeteFilter:'alle', partnerFilter:'alle', bereicheFilter:'alle', calMonth:new Date().getMonth(), calYear:new Date().getFullYear(), ticketSearch:'' };
+  for (const k in __stateDefaults) { if (window.state[k] === undefined) window.state[k] = __stateDefaults[k]; }
+})();
+
+function startListeners() {
+  loadedCount = 0;
+  document.getElementById('loading-overlay').classList.remove('hidden');
+
+  onSnapshot(col('tickets'), s => { window.state.tickets = s.docs.map(d=>({id:d.id,...d.data()})); renderAll(); checkLoaded(); }, ()=>checkLoaded());
+  onSnapshot(col('wartungen'), s => { window.state.wartungen = s.docs.map(d=>({id:d.id,...d.data()})); renderAll(); if(!document.getElementById('page-kalender').classList.contains('page-hidden')) renderCalendar(); checkLoaded(); }, ()=>checkLoaded());
+  onSnapshot(col('geraete'), s => { window.state.geraete = s.docs.map(d=>({id:d.id,...d.data()})); renderAll(); checkLoaded(); }, ()=>checkLoaded());
+  onSnapshot(col('partner'), s => { window.state.partner = s.docs.map(d=>({id:d.id,...d.data()})); renderAll(); checkLoaded(); }, ()=>checkLoaded());
+  onSnapshot(col('notfaelle'), s => { window.state.notfaelle = s.docs.map(d=>({id:d.id,...d.data()})); renderAll(); checkLoaded(); }, ()=>checkLoaded());
+  onSnapshot(col('dokumente'), s => { window.state.dokumente = s.docs.map(d=>({id:d.id,...d.data()})); renderAll(); checkLoaded(); }, ()=>checkLoaded());
+  onSnapshot(col('bereiche'), s => { window.state.bereiche = s.docs.map(d=>({id:d.id,...d.data()})); renderAll(); checkLoaded(); }, ()=>checkLoaded());
+  onSnapshot(col('log'), s => { window.state.log = s.docs.map(d=>({id:d.id,...d.data()})); renderAll(); checkLoaded(); }, ()=>checkLoaded());
+
+  document.getElementById('sync-dot').style.background = 'var(--green)';
+  document.getElementById('sync-label').textContent = 'Live-Sync aktiv';
+  const sdm = document.getElementById('sync-dot-mobile'); if(sdm) sdm.style.background='var(--green)';
+}
+
+async function addLog(text, color='#2563eb') {
+  await addDoc(collection(db,'log'), { text, color, user: currentUser?.displayName||currentUser?.email||'', createdAt: serverTimestamp() });
+}
+
+// SAVE buttons wired here (module scope)
+document.getElementById('btn-save-ticket').onclick = async () => {
+  const betreff = document.getElementById('t-betreff').value.trim();
+  if (!betreff) { alert('Bitte einen Betreff eingeben.'); return; }
+  const gId = document.getElementById('t-geraet').value;
+  const pId = document.getElementById('t-partner').value;
+  const bId = document.getElementById('t-bereich').value;
+  const data = {
+    betreff, prioritaet: document.getElementById('t-prioritaet').value,
+    geraetId: gId, geraetName: window.state.geraete.find(g=>g.id===gId)?.name||'',
+    partnerId: pId, partnerName: window.state.partner.find(p=>p.id===pId)?.name||'',
+    bereichId: bId, bereichName: window.state.bereiche.find(b=>b.id===bId)?.name||'',
+    gemeldet: document.getElementById('t-gemeldet').value,
+    beschreibung: document.getElementById('t-beschreibung').value,
+  };
+  if(window._editId && window._editType==='tickets'){
+    await updateDoc(doc(db,'tickets',window._editId), data);
+    await addLog(`Ticket "${betreff}" bearbeitet`, '#2563eb');
+  } else {
+    data.ersteller = currentUser?.displayName||currentUser?.email||'';
+    data.status = 'offen'; data.createdAt = serverTimestamp();
+    await addDoc(collection(db,'tickets'), data);
+    await addLog(`Ticket erstellt: "${betreff}" (${currentUser?.displayName||''})`, '#dc2626');
+  }
+  closeModal('modal-ticket');
+};
+
+document.getElementById('btn-save-wartung').onclick = async () => {
+  const bez = document.getElementById('w-bezeichnung').value.trim();
+  const datum = document.getElementById('w-datum').value;
+  if (!bez||!datum) { alert('Bitte Bezeichnung und Datum ausfüllen.'); return; }
+  const gId = document.getElementById('w-geraet').value;
+  const pId = document.getElementById('w-partner').value;
+  const intervall = document.getElementById('w-intervall').value;
+  const base = {
+    bezeichnung: bez, typ: document.getElementById('w-typ').value,
+    geraetId: gId, geraetName: window.state.geraete.find(g=>g.id===gId)?.name||'',
+    partnerId: pId, partnerName: window.state.partner.find(p=>p.id===pId)?.name||'',
+    intervall, notizen: document.getElementById('w-notizen').value,
+    autoTicket: document.getElementById('w-autoTicket').checked,
+  };
+  if(window._editId && window._editType==='wartungen'){
+    await updateDoc(doc(db,'wartungen',window._editId), {...base, datum, status: new Date(datum)<new Date()?'faellig':'geplant'});
+    await addLog(`Wartung "${bez}" bearbeitet`, '#d97706');
+  } else {
+    const dates = generateRecurringDates(datum, intervall);
+    const seriesId = bez.replace(/\s+/g,'_') + '_' + datum;
+    for(const d of dates){
+      await addDoc(collection(db,'wartungen'), {
+        ...base, datum: d,
+        status: new Date(d)<new Date() ? 'faellig' : 'geplant',
+        seriesId, createdAt: serverTimestamp()
+      });
+    }
+    await addLog(`Wartung "${bez}" erstellt (${dates.length} Termin${dates.length>1?'e':''}, ${intervall})`, '#d97706');
+  }
+  closeModal('modal-wartung');
+};
+
+document.getElementById('btn-save-geraet').onclick = async () => {
+  const name = document.getElementById('g-name').value.trim();
+  if (!name) { alert('Bitte eine Bezeichnung eingeben.'); return; }
+  const pId = document.getElementById('g-partner').value;
+  const data = {
+    name, kategorie: document.getElementById('g-kategorie').value,
+    hersteller: document.getElementById('g-hersteller').value,
+    seriennummer: document.getElementById('g-seriennummer').value,
+    baujahr: document.getElementById('g-baujahr').value,
+    bereichId: document.getElementById('g-bereich')?.value || '',
+    bereichName: window.state.bereiche.find(b=>b.id=== (document.getElementById('g-bereich')?.value||''))?.name || '',
+    raum: document.getElementById('g-raum')?.value || '',
+    standort: document.getElementById('g-standort')?.value || '', // legacy
+
+    naechsteWartung: document.getElementById('g-naechste-wartung').value,
+    partnerId: pId, partnerName: window.state.partner.find(p=>p.id===pId)?.name||'',
+    notizen: document.getElementById('g-notizen').value,
+  };
+  if(window._editId && window._editType==='geraete'){
+    await updateDoc(doc(db,'geraete',window._editId), data);
+    await addLog(`Gerät "${name}" bearbeitet`, '#16a34a');
+  } else {
+    data.status = 'aktiv'; data.createdAt = serverTimestamp();
+    await addDoc(collection(db,'geraete'), data);
+    await addLog(`Gerät "${name}" hinzugefügt`, '#16a34a');
+  }
+  closeModal('modal-geraet');
+};
+
+document.getElementById('btn-save-partner').onclick = async () => {
+  const name = document.getElementById('p-name').value.trim();
+  if (!name) { alert('Firmennamen eingeben.'); return; }
+  const data = {
+    name, bereich: document.getElementById('p-bereich').value,
+    kontakt: document.getElementById('p-kontakt').value,
+    telefon: document.getElementById('p-telefon').value,
+    mobile: document.getElementById('p-mobile').value,
+    email: document.getElementById('p-email').value,
+    website: (function(){ const v=(document.getElementById('p-web').value||'').trim(); if(!v) return ''; return (/^https?:\/\//i.test(v))?v:`https://${v}`; })(),
+    vertrag: document.getElementById('p-vertrag').value,
+    adresse: document.getElementById('p-adresse').value,
+    notizen: document.getElementById('p-notizen').value,
+  };
+  if(window._editId && window._editType==='partner'){
+    await updateDoc(doc(db,'partner',window._editId), data);
+    await addLog(`Partnerfirma "${name}" bearbeitet`, '#2563eb');
+  } else {
+    data.createdAt = serverTimestamp();
+    await addDoc(collection(db,'partner'), data);
+    await addLog(`Partnerfirma "${name}" hinzugefügt`, '#2563eb');
+  }
+  closeModal('modal-partner');
+};
+
+document.getElementById('btn-save-notfall').onclick = async () => {
+  const name = document.getElementById('n-name').value.trim();
+  const telefon = document.getElementById('n-telefon').value.trim();
+  if (!name||!telefon) { alert('Name und Telefon ausfüllen.'); return; }
+  const data = {
+    name, kategorie: document.getElementById('n-kategorie').value,
+    telefon, mobile: document.getElementById('n-mobile').value,
+    erreichbar: document.getElementById('n-erreichbar').value,
+    notizen: document.getElementById('n-notizen').value,
+  };
+  const existingPinned = (window._editId && window._editType==='notfaelle') ? !!(window.state.notfaelle.find(n=>n.id===window._editId)?.pinned) : false;
+  data.pinned = existingPinned;
+
+  if(window._editId && window._editType==='notfaelle'){
+    await updateDoc(doc(db,'notfaelle',window._editId), data);
+    await addLog(`Notfallkontakt "${name}" bearbeitet`, '#dc2626');
+  } else {
+    data.createdAt = serverTimestamp();
+    await addDoc(collection(db,'notfaelle'), data);
+    await addLog(`Notfallkontakt "${name}" hinzugefügt`, '#dc2626');
+  }
+  closeModal('modal-notfall');
+};
+
+document.getElementById('btn-save-dokument').onclick = async () => {
+  const name = document.getElementById('d-name').value.trim();
+  if (!name) { alert('Bezeichnung eingeben.'); return; }
+  const gId = document.getElementById('d-geraet').value;
+  const data = {
+    name, typ: document.getElementById('d-typ').value,
+    geraetId: gId, geraetName: window.state.geraete.find(g=>g.id===gId)?.name||'',
+    datum: document.getElementById('d-datum').value,
+    notiz: document.getElementById('d-notiz').value,
+  };
+  if(window._editId && window._editType==='dokumente'){
+    await updateDoc(doc(db,'dokumente',window._editId), data);
+    await addLog(`Dokument "${name}" bearbeitet`, '#5a5850');
+  } else {
+    data.createdAt = serverTimestamp();
+    await addDoc(collection(db,'dokumente'), data);
+    await addLog(`Dokument "${name}" erfasst`, '#5a5850');
+  }
+  closeModal('modal-dokument');
+};
+
+// Update / Delete exposed globally
+window.updateTicketStatus = async (id, status) => {
+  await updateDoc(doc(db,'tickets',id), {status});
+  const t = window.state.tickets.find(t=>t.id===id);
+  await addLog(`Ticket "${t?.betreff||id}" → ${status} (${currentUser?.displayName||''})`, '#2563eb');
+};
+window.updateWartungStatus = async (id, status) => {
+  await updateDoc(doc(db,'wartungen',id), {status});
+  const w = window.state.wartungen.find(w=>w.id===id);
+  await addLog(`Wartung "${w?.bezeichnung||id}" → ${status}`, '#d97706');
+  // Auto-continue: if abgeschlossen or storniert AND recurring, create next occurrence after last planned
+  if((status==='abgeschlossen'||status==='storniert') && w && w.intervall && w.intervall!=='einmalig' && w.seriesId) {
+    // Find latest datum in same series that is still geplant or faellig
+    const sameSeries = window.state.wartungen.filter(x=>x.seriesId===w.seriesId && x.id!==id && x.status!=='abgeschlossen' && x.status!=='storniert');
+    if(sameSeries.length === 0) {
+      // All done – generate 2 more years from today
+      const nextStart = w.datum; // extend from this date
+      const newDates = generateRecurringDates(nextStart, w.intervall, true); // extension mode
+      const seriesId = w.seriesId;
+      for(const d of newDates){
+        // Only add if not already existing
+        const exists = window.state.wartungen.some(x=>x.seriesId===seriesId && x.datum===d);
+        if(!exists){
+          await addDoc(collection(db,'wartungen'), {
+            bezeichnung: w.bezeichnung, typ: w.typ,
+            geraetId: w.geraetId||'', geraetName: w.geraetName||'',
+            partnerId: w.partnerId||'', partnerName: w.partnerName||'',
+            intervall: w.intervall, notizen: w.notizen||'',
+            autoTicket: !!w.autoTicket,
+            datum: d, status: 'geplant', seriesId, createdAt: serverTimestamp()
+          });
+        }
+      }
+      await addLog(`Wartungsreihe "${w.bezeichnung}" automatisch verlängert`, '#d97706');
+    }
+  }
+};
+window.changeGeraetStatus = async (id, status) => {
+  await updateDoc(doc(db,'geraete',id), {status});
+  await addLog(`Gerät "${window.state.geraete.find(g=>g.id===id)?.name||id}" → ${status}`, '#16a34a');
+};
+window.deleteItem = async (col, id) => {
+  if (!confirm('Wirklich löschen?')) return;
+  await deleteDoc(doc(db,col,id));
+  await addLog(`Eintrag gelöscht (${col})`, '#9a9890');
+};
+
+window.toggleNotfallPin = async (id, pinned) => {
+  try{
+    await updateDoc(doc(db,'notfaelle',id), { pinned: !pinned });
+    const name = window.state.notfaelle.find(n=>n.id===id)?.name || id;
+    await addLog(`Notfallkontakt ${!pinned?'angeheftet':'losgelöst'}: "${name}"`, '#dc2626');
+  }catch(e){
+    console.error(e);
+    alert('Konnte den Kontakt nicht anheften/loslösen.');
+  }
+};
+
+// ---- HELPERS ----
+window.generateRecurringDates = function(startDate, intervall, extensionMode=false) {
+  const dates = [];
+  const start = new Date(startDate + 'T00:00:00');
+  const cutoff = new Date();
+  cutoff.setFullYear(cutoff.getFullYear() + 2);
+  if(intervall === 'einmalig') return [startDate];
+  const addMonths = (d, m) => { const r = new Date(d); r.setMonth(r.getMonth()+m); return r; };
+  const intervals = {monatlich:1, quartalsweise:3, halbjaehrlich:6, jaehrlich:12};
+  const step = intervals[intervall] || 12;
+  let cur = extensionMode ? addMonths(start, step) : new Date(start);
+  while(cur <= cutoff) {
+    dates.push(cur.toISOString().split('T')[0]);
+    cur = addMonths(cur, step);
+  }
+  return dates;
+};
+
+document.getElementById('btn-save-bereich').onclick = async () => {
+  const name = document.getElementById('b-name').value.trim();
+  if(!name) { alert('Bitte eine Bezeichnung eingeben.'); return; }
+  const data = {
+    name, kategorie: document.getElementById('b-kategorie').value,
+    zimmernummer: document.getElementById('b-zimmernummer').value,
+    etage: document.getElementById('b-etage').value,
+    kapazitaet: document.getElementById('b-kapazitaet').value,
+    notizen: document.getElementById('b-notizen').value,
+  };
+  if(window._editId && window._editType==='bereiche'){
+    await updateDoc(doc(db,'bereiche',window._editId), data);
+    await addLog(`Bereich "${name}" bearbeitet`, '#7c3aed');
+  } else {
+    data.createdAt = serverTimestamp();
+    await addDoc(collection(db,'bereiche'), data);
+    await addLog(`Bereich "${name}" hinzugefügt`, '#7c3aed');
+  }
+  closeModal('modal-bereich');
+};
+
+// ---- EDIT ----
+window.editItem = (type, id) => {
+  const item = window.state[type].find(i=>i.id===id);
+  if(!item) return;
+  window._editId = id;
+  window._editType = type;
+  populateSelects();
+
+  if(type==='tickets'){
+    document.getElementById('t-betreff').value=item.betreff||'';
+    document.getElementById('t-prioritaet').value=item.prioritaet||'mittel';
+    document.getElementById('t-geraet').value=item.geraetId||'';
+    document.getElementById('t-partner').value=item.partnerId||'';
+    document.getElementById('t-beschreibung').value=item.beschreibung||'';
+    document.getElementById('modal-ticket').querySelector('.modal-title').textContent='Ticket bearbeiten';
+    document.getElementById('btn-save-ticket').textContent='Änderungen speichern';
+    document.getElementById('modal-ticket').classList.remove('hidden');
+  } else if(type==='wartungen'){
+    document.getElementById('w-bezeichnung').value=item.bezeichnung||'';
+    document.getElementById('w-typ').value=item.typ||'wartung';
+    document.getElementById('w-geraet').value=item.geraetId||'';
+    document.getElementById('w-partner').value=item.partnerId||'';
+    document.getElementById('w-datum').value=item.datum||'';
+    document.getElementById('w-intervall').value=item.intervall||'einmalig';
+    document.getElementById('w-autoTicket').checked=!!item.autoTicket;
+    document.getElementById('w-notizen').value=item.notizen||'';
+    document.getElementById('modal-wartung').querySelector('.modal-title').textContent='Wartungsauftrag bearbeiten';
+    document.getElementById('btn-save-wartung').textContent='Änderungen speichern';
+    document.getElementById('modal-wartung').classList.remove('hidden');
+  } else if(type==='geraete'){
+    document.getElementById('g-name').value=item.name||'';
+    document.getElementById('g-kategorie').value=item.kategorie||'sonstiges';
+    document.getElementById('g-hersteller').value=item.hersteller||'';
+    document.getElementById('g-seriennummer').value=item.seriennummer||'';
+    document.getElementById('g-baujahr').value=item.baujahr||'';
+    document.getElementById('g-bereich').value=item.bereichId||'';
+    document.getElementById('g-raum').value=item.raum||'';
+    document.getElementById('g-standort').value=item.standort||'';
+    document.getElementById('g-naechste-wartung').value=item.naechsteWartung||'';
+    document.getElementById('g-partner').value=item.partnerId||'';
+    document.getElementById('g-notizen').value=item.notizen||'';
+    document.getElementById('modal-geraet').querySelector('.modal-title').textContent='Gerät bearbeiten';
+    document.getElementById('btn-save-geraet').textContent='Änderungen speichern';
+    document.getElementById('modal-geraet').classList.remove('hidden');
+    showGeraetTicketLog(id);
+  } else if(type==='partner'){
+    document.getElementById('p-name').value=item.name||'';
+    document.getElementById('p-bereich').value=item.bereich||'';
+    document.getElementById('p-kontakt').value=item.kontakt||'';
+    document.getElementById('p-telefon').value=item.telefon||'';
+    document.getElementById('p-mobile').value=item.mobile||'';
+    document.getElementById('p-email').value=item.email||'';
+    document.getElementById('p-web').value=item.website||'';
+    document.getElementById('p-vertrag').value=item.vertrag||'';
+    document.getElementById('p-adresse').value=item.adresse||'';
+    document.getElementById('p-notizen').value=item.notizen||'';
+    document.getElementById('modal-partner').querySelector('.modal-title').textContent='Partnerfirma bearbeiten';
+    document.getElementById('btn-save-partner').textContent='Änderungen speichern';
+    document.getElementById('modal-partner').classList.remove('hidden');
+  } else if(type==='notfaelle'){
+    document.getElementById('n-name').value=item.name||'';
+    document.getElementById('n-kategorie').value=item.kategorie||'';
+    document.getElementById('n-telefon').value=item.telefon||'';
+    document.getElementById('n-mobile').value=item.mobile||'';
+    document.getElementById('n-erreichbar').value=item.erreichbar||'24/7';
+    document.getElementById('n-notizen').value=item.notizen||'';
+    document.getElementById('modal-notfall').querySelector('.modal-title').textContent='Notfallkontakt bearbeiten';
+    document.getElementById('btn-save-notfall').textContent='Änderungen speichern';
+    document.getElementById('modal-notfall').classList.remove('hidden');
+  } else if(type==='dokumente'){
+    document.getElementById('d-name').value=item.name||'';
+    document.getElementById('d-typ').value=item.typ||'';
+    document.getElementById('d-geraet').value=item.geraetId||'';
+    document.getElementById('d-datum').value=item.datum||'';
+    document.getElementById('d-notiz').value=item.notiz||'';
+    document.getElementById('modal-dokument').querySelector('.modal-title').textContent='Dokument bearbeiten';
+    document.getElementById('btn-save-dokument').textContent='Änderungen speichern';
+    document.getElementById('modal-dokument').classList.remove('hidden');
+  } else if(type==='bereiche'){
+    document.getElementById('b-name').value=item.name||'';
+    document.getElementById('b-kategorie').value=item.kategorie||'zimmer';
+    document.getElementById('b-zimmernummer').value=item.zimmernummer||'';
+    document.getElementById('b-etage').value=item.etage||'';
+    document.getElementById('b-kapazitaet').value=item.kapazitaet||'';
+    document.getElementById('b-notizen').value=item.notizen||'';
+    onBereichKatChange(item.kategorie);
+    document.getElementById('modal-bereich').querySelector('.modal-title').textContent='Bereich bearbeiten';
+    document.getElementById('btn-save-bereich').textContent='Änderungen speichern';
+    document.getElementById('modal-bereich').classList.remove('hidden');
+    showBereichTicketLog(id);
+  }
+};
+</script>
+
+<script>
+window.state = window.state || {};
+  const __stateDefaults = { tickets:[], wartungen:[], geraete:[], partner:[], notfaelle:[], dokumente:[], bereiche:[], log:[], ticketFilter:'alle', wartungFilter:'alle', geraeteFilter:'alle', partnerFilter:'alle', bereicheFilter:'alle', calMonth:new Date().getMonth(), calYear:new Date().getFullYear(), ticketSearch:'' };
+  for (const k in __stateDefaults) { if (window.state[k] === undefined) window.state[k] = __stateDefaults[k]; }
+
+// Force responsive visibility (prevents table + mobile cards showing at the same time)
+function applyResponsiveVisibility(){
+  const isMobile = window.matchMedia('(max-width: 768px)').matches;
+  document.querySelectorAll('.mobile-card-list').forEach(el=>{
+    el.style.display = isMobile ? 'flex' : 'none';
+  });
+  document.querySelectorAll('.table-wrap').forEach(el=>{
+    el.style.display = isMobile ? 'none' : '';
+  });
+}
+window.addEventListener('resize', applyResponsiveVisibility);
+applyResponsiveVisibility();
+
+
+
+const pageLabels = {dashboard:'Dashboard',tickets:'Tickets & Störungen',wartung:'Wartungsaufträge',kalender:'Wartungskalender',geraete:'Geräte & Anlagen',bereiche:'Hotelbereiche',dokumente:'Dokumente',partner:'Partnerfirmen',notfall:'Notfallkontakte',aktivitaet:'Aktivitätslog',benutzer:'Benutzerverwaltung',import:'Daten importieren',export:'Daten exportieren',mehr:'Mehr'};
+
+// Pages reachable directly from bottom nav (no back button needed)
+const mainPages = new Set(['dashboard','tickets','geraete','notfall','mehr']);
+let pageHistory = ['dashboard'];
+
+window.goBack = () => {
+  if(pageHistory.length > 1) {
+    pageHistory.pop();
+    const prev = pageHistory[pageHistory.length-1];
+    showPage(prev, null, true);
+  }
+};
+
+// FAB actions per page
+const fabActions = {
+  tickets: () => openModal('modal-ticket'),
+  wartung: () => openModal('modal-wartung'),
+  geraete: () => openModal('modal-geraet'),
+  bereiche: () => openModal('modal-bereich'),
+  partner: () => openModal('modal-partner'),
+  notfall: () => openModal('modal-notfall'),
+  dokumente: () => openModal('modal-dokument'),
+};
+window._currentPage = 'dashboard';
+window.handleFab = () => { const fn = fabActions[window._currentPage]; if(fn) fn(); };
+
+window.fbSignOutMobile = () => { if(window._fbSignOut) window._fbSignOut(); };
+
+function showPage(name, navBtn, isBack) {
+  window._currentPage = name;
+
+  // Track history
+  if(!isBack) {
+    if(pageHistory[pageHistory.length-1] !== name) pageHistory.push(name);
+    if(pageHistory.length > 10) pageHistory = pageHistory.slice(-10);
+  }
+
+  document.querySelectorAll('.page').forEach(p=>p.classList.add('page-hidden'));
+  const pg = document.getElementById('page-'+name);
+  if(pg) pg.classList.remove('page-hidden');
+
+  // Desktop sidebar
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>{ if(n.getAttribute('onclick')&&n.getAttribute('onclick').includes(`'${name}'`)) n.classList.add('active'); });
+
+  // Mobile bottom nav highlight
+  document.querySelectorAll('.mobile-nav-item').forEach(n=>n.classList.remove('active'));
+  const activeNav = document.querySelector(`.mobile-nav-item[data-page="${name}"]`);
+  if(activeNav) activeNav.classList.add('active');
+  else if(mainPages.has('mehr')) {
+    // highlight "Mehr" for sub-pages
+    const mehrBtn = document.querySelector('.mobile-nav-item[data-page="mehr"]');
+    if(mehrBtn) mehrBtn.classList.add('active');
+  }
+
+  // Back button: show on sub-pages (not main nav pages)
+  const backBtn = document.getElementById('mobile-back-btn');
+  if(backBtn) backBtn.style.display = (!mainPages.has(name) && pageHistory.length > 1) ? 'block' : 'none';
+
+  // Titles
+  const title = pageLabels[name]||name;
+  document.getElementById('page-title').textContent = title;
+  const mt = document.getElementById('mobile-page-title'); if(mt) mt.textContent = title;
+
+  // FAB: show only on pages with add action
+  const fab = document.getElementById('fab-btn');
+  if(fab) fab.style.display = fabActions[name] ? 'flex' : 'none';
+
+  if(name==='kalender') renderCalendar();
+  if(name==='aktivitaet') renderAktivitaet();
+}
+
+function openModal(id) { populateSelects(); document.getElementById(id).classList.remove('hidden'); }
+function closeModal(id) {
+  document.getElementById(id).classList.add('hidden');
+  document.querySelectorAll(`#${id} input,#${id} textarea`).forEach(e=>{ if(e.type==='checkbox') e.checked=false; else e.value=''; });
+  document.querySelectorAll(`#${id} select`).forEach(e=>e.selectedIndex=0);
+  window._editId=null; window._editType=null;
+  hideEntityTicketLogs();
+  // Reset titles and button labels
+  const titleMap={'modal-ticket':'Neues Ticket / Störungsmeldung','modal-wartung':'Wartungsauftrag erfassen','modal-geraet':'Gerät / Anlage hinzufügen','modal-partner':'Partnerfirma hinzufügen','modal-notfall':'Notfallkontakt hinzufügen','modal-dokument':'Dokument erfassen','modal-bereich':'Hotelbereich hinzufügen'};
+  const btnMap={'modal-ticket':'btn-save-ticket','modal-wartung':'btn-save-wartung','modal-geraet':'btn-save-geraet','modal-partner':'btn-save-partner','modal-notfall':'btn-save-notfall','modal-dokument':'btn-save-dokument','modal-bereich':'btn-save-bereich'};
+  const saveLabelMap={'modal-ticket':'Ticket erstellen','modal-wartung':'Auftrag erstellen','modal-geraet':'Gerät speichern','modal-partner':'Firma speichern','modal-notfall':'Kontakt speichern','modal-dokument':'Speichern','modal-bereich':'Bereich speichern'};
+  if(titleMap[id]) document.querySelector(`#${id} .modal-title`).textContent=titleMap[id];
+  if(btnMap[id]) document.getElementById(btnMap[id]).textContent=saveLabelMap[id];
+}
+
+function _lc(a,b){
+  return String(a||'').localeCompare(String(b||''), 'de', { sensitivity:'base', numeric:true });
+}
+function _optEsc(str){
+  if(str===null||str===undefined) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function _isZimmerBereich(b){
+  if(!b) return false;
+  if(b.kategorie==='zimmer') return true;
+  if(b.zimmernummer) return true;
+  return /^\s*zimmer\s*\d+/i.test(b.name||'') || /^\s*\d+\s*$/.test(b.name||'');
+}
+function _zimmerNum(b){
+  if(!b) return null;
+  const zn = (b.zimmernummer||'').toString().trim();
+  if(zn && /^\d+$/.test(zn)) return parseInt(zn,10);
+  const m = (b.name||'').match(/(\d+)/);
+  return m ? parseInt(m[1],10) : null;
+}
+function _sortBereicheForUi(arr){
+  const rooms = [];
+  const other = [];
+  (arr||[]).forEach(b=> (_isZimmerBereich(b)?rooms:other).push(b));
+  other.sort((a,b)=>_lc(a.name,b.name));
+  rooms.sort((a,b)=>{
+    const an=_zimmerNum(a), bn=_zimmerNum(b);
+    if(an!=null && bn!=null) return an-bn;
+    if(an!=null) return -1;
+    if(bn!=null) return 1;
+    return _lc(a.name,b.name);
+  });
+  return other.concat(rooms);
+}
+
+function populateSelects() {
+  const geraeteSorted = [...state.geraete].sort((a,b)=>_lc(a.name,b.name));
+  const partnerSorted = [...state.partner].sort((a,b)=>_lc(a.name,b.name));
+  const bereicheSorted = _sortBereicheForUi(state.bereiche);
+
+  const g = geraeteSorted.map(g=>{
+    const loc = (g.bereichName||g.standort||'') + (g.raum?' / '+g.raum:'');
+    return `<option value="${g.id}">${_optEsc(g.name||'')}${loc?' ('+_optEsc(loc)+')':''}</option>`;
+  }).join('');
+
+  const p = partnerSorted.map(p=>`<option value="${p.id}">${_optEsc(p.name||'')}</option>`).join('');
+  const b = bereicheSorted.map(b=>`<option value="${b.id}">${_optEsc(b.name||'')}</option>`).join('');
+
+  ['t-geraet','w-geraet','d-geraet'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML='<option value="">– auswählen –</option>'+g;});
+  ['t-partner','w-partner'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML='<option value="">– auswählen –</option>'+p;});
+  const gp=document.getElementById('g-partner');if(gp)gp.innerHTML='<option value="">– auswählen –</option>'+p;
+  const tb=document.getElementById('t-bereich');if(tb)tb.innerHTML='<option value="">– auswählen –</option>'+b;
+  const gb=document.getElementById('g-bereich');if(gb)gb.innerHTML='<option value="">– auswählen –</option>'+b;
+}
+
+// Auto-fill Bereich when Gerät is selected in ticket modal
+window.onTicketGeraetChange = function(geraetId) {
+  if(!geraetId) return;
+  const geraet = state.geraete.find(g=>g.id===geraetId);
+  if(!geraet) return;
+
+  // Prefer direct reference to hotelbereich
+  if(geraet.bereichId){
+    const tb=document.getElementById('t-bereich');
+    if(tb) tb.value = geraet.bereichId;
+    return;
+  }
+
+  // Legacy fallback: try to match standort text to a bereich name
+  if(!geraet.standort) return;
+  const s = String(geraet.standort).toLowerCase();
+  const match = state.bereiche.find(b=>String(b.name||'').toLowerCase()===s || s.includes(String(b.name||'').toLowerCase()));
+  if(match){
+    const tb=document.getElementById('t-bereich');
+    if(tb) tb.value = match.id;
+  }
+};
+
+// Auto-select Partnerfirma when Gerät/Anlage is selected in Wartung modal
+window.onWartungGeraetChange = function(geraetId) {
+  const wp = document.getElementById('w-partner');
+  if(!wp) return;
+  if(!geraetId){ return; }
+
+  const geraet = state.geraete.find(g=>g.id===geraetId);
+  if(!geraet) return;
+
+  // Prefer explicit partner reference on the device
+  if(geraet.partnerId){
+    wp.value = geraet.partnerId;
+    return;
+  }
+};
+
+window.onBereichKatChange = function(kat) {
+  const zg = document.getElementById('zimmer-nummer-group');
+  if(zg) zg.style.display = kat==='zimmer' ? 'block' : 'none';
+};
+
+const pBadge={kritisch:'badge-red',hoch:'badge-orange',mittel:'badge-yellow',niedrig:'badge-green'};
+const pLabel={kritisch:'🔴 Kritisch',hoch:'🟠 Hoch',mittel:'🟡 Mittel',niedrig:'🟢 Niedrig'};
+const sBadge={offen:'badge-red',in_bearbeitung:'badge-yellow',erledigt:'badge-green',geplant:'badge-blue',faellig:'badge-orange',abgeschlossen:'badge-green',storniert:'badge-gray'};
+const sLabel={offen:'Offen',in_bearbeitung:'In Bearbeitung',erledigt:'Erledigt',geplant:'Geplant',faellig:'Fällig',abgeschlossen:'Abgeschlossen',storniert:'Storniert'};
+const kIcons={aufzug:'🛗',heizung:'🔥',klima:'❄️',elektro:'⚡',brandschutz:'🧯',sicherheit:'🔒',sanitaer:'🚿',kueche:'🍳',it:'💻',solar:'☀️',sonstiges:'🔧'};
+const bIcons={zimmer:'🛏️',seminar:'🎓',restaurant:'🍽️',kueche:'🍳',allgemein:'🏛️',technik:'🔧',aussen:'🌿'};
+const bLabel={zimmer:'Zimmer',seminar:'Seminarraum',restaurant:'Restaurant/Bar',kueche:'Küche',allgemein:'Allgemeinbereich',technik:'Technikraum',aussen:'Aussenbereich'};
+
+function fDate(d){if(!d)return'–';try{return new Date(d+'T00:00:00').toLocaleDateString('de-DE');}catch(e){return d;}}
+function fTs(ts){if(!ts)return'–';try{const d=ts.toDate?ts.toDate():new Date(ts);return d.toLocaleDateString('de-DE')+' '+d.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});}catch(e){return'–';}}
+
+function renderAll() { renderDashboard();renderTickets();renderTicketsMobile();renderWartungen();renderWartungenMobile();renderGeraete();renderPartner();renderNotfall();renderDokumente();renderDokumenteMobile();renderBereiche();updateBadges(); }
+
+function renderDashboard() {
+  const offene=state.tickets.filter(t=>t.status!=='erledigt');
+  const now=new Date(),in30=new Date();in30.setDate(in30.getDate()+30);
+  const w30=state.wartungen.filter(w=>{const d=new Date(w.datum);return d>=now&&d<=in30;});
+  const faellig=state.wartungen.filter(w=>w.status==='faellig'||(new Date(w.datum)<now&&w.status!=='abgeschlossen'));
+  document.getElementById('kpi-geraete').textContent=state.geraete.length;
+  document.getElementById('kpi-geraete-ok').textContent=state.geraete.filter(g=>g.status==='aktiv').length;
+  document.getElementById('kpi-tickets').textContent=offene.length;
+  document.getElementById('kpi-tickets-krit').textContent=offene.filter(t=>t.prioritaet==='kritisch').length;
+  document.getElementById('kpi-wartungen').textContent=w30.length;
+  document.getElementById('kpi-wartungen-faellig').textContent=faellig.length;
+  document.getElementById('kpi-partner').textContent=state.partner.length;
+  const dt=document.getElementById('dash-tickets'),ct=state.tickets.filter(t=>t.status!=='erledigt'&&(t.prioritaet==='kritisch'||t.prioritaet==='hoch')).slice(0,5);
+  dt.innerHTML=ct.length?ct.map(t=>`<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);"><span class="badge ${pBadge[t.prioritaet]}">${pLabel[t.prioritaet]}</span><span style="flex:1;font-size:13px;">${t.betreff}</span><span class="badge ${sBadge[t.status]}">${sLabel[t.status]}</span></div>`).join(''):'<div class="empty-state"><div class="empty-icon">✅</div><p>Keine kritischen Tickets</p></div>';
+  const dw=document.getElementById('dash-wartungen'),up=[...state.wartungen].filter(w=>w.status!=='abgeschlossen').sort((a,b)=>new Date(a.datum)-new Date(b.datum)).slice(0,5);
+  dw.innerHTML=up.length?up.map(w=>`<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);"><span style="font-family:'DM Mono',monospace;font-size:12px;color:var(--text3);min-width:80px;">${fDate(w.datum)}</span><span style="flex:1;font-size:13px;">${w.bezeichnung}</span><span class="badge ${sBadge[w.status]}">${sLabel[w.status]}</span></div>`).join(''):'<div class="empty-state"><div class="empty-icon">📅</div><p>Keine anstehenden Wartungen</p></div>';
+  const dg=document.getElementById('dash-geraete');
+  dg.innerHTML=state.geraete.length?`<div style="display:flex;flex-direction:column;gap:8px;">${state.geraete.slice(0,6).map(g=>`<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--border);"><span>${kIcons[g.kategorie]||'🔧'}</span><span style="flex:1;font-size:13px;font-weight:500;">${g.name}</span>${g.naechsteWartung?`<span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text3);">${fDate(g.naechsteWartung)}</span>`:''}<span class="status-dot dot-${g.status==='aktiv'?'green':g.status==='stoerung'?'red':'yellow'}"></span></div>`).join('')}</div>`:'<div class="empty-state"><div class="empty-icon">⚙️</div><p>Noch keine Geräte erfasst</p></div>';
+  const da=document.getElementById('dash-aktivitaet');
+  da.innerHTML=state.log.length?state.log.slice(0,8).map(l=>`<div class="activity-item"><div class="activity-dot" style="background:${l.color}"></div><div><div class="activity-text">${l.text}</div><div class="activity-time">${fTs(l.createdAt)}${l.user?' · '+l.user:''}</div></div></div>`).join(''):'<div class="empty-state"><div class="empty-icon">📋</div><p>Noch keine Aktivitäten</p></div>';
+}
+
+function renderTickets() {
+  let data=state.tickets;
+  if(state.ticketFilter!=='alle') data=data.filter(t=>t.status===state.ticketFilter);
+  if(state.ticketSearch) data=data.filter(t=>t.betreff.toLowerCase().includes(state.ticketSearch.toLowerCase()));
+  const tb=document.getElementById('tickets-table');
+  tb.innerHTML=data.length?data.map(t=>`<tr><td><span style="font-weight:500;">${t.betreff}</span>${t.autoGenerated?` <span class="badge badge-violet">🤖 Automatisch aus Wartung</span>`:''}${t.beschreibung?`<div style="font-size:12px;color:var(--text3);">${t.beschreibung.substring(0,60)}${t.beschreibung.length>60?'...':''}</div>`:''}</td><td>${t.geraetName||'–'}</td><td>${t.bereichName?`<span class="badge badge-blue">${t.bereichName}</span>`:'–'}</td><td><span class="badge ${pBadge[t.prioritaet]}">${pLabel[t.prioritaet]}</span></td><td><select onchange="updateTicketStatus('${t.id}',this.value)" style="border:1px solid var(--border2);border-radius:5px;padding:3px 8px;font-size:12px;background:var(--surface);"><option value="offen" ${t.status==='offen'?'selected':''}>Offen</option><option value="in_bearbeitung" ${t.status==='in_bearbeitung'?'selected':''}>In Bearbeitung</option><option value="erledigt" ${t.status==='erledigt'?'selected':''}>Erledigt</option></select></td><td style="font-size:12px;color:var(--text3);">${t.ersteller||t.gemeldet||'–'}</td><td>${t.partnerName||'–'}</td><td style="white-space:nowrap;"><button class="btn btn-sm btn-edit" onclick="editItem('tickets','${t.id}')">✏️</button> <button class="btn btn-secondary btn-sm" onclick="deleteItem('tickets','${t.id}')">🗑️</button></td></tr>`).join(''):`<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">🎫</div><p>Keine Tickets gefunden</p></div></td></tr>`;
+}
+
+function renderWartungen() {
+  let data=[...state.wartungen];
+  if(state.wartungFilter==='faellig') data=data.filter(w=>w.status==='faellig'||(new Date(w.datum)<new Date()&&w.status!=='abgeschlossen'&&w.status!=='storniert'));
+  else if(state.wartungFilter!=='alle') data=data.filter(w=>w.status===state.wartungFilter);
+  data.sort((a,b)=>new Date(a.datum)-new Date(b.datum));
+  const tb=document.getElementById('wartung-table');
+  tb.innerHTML=data.length?data.map(w=>`<tr><td><span style="font-weight:500;">${w.bezeichnung}</span>${w.seriesId?`<div style="font-size:10.5px;color:var(--text3);">🔁 ${w.intervall}</div>`:''}</td><td>${w.geraetName||'–'}</td><td><span class="badge badge-gray">${w.typ}</span></td><td style="font-family:'DM Mono',monospace;font-size:12px;${new Date(w.datum)<new Date()&&w.status!=='abgeschlossen'&&w.status!=='storniert'?'color:var(--red);font-weight:600;':''}">${fDate(w.datum)}</td><td>${w.partnerName||'–'}</td><td><select onchange="updateWartungStatus('${w.id}',this.value)" style="border:1px solid var(--border2);border-radius:5px;padding:3px 8px;font-size:12px;background:var(--surface);"><option value="geplant" ${w.status==='geplant'?'selected':''}>Geplant</option><option value="faellig" ${w.status==='faellig'?'selected':''}>Fällig</option><option value="abgeschlossen" ${w.status==='abgeschlossen'?'selected':''}>Abgeschlossen</option><option value="storniert" ${w.status==='storniert'?'selected':''}>Storniert</option></select></td><td style="white-space:nowrap;"><button class="btn btn-sm btn-edit" onclick="editItem('wartungen','${w.id}')">✏️</button> <button class="btn btn-secondary btn-sm" onclick="deleteItem('wartungen','${w.id}')">🗑️</button></td></tr>`).join(''):`<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">🔧</div><p>Keine Wartungsaufträge</p></div></td></tr>`;
+}
+
+function renderGeraete() {
+  let data=state.geraete;
+  if(state.geraeteFilter==='aktiv') data=data.filter(g=>g.status==='aktiv');
+  else if(state.geraeteFilter==='stoerung') data=data.filter(g=>g.status==='stoerung');
+  // Alphabetisch sortieren
+  data = [...data].sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''), 'de', {sensitivity:'base', numeric:true}));
+
+  const grid=document.getElementById('geraete-grid');
+  grid.innerHTML=data.length?data.map(g=>`<div class="device-card"><div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:8px;"><div style="font-size:28px;">${kIcons[g.kategorie]||'🔧'}</div><select onchange="changeGeraetStatus('${g.id}',this.value)" style="border:1px solid var(--border2);border-radius:5px;padding:2px 6px;font-size:11.5px;background:var(--surface);"><option value="aktiv" ${g.status==='aktiv'?'selected':''}>✅ Aktiv</option><option value="stoerung" ${g.status==='stoerung'?'selected':''}>🔴 Störung</option><option value="wartung" ${g.status==='wartung'?'selected':''}>🟡 Wartung</option><option value="ausser_betrieb" ${g.status==='ausser_betrieb'?'selected':''}>⚫ Außer Betrieb</option></select></div><div style="font-weight:600;font-size:14px;margin-bottom:4px;">${g.name}</div><div style="font-size:12px;color:var(--text3);margin-bottom:6px;">${(g.bereichName||g.standort||'–') + (g.raum?' / '+g.raum:'')}</div>${g.hersteller?`<div style="font-size:12px;color:var(--text3);margin-bottom:4px;">🏭 ${g.hersteller}${g.seriennummer?' · SN: '+g.seriennummer:''}</div>`:''}${g.naechsteWartung?`<div style="font-size:12px;color:${new Date(g.naechsteWartung)<new Date()?'var(--red)':'var(--text3)'};margin-bottom:4px;">🔧 Wartung: ${fDate(g.naechsteWartung)}</div>`:''}${g.partnerName?`<div style="font-size:12px;color:var(--text3);margin-bottom:4px;">🤝 ${g.partnerName}</div>`:''}${g.notizen?`<div style="font-size:11.5px;color:var(--text3);border-top:1px solid var(--border);padding-top:8px;margin-top:6px;">${g.notizen}</div>`:''}<div style="display:flex;justify-content:flex-end;gap:6px;margin-top:10px;"><button class="btn btn-sm btn-edit" onclick="editItem('geraete','${g.id}')">✏️ Bearbeiten</button><button class="btn btn-secondary btn-sm" onclick="deleteItem('geraete','${g.id}')">🗑️</button></div></div>`).join(''):`<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">⚙️</div><p>Noch keine Geräte erfasst</p></div>`;
+}
+
+function formatUrl(u){
+  if(!u) return '';
+  const s = (''+u).trim();
+  if(!s) return '';
+  if(/^https?:\/\//i.test(s)) return s;
+  return 'https://' + s.replace(/^\/\/+/, '');
+}
+
+// ---------- Helper: HTML Escape ----------
+function esc(str) {
+  if (str === null || str === undefined) return "";
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function normalizeUrl(u){
+  return formatUrl(u);
+}
+
+
+
+function telHref(raw){
+  if(!raw) return '';
+  const s = String(raw).trim();
+  if(!s) return '';
+  // Keep only digits and leading +
+  let cleaned = s.replace(/[^\d+]/g,'');
+  // Avoid multiple + signs
+  cleaned = cleaned.replace(/\+(?=.)/g, (match, offset)=> offset===0?'+':'');
+  return cleaned || s;
+}
+
+function _tsToDate(x){
+  if(!x) return null;
+  // Firestore Timestamp -> Date
+  if(typeof x === 'object' && typeof x.toDate === 'function') return x.toDate();
+  const d = new Date(x);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+function renderTicketLogList(tickets){
+  const data = [...tickets].sort((a,b)=>{
+    const ad=_tsToDate(a.createdAt), bd=_tsToDate(b.createdAt);
+    const at=ad?ad.getTime():0, bt=bd?bd.getTime():0;
+    return bt-at;
+  });
+
+  if(!data.length){
+    return `<div style="color:var(--text3);">Keine Tickets zugeordnet.</div>`;
+  }
+
+  return `<div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Datum</th>
+          <th>Betreff</th>
+          <th>Status</th>
+          <th>Prio</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        ${data.map(t=>{
+          const dt = t.createdAt ? fTs(t.createdAt) : '–';
+          const st = `<span class="badge ${sBadge[t.status]||'badge-gray'}">${sLabel[t.status]||t.status||'–'}</span>`;
+          const pr = `<span class="badge ${pBadge[t.prioritaet]||'badge-gray'}">${pLabel[t.prioritaet]||t.prioritaet||'–'}</span>`;
+          return `<tr>
+            <td style="font-family:'DM Mono',monospace;font-size:12px;">${dt}</td>
+            <td><span style="font-weight:500;">${esc(t.betreff||'')}</span></td>
+            <td>${st}</td>
+            <td>${pr}</td>
+            <td style="white-space:nowrap;">
+              <button class="btn btn-sm btn-edit" onclick="editItem('tickets','${t.id}')">✏️</button>
+            </td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>
+  </div>`;
+}
+
+function showGeraetTicketLog(geraetId){
+  const box = document.getElementById('geraet-ticketlog');
+  const body = document.getElementById('geraet-ticketlog-body');
+  if(!box || !body) return;
+  const tickets = (state.tickets||[]).filter(t=>t.geraetId===geraetId);
+  body.innerHTML = renderTicketLogList(tickets);
+  box.style.display = 'block';
+}
+
+function showBereichTicketLog(bereichId){
+  const box = document.getElementById('bereich-ticketlog');
+  const body = document.getElementById('bereich-ticketlog-body');
+  if(!box || !body) return;
+  const tickets = (state.tickets||[]).filter(t=>t.bereichId===bereichId);
+  body.innerHTML = renderTicketLogList(tickets);
+  box.style.display = 'block';
+}
+
+function hideEntityTicketLogs(){
+  const gb=document.getElementById('geraet-ticketlog'); if(gb) gb.style.display='none';
+  const bb=document.getElementById('bereich-ticketlog'); if(bb) bb.style.display='none';
+  const gbb=document.getElementById('geraet-ticketlog-body'); if(gbb) gbb.innerHTML='';
+  const bbb=document.getElementById('bereich-ticketlog-body'); if(bbb) bbb.innerHTML='';
+}
+
+function bereichIcon(b){
+  const x=(b||'').toLowerCase();
+  if(x.includes('aufzug')) return '🛗';
+  if(x.includes('heizung')||x.includes('sanit')) return '🔥';
+  if(x.includes('elektro')) return '⚡';
+  if(x.includes('klima')) return '❄️';
+  if(x.includes('brand')) return '🧯';
+  if(x.includes('sicher')) return '🛡️';
+  if(x.includes('it')||x.includes('netz')) return '🖧';
+  if(x.includes('gebäude')||x.includes('gebaeude')||x.includes('service')) return '🧹';
+  return '🏭';
+}
+
+function renderPartner() {
+  const grid = document.getElementById('partner-grid');
+  if(!grid) return;
+
+  let data = (state.partnerFilter && state.partnerFilter!=='alle')
+    ? state.partner.filter(p => (p.bereich||'Sonstiges') === state.partnerFilter)
+    : state.partner;
+
+// Alphabetisch sortieren
+data = [...data].sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''), 'de', {sensitivity:'base', numeric:true}));
+
+  if(!data.length){
+    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">🏭</div><p>Keine Partnerfirmen in dieser Kategorie.</p></div>`;
+    return;
+  }
+
+  grid.innerHTML = data.map(p=>{
+    const bereich = p.bereich || 'Sonstiges';
+    const tel = p.telefon ? `<a class="link-pill" href="tel:${telHref(p.telefon)}" title="Anrufen">📞 ${esc(p.telefon)}</a>` : '';
+    const mob = p.mobile ? `<a class="link-pill" href="tel:${telHref(p.mobile)}" title="Mobile anrufen">📱 ${esc(p.mobile)}</a>` : '';
+    const mail = p.email ? `<a class="link-pill" href="mailto:${esc(p.email)}" title="E-Mail senden">✉️ ${esc(p.email)}</a>` : '';
+    const web = p.website ? `<a class="link-pill" href="${normalizeUrl(p.website)}" target="_blank" rel="noopener" title="Website öffnen">🌐 ${esc(p.website)}</a>` : '';
+    const kontakt = p.kontakt ? `<div class="partner-row"><span class="partner-row-label">Kontakt</span><span class="partner-row-value">${esc(p.kontakt)}</span></div>` : '';
+
+    return `<div class="partner-card">
+      <div class="partner-top">
+        <div class="partner-icon">${bereichIcon(bereich)}</div>
+        <div style="flex:1;min-width:0;">
+          <div class="partner-name">${esc(p.name||'')}</div>
+          <div class="partner-sub">
+            <span class="badge badge-gray">${esc(bereich)}</span>
+          </div>
+        </div>
+      </div>
+
+      ${kontakt}
+
+      <div class="partner-links">
+        ${tel}${mob}${mail}${web}
+      </div>
+
+      <div class="partner-actions">
+        <button class="btn btn-sm btn-edit" onclick="editItem('partner','${p.id}')">✏️ Öffnen</button>
+        <button class="btn btn-secondary btn-sm" onclick="deleteItem('partner','${p.id}')">🗑️ Löschen</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+
+function renderNotfall() {
+  const grid = document.getElementById('notfall-grid');
+  if(!grid) return;
+
+  const data = [...state.notfaelle].sort((a,b)=>{
+    const ap = !!a.pinned, bp = !!b.pinned;
+    if(ap!==bp) return ap ? -1 : 1; // pinned zuerst
+    return String(a.name||'').localeCompare(String(b.name||''), 'de', { sensitivity:'base', numeric:true });
+  });
+
+  if(!data.length){
+    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">🚨</div><p>Noch keine Notfallkontakte</p></div>`;
+    return;
+  }
+
+  grid.innerHTML = data.map(n=>{
+    const tel = n.telefon ? `<a href="tel:${telHref(n.telefon)}" style="color:var(--red);text-decoration:none;font-weight:700;">${esc(n.telefon)}</a>` : '–';
+    const mob = n.mobile ? `<a href="tel:${telHref(n.mobile)}" style="color:var(--red);text-decoration:none;">${esc(n.mobile)}</a>` : '';
+    const pinLbl = n.pinned ? '⭐ Angeheftet' : '☆ Anheften';
+
+    return `<div class="card" style="border-left:3px solid var(--red);">
+      <div class="card-body">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;">
+          <div style="font-weight:700;font-size:15px;line-height:1.2;">${esc(n.name||'')}</div>
+          <button class="btn btn-secondary btn-sm" onclick="toggleNotfallPin('${n.id}', ${n.pinned? 'true':'false'})" title="Kontakt anheften/loslösen">${pinLbl}</button>
+        </div>
+
+        <div style="margin-top:10px;margin-bottom:12px;">
+          <span class="badge badge-red">${esc(n.kategorie||'')}</span>
+          <span class="badge badge-gray">${esc(n.erreichbar||'')}</span>
+        </div>
+
+        <div style="font-size:18px;font-weight:800;margin-bottom:8px;">📞 ${tel}</div>
+        ${mob?`<div style="font-size:13px;margin-bottom:8px;">📱 ${mob}</div>`:''}
+        ${n.notizen?`<div style="font-size:12px;color:var(--text3);">${esc(n.notizen)}</div>`:''}
+
+        <div style="display:flex;justify-content:flex-end;gap:6px;margin-top:10px;">
+          <button class="btn btn-sm btn-edit" onclick="editItem('notfaelle','${n.id}')">✏️ Bearbeiten</button>
+          <button class="btn btn-secondary btn-sm" onclick="deleteItem('notfaelle','${n.id}')">🗑️</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderDokumente() {
+  const tb=document.getElementById('dokumente-table');
+  tb.innerHTML=state.dokumente.length?state.dokumente.map(d=>`<tr><td><span style="font-weight:500;">📄 ${d.name}</span></td><td><span class="badge badge-gray">${d.typ}</span></td><td>${d.geraetName||'–'}</td><td style="font-family:'DM Mono',monospace;font-size:12px;">${d.datum?fDate(d.datum):'–'}</td><td style="color:var(--text3);font-size:12.5px;">${d.notiz||'–'}</td><td style="white-space:nowrap;"><button class="btn btn-sm btn-edit" onclick="editItem('dokumente','${d.id}')">✏️</button> <button class="btn btn-secondary btn-sm" onclick="deleteItem('dokumente','${d.id}')">🗑️</button></td></tr>`).join(''):`<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">📄</div><p>Noch keine Dokumente</p></div></td></tr>`;
+}
+
+function renderAktivitaet() {
+  const el=document.getElementById('aktivitaet-full');
+  document.getElementById('log-count').textContent=state.log.length+' Einträge';
+  el.innerHTML=state.log.length?state.log.map(l=>`<div class="activity-item"><div class="activity-dot" style="background:${l.color}"></div><div style="flex:1;"><div class="activity-text">${l.text}</div><div class="activity-time">${fTs(l.createdAt)}${l.user?' · '+l.user:''}</div></div></div>`).join(''):'<div class="empty-state"><div class="empty-icon">📋</div><p>Noch keine Aktivitäten</p></div>';
+}
+
+function updateBadges() {
+  const n=state.tickets.filter(t=>t.status!=='erledigt').length;
+  const b=document.getElementById('ticket-count-badge'); b.textContent=n; b.style.display=n>0?'':'none';
+  const mb=document.getElementById('mobile-ticket-badge'); if(mb){mb.textContent=n;mb.style.display=n>0?'':'none';}
+}
+
+// ---- MOBILE CARD RENDERS ----
+function renderTicketsMobile() {
+  const el = document.getElementById('tickets-mobile'); if(!el) return;
+  let data = state.tickets;
+  if(state.ticketFilter!=='alle') data=data.filter(t=>t.status===state.ticketFilter);
+  if(state.ticketSearch) data=data.filter(t=>t.betreff.toLowerCase().includes(state.ticketSearch.toLowerCase()));
+  if(!data.length){el.innerHTML=`<div class="empty-state"><div class="empty-icon">🎫</div><p>Keine Tickets gefunden</p></div>`;return;}
+  el.innerHTML=data.map(t=>`<div class="mobile-card">
+    <div class="mobile-card-header">
+      <div class="mobile-card-title">${t.betreff}</div>
+      <span class="badge ${pBadge[t.prioritaet]}">${pLabel[t.prioritaet]}</span>
+    </div>
+    <div class="mobile-card-meta">
+      <span class="badge ${sBadge[t.status]}">${sLabel[t.status]}</span>
+      ${t.autoGenerated?`<span class="badge badge-violet">🤖 Automatisch aus Wartung</span>`:''}
+      ${t.geraetName?`<span class="badge badge-gray">⚙️ ${t.geraetName}</span>`:''}
+      ${t.partnerName?`<span class="badge badge-gray">🏭 ${t.partnerName}</span>`:''}
+    </div>
+    ${t.beschreibung?`<div style="font-size:12.5px;color:var(--text3);margin-bottom:6px;">${t.beschreibung.substring(0,80)}${t.beschreibung.length>80?'...':''}</div>`:''}
+    <div style="font-size:11.5px;color:var(--text3);">📅 ${fTs(t.createdAt)}${t.ersteller?' · '+t.ersteller:''}</div>
+    <div class="mobile-card-actions">
+      <select onchange="updateTicketStatus('${t.id}',this.value)" style="flex:1;border:1px solid var(--border2);border-radius:7px;padding:8px;font-size:13px;background:var(--surface);">
+        <option value="offen" ${t.status==='offen'?'selected':''}>Offen</option>
+        <option value="in_bearbeitung" ${t.status==='in_bearbeitung'?'selected':''}>In Bearbeitung</option>
+        <option value="erledigt" ${t.status==='erledigt'?'selected':''}>Erledigt</option>
+      </select>
+      <button class="btn btn-sm btn-edit" onclick="editItem('tickets','${t.id}')">✏️</button>
+      <button class="btn btn-secondary btn-sm" onclick="deleteItem('tickets','${t.id}')">🗑️</button>
+    </div>
+  </div>`).join('');
+}
+
+function renderWartungenMobile() {
+  const el = document.getElementById('wartung-mobile'); if(!el) return;
+  let data=[...state.wartungen];
+  if(state.wartungFilter==='faellig') data=data.filter(w=>w.status==='faellig'||(new Date(w.datum)<new Date()&&w.status!=='abgeschlossen'&&w.status!=='storniert'));
+  else if(state.wartungFilter!=='alle') data=data.filter(w=>w.status===state.wartungFilter);
+  data.sort((a,b)=>new Date(a.datum)-new Date(b.datum));
+  if(!data.length){el.innerHTML=`<div class="empty-state"><div class="empty-icon">🔧</div><p>Keine Wartungsaufträge</p></div>`;return;}
+  el.innerHTML=data.map(w=>`<div class="mobile-card">
+    <div class="mobile-card-header">
+      <div class="mobile-card-title">${w.bezeichnung}${w.seriesId?` <span style="font-size:11px;color:var(--text3);">🔁</span>`:''}</div>
+      <span class="badge ${sBadge[w.status]||'badge-gray'}">${sLabel[w.status]||w.status}</span>
+    </div>
+    <div class="mobile-card-meta">
+      <span class="badge badge-gray">${w.typ}</span>
+      ${w.geraetName?`<span class="badge badge-gray">⚙️ ${w.geraetName}</span>`:''}
+    </div>
+    <div style="font-size:13px;margin-bottom:4px;${new Date(w.datum)<new Date()&&w.status!=='abgeschlossen'&&w.status!=='storniert'?'color:var(--red);font-weight:600;':'color:var(--text2);'}">📅 Fällig: ${fDate(w.datum)}</div>
+    ${w.partnerName?`<div style="font-size:12.5px;color:var(--text3);">🏭 ${w.partnerName}</div>`:''}
+    <div class="mobile-card-actions">
+      <select onchange="updateWartungStatus('${w.id}',this.value)" style="flex:1;border:1px solid var(--border2);border-radius:7px;padding:8px;font-size:13px;background:var(--surface);">
+        <option value="geplant" ${w.status==='geplant'?'selected':''}>Geplant</option>
+        <option value="faellig" ${w.status==='faellig'?'selected':''}>Fällig</option>
+        <option value="abgeschlossen" ${w.status==='abgeschlossen'?'selected':''}>Abgeschlossen</option>
+        <option value="storniert" ${w.status==='storniert'?'selected':''}>Storniert</option>
+      </select>
+      <button class="btn btn-sm btn-edit" onclick="editItem('wartungen','${w.id}')">✏️</button>
+      <button class="btn btn-secondary btn-sm" onclick="deleteItem('wartungen','${w.id}')">🗑️</button>
+    </div>
+  </div>`).join('');
+}
+
+function renderDokumenteMobile() {
+  const el = document.getElementById('dokumente-mobile'); if(!el) return;
+  if(!state.dokumente.length){el.innerHTML=`<div class="empty-state"><div class="empty-icon">📄</div><p>Noch keine Dokumente</p></div>`;return;}
+  el.innerHTML=state.dokumente.map(d=>`<div class="mobile-card">
+    <div class="mobile-card-header">
+      <div class="mobile-card-title">📄 ${d.name}</div>
+      <span class="badge badge-gray">${d.typ}</span>
+    </div>
+    ${d.geraetName?`<div style="font-size:12.5px;color:var(--text3);margin-bottom:4px;">⚙️ ${d.geraetName}</div>`:''}
+    ${d.datum?`<div style="font-size:12.5px;color:var(--text3);margin-bottom:4px;">📅 ${fDate(d.datum)}</div>`:''}
+    ${d.notiz?`<div style="font-size:12.5px;color:var(--text3);">${d.notiz}</div>`:''}
+    <div class="mobile-card-actions">
+      <button class="btn btn-sm btn-edit" style="flex:1;justify-content:center;" onclick="editItem('dokumente','${d.id}')">✏️ Bearbeiten</button>
+      <button class="btn btn-secondary btn-sm" onclick="deleteItem('dokumente','${d.id}')">🗑️</button>
+    </div>
+  </div>`).join('');
+}
+
+function renderBereiche() {
+  let data = state.bereiche;
+  if(state.bereicheFilter && state.bereicheFilter!=='alle') data=data.filter(b=>b.kategorie===state.bereicheFilter);
+  // Alphabetisch sortieren (Zimmer am Schluss, nach Nummer aufsteigend)
+  const rooms = [];
+  const other = [];
+  data.forEach(b=>{
+    const isRoom = (b.kategorie==='zimmer') || !!b.zimmernummer || /^\s*zimmer\s*\d+/i.test(b.name||'') || /^\s*\d+\s*$/.test(b.name||'');
+    (isRoom ? rooms : other).push(b);
+  });
+  other.sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''), 'de', {sensitivity:'base', numeric:true}));
+  rooms.sort((a,b)=>{
+    const an = (a.zimmernummer && /^\d+$/.test(String(a.zimmernummer).trim())) ? parseInt(String(a.zimmernummer).trim(),10) : (a.name||'').match(/(\d+)/)?.[1];
+    const bn = (b.zimmernummer && /^\d+$/.test(String(b.zimmernummer).trim())) ? parseInt(String(b.zimmernummer).trim(),10) : (b.name||'').match(/(\d+)/)?.[1];
+    const ai = an!=null ? parseInt(an,10) : null;
+    const bi = bn!=null ? parseInt(bn,10) : null;
+    if(ai!=null && bi!=null) return ai-bi;
+    if(ai!=null) return -1;
+    if(bi!=null) return 1;
+    return String(a.name||'').localeCompare(String(b.name||''), 'de', {sensitivity:'base', numeric:true});
+  });
+  data = other.concat(rooms);
+  const grid=document.getElementById('bereiche-grid');
+  if(!grid) return;
+  grid.innerHTML=data.length?data.map(b=>`<div class="card">
+    <div class="card-body">
+      <div style="font-size:28px;margin-bottom:8px;">${bIcons[b.kategorie]||'🏨'}</div>
+      <div style="font-weight:600;font-size:15px;margin-bottom:4px;">${b.name}</div>
+      <div style="margin-bottom:10px;"><span class="badge badge-blue">${bLabel[b.kategorie]||b.kategorie}</span>${b.zimmernummer?` <span class="badge badge-gray">Nr. ${b.zimmernummer}</span>`:''}</div>
+      ${b.etage?`<div style="font-size:12.5px;color:var(--text3);margin-bottom:3px;">📍 ${b.etage}</div>`:''}
+      ${b.kapazitaet?`<div style="font-size:12.5px;color:var(--text3);margin-bottom:3px;">👥 ${b.kapazitaet}</div>`:''}
+      ${b.notizen?`<div style="font-size:12px;color:var(--text3);border-top:1px solid var(--border);padding-top:8px;margin-top:6px;">${b.notizen}</div>`:''}
+      <div style="display:flex;justify-content:flex-end;gap:6px;margin-top:10px;">
+        <button class="btn btn-sm btn-edit" onclick="editItem('bereiche','${b.id}')">✏️ Bearbeiten</button>
+        <button class="btn btn-secondary btn-sm" onclick="deleteItem('bereiche','${b.id}')">🗑️</button>
+      </div>
+    </div>
+  </div>`).join(''):`<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">🏨</div><p>Noch keine Bereiche erfasst</p></div>`;
+}
+
+function filterTickets(f,btn){
+  state.ticketFilter=f;
+  if(btn){
+    btn.closest('.tabs').querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+    btn.classList.add('active');
+  }
+  renderTickets();
+  renderTicketsMobile();
+}
+
+function filterBereiche(f,btn){state.bereicheFilter=f;btn.closest('.tabs').querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));btn.classList.add('active');renderBereiche();}
+function filterWartung(f,btn){state.wartungFilter=f;btn.closest('.tabs').querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));btn.classList.add('active');renderWartungen();renderWartungenMobile();}
+function filterGeraete(f,btn){state.geraeteFilter=f;btn.closest('.tabs').querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));btn.classList.add('active');renderGeraete();}
+function filterPartner(f,btn){state.partnerFilter=f;btn.closest('.tabs').querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));btn.classList.add('active');renderPartner();}
+
+function renderCalendar() {
+  const year=state.calYear,month=state.calMonth;
+  // Populate year dropdown (current year ±5)
+  const ySel=document.getElementById('cal-year-select');
+  if(ySel){
+    const curY=new Date().getFullYear();
+    if(!ySel.options.length||parseInt(ySel.options[0].value)!==curY-5){
+      ySel.innerHTML='';
+      for(let y=curY-5;y<=curY+5;y++) ySel.innerHTML+=`<option value="${y}">${y}</option>`;
+    }
+    ySel.value=year;
+  }
+  const mSel=document.getElementById('cal-month-select');
+  if(mSel) mSel.value=month;
+  document.getElementById('cal-header').innerHTML=['Mo','Di','Mi','Do','Fr','Sa','So'].map(d=>`<div class="cal-day-label">${d}</div>`).join('');
+  const first=new Date(year,month,1),last=new Date(year,month+1,0),today=new Date();
+  let sdow=first.getDay();if(sdow===0)sdow=7;
+  const events=state.wartungen.filter(w=>{const d=new Date(w.datum);return d.getMonth()===month&&d.getFullYear()===year;});
+  let cells=[];
+  for(let i=1;i<sdow;i++) cells.push({date:new Date(year,month,1-(sdow-i)),curr:false});
+  for(let i=1;i<=last.getDate();i++) cells.push({date:new Date(year,month,i),curr:true});
+  while(cells.length%7!==0) cells.push({date:new Date(year,month+1,cells.length-last.getDate()-sdow+2),curr:false});
+  document.getElementById('cal-body').innerHTML=cells.map(c=>{
+    const isToday=c.curr&&c.date.getDate()===today.getDate()&&c.date.getMonth()===today.getMonth()&&c.date.getFullYear()===today.getFullYear();
+    const de=events.filter(w=>new Date(w.datum).getDate()===c.date.getDate());
+    return `<div class="cal-day ${!c.curr?'other-month':''} ${isToday?'today':''}"><div class="cal-day-num" style="${isToday?'color:var(--accent);font-weight:700;':''}">${c.date.getDate()}</div>${de.map(e=>`<div class="cal-event ${e.status==='abgeschlossen'?'badge-green':e.status==='faellig'?'badge-orange':'badge-blue'}">${e.bezeichnung}</div>`).join('')}</div>`;
+  }).join('');
+  const mev=[...events].sort((a,b)=>new Date(a.datum)-new Date(b.datum));
+  document.getElementById('cal-events-list').innerHTML=mev.length?mev.map(w=>`<tr><td style="font-family:'DM Mono',monospace;font-size:12px;">${fDate(w.datum)}</td><td>${w.bezeichnung}</td><td>${w.geraetName||'–'}</td><td><span class="badge badge-gray">${w.typ}</span></td><td><span class="badge ${sBadge[w.status]}">${sLabel[w.status]}</span></td></tr>`).join(''):`<tr><td colspan="5"><div class="empty-state" style="padding:24px;"><p>Keine Wartungen in diesem Monat</p></div></td></tr>`;
+}
+
+function changeMonth(dir){state.calMonth+=dir;if(state.calMonth>11){state.calMonth=0;state.calYear++;}if(state.calMonth<0){state.calMonth=11;state.calYear--;}renderCalendar();}
+
+setInterval(()=>{document.getElementById('clock').textContent=new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit',second:'2-digit'});},1000);
+
+// ---- EXCEL IMPORT / EXPORT ----
+const TEMPLATES = {
+  partner: {
+    cols: ['Name','Bereich','Kontakt','Telefon','Mobile','Email','Website','Adresse','Vertrag','Notizen'],
+    example: ['Muster GmbH','Heizung & Sanitär','Hans Muster','044 123 45 67','079 123 45 67','info@muster.ch','https://muster.ch','Musterstrasse 1, Zürich','V-2024-001','Notiz hier']
+  },
+  notfall: {
+    cols: ['Name','Kategorie','Telefon','Mobile','Erreichbar','Notizen'],
+    example: ['Feuerwehr Oerlikon','Feuerwehr / Rettung','118','','24/7','']
+  },
+  geraete: {
+    cols: ['Name','Kategorie','Hersteller','Seriennummer','Standort','Baujahr','NaechsteWartung','Notizen'],
+    example: ['Aufzug OG1','aufzug','Schindler','SN-12345','1. OG','2015-06-01','2025-06-01','Jährliche Inspektion']
+  },
+  wartung: {
+    cols: ['Bezeichnung','Typ','Datum','Intervall','GerätName','PartnerName','Notizen'],
+    example: ['Aufzug Inspektion','inspektion','2025-03-01','jaehrlich','Aufzug OG1','Schindler AG','']
+  }
+};
+
+
+// -----------------------------
+// Export (Excel)
+// -----------------------------
+const EXPORT_MAP = {
+  tickets:   { col: 'tickets',   name: 'Tickets_Stoerungen' },
+  wartungen: { col: 'wartungen', name: 'Wartungsauftraege' },
+  geraete:   { col: 'geraete',   name: 'Geraete_Anlagen' },
+  partner:   { col: 'partner',   name: 'Partnerfirmen' },
+  notfaelle: { col: 'notfaelle', name: 'Notfallkontakte' }
+};
+
+function _toIsoMaybe(v){
+  // Firestore Timestamp support (v9+): has toDate()
+  try {
+    if(v && typeof v.toDate === 'function') return v.toDate().toISOString();
+  } catch(e){}
+  if(v instanceof Date) return v.toISOString();
+  return v;
+}
+
+function _normalizeRow(id, data){
+  const out = { id };
+  for(const [k,val] of Object.entries(data||{})){
+    if(Array.isArray(val)) out[k] = JSON.stringify(val);
+    else if(val && typeof val === 'object' && typeof val.toDate !== 'function') {
+      // nested object -> keep but avoid Excel "object object"
+      out[k] = JSON.stringify(val);
+    } else out[k] = _toIsoMaybe(val);
+  }
+  return out;
+}
+
+async function _fetchCollectionRows(colName){
+  const snap = await getDocs(collection(db, colName));
+  const rows = [];
+  snap.forEach(docu => rows.push(_normalizeRow(docu.id, docu.data())));
+  return rows;
+}
+
+function _downloadWorkbook(wb, filename){
+  XLSX.writeFile(wb, filename, { compression: true });
+}
+
+window.exportFacilityOS = async function(mode){
+  try{
+    const target = document.getElementById('export-result');
+    if(target) target.innerHTML = '<span class="badge">Export läuft…</span>';
+
+    const wb = XLSX.utils.book_new();
+    const now = new Date();
+    const stamp = now.toISOString().slice(0,19).replace(/[:T]/g,'-');
+
+    const addSheet = (sheetName, rows) => {
+      const ws = XLSX.utils.json_to_sheet(rows.length ? rows : [{}]);
+      // auto width (simple)
+      const cols = Object.keys(rows[0]||{});
+      ws['!cols'] = cols.map(c=>({ wch: Math.min(45, Math.max(10, String(c).length+2)) }));
+      XLSX.utils.book_append_sheet(wb, ws, sheetName.slice(0,31));
+    };
+
+    if(mode === 'all'){
+      for(const key of Object.keys(EXPORT_MAP)){
+        const rows = await _fetchCollectionRows(EXPORT_MAP[key].col);
+        addSheet(EXPORT_MAP[key].name, rows);
+      }
+      // Info sheet
+      const info = [
+        { Key:'Exportiert am', Value: now.toISOString() },
+        { Key:'Quelle', Value:'FacilityOS' },
+        { Key:'Hinweis', Value:'Dokument-ID ist als Spalte id enthalten. Timestamps als ISO.' }
+      ];
+      addSheet('Info', info);
+      _downloadWorkbook(wb, `FacilityOS_Export_${stamp}.xlsx`);
+    } else {
+      const cfg = EXPORT_MAP[mode];
+      if(!cfg) throw new Error('Unbekannter Export-Typ: '+mode);
+      const rows = await _fetchCollectionRows(cfg.col);
+      addSheet(cfg.name, rows);
+      addSheet('Info', [{ Key:'Exportiert am', Value: now.toISOString() }, { Key:'Typ', Value: cfg.name }]);
+      _downloadWorkbook(wb, `FacilityOS_${cfg.name}_${stamp}.xlsx`);
+    }
+
+    if(target) target.innerHTML = '<span class="badge" style="background:rgba(34,197,94,.12);border-color:rgba(34,197,94,.35);color:rgba(34,197,94,1);">✅ Export abgeschlossen</span>';
+  }catch(err){
+    console.error('exportFacilityOS failed', err);
+    const msg = (err && err.message) ? err.message : String(err);
+    const target = document.getElementById('export-result');
+    if(target) target.innerHTML = `<span class="badge" style="background:rgba(239,68,68,.12);border-color:rgba(239,68,68,.35);color:rgba(239,68,68,1);">❌ Export fehlgeschlagen: ${escapeHtml(msg)}</span>`;
+    else alert('Export fehlgeschlagen: '+msg);
+  }
+};
+
+
+window.downloadTemplate = function(type) {
+  const t = TEMPLATES[type];
+  if(!t) return;
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet([t.cols, t.example]);
+  // Style header row width
+  ws['!cols'] = t.cols.map(()=>({wch:20}));
+  XLSX.utils.book_append_sheet(wb, ws, 'Vorlage');
+  const names = {partner:'Partnerfirmen',notfall:'Notfallkontakte',geraete:'Geraete',wartung:'Wartungsauftraege'};
+  XLSX.writeFile(wb, `FacilityOS_Vorlage_${names[type]}.xlsx`);
+};
+
+window.handleImport = async function(input, type) {
+  const file = input.files[0]; if(!file) return;
+  const resultEl = document.getElementById(`import-result-${type}`);
+  resultEl.innerHTML = '<div style="color:var(--text3);font-size:13px;">⏳ Wird importiert…</div>';
+  try {
+    const data = await file.arrayBuffer();
+    const wb = XLSX.read(data);
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(ws);
+    if(!rows.length) { resultEl.innerHTML='<div style="color:var(--red);font-size:13px;">❌ Keine Daten gefunden</div>'; return; }
+
+    let count = 0, errors = 0;
+    for(const row of rows) {
+      try {
+        let docData = { createdAt: window._serverTimestamp() };
+        if(type==='partner') {
+          if(!row['Name']) continue;
+          docData = {...docData, name:row['Name']||'', bereich:row['Bereich']||'Sonstiges', kontakt:row['Kontakt']||'', telefon:String(row['Telefon']||''), mobile:String(row['Mobile']||''), email:row['Email']||'', website:String(row['Website']||''), adresse:row['Adresse']||'', vertrag:row['Vertrag']||'', notizen:row['Notizen']||'' };
+        } else if(type==='notfall') {
+          if(!row['Name']||!row['Telefon']) continue;
+          docData = {...docData, name:row['Name']||'', kategorie:row['Kategorie']||'Sonstiges', telefon:String(row['Telefon']||''), mobile:String(row['Mobile']||''), erreichbar:row['Erreichbar']||'24/7', notizen:row['Notizen']||'' };
+        } else if(type==='geraete') {
+          if(!row['Name']) continue;
+          docData = {...docData, name:row['Name']||'', kategorie:row['Kategorie']||'sonstiges', hersteller:row['Hersteller']||'', seriennummer:String(row['Seriennummer']||''), standort:row['Standort']||'', baujahr:row['Baujahr']?String(row['Baujahr']):'', naechsteWartung:row['NaechsteWartung']?String(row['NaechsteWartung']):'', notizen:row['Notizen']||'', status:'aktiv' };
+        } else if(type==='wartung') {
+          if(!row['Bezeichnung']||!row['Datum']) continue;
+          const datum = String(row['Datum']);
+          docData = {...docData, bezeichnung:row['Bezeichnung']||'', typ:row['Typ']||'wartung', datum, intervall:row['Intervall']||'einmalig', geraetName:row['GerätName']||'', partnerName:row['PartnerName']||'', notizen:row['Notizen']||'', status: new Date(datum)<new Date()?'faellig':'geplant' };
+        }
+        const colMap = {partner:'partner',notfall:'notfaelle',geraete:'geraete',wartung:'wartungen'};
+        await window._addDoc(colMap[type], docData);
+        count++;
+      } catch(e) { errors++; }
+    }
+    await window._addLog(`Import ${type}: ${count} Einträge importiert${errors?', '+errors+' Fehler':''}`, '#7c3aed');
+    resultEl.innerHTML=`<div style="background:var(--green-light);color:var(--green);padding:10px 12px;border-radius:7px;font-size:13px;margin-top:4px;">✅ ${count} Einträge erfolgreich importiert${errors?`<br>⚠️ ${errors} Zeilen übersprungen (fehlende Pflichtfelder)`:''}</div>`;
+    input.value='';
+  } catch(e) {
+    resultEl.innerHTML=`<div style="background:var(--red-light);color:var(--red);padding:10px 12px;border-radius:7px;font-size:13px;">❌ Fehler: ${e.message}</div>`;
+  }
+};
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script></body>
+</html>
