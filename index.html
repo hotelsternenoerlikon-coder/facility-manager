@@ -1389,6 +1389,79 @@ window.deleteItem = async (col, id) => {
 };
 
 // ---- HELPERS ----
+
+// HTML-Escaping (XSS-Schutz) – wird in Render-Funktionen genutzt
+function esc(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+// Optional global verfügbar (für Debug/Console)
+window.esc = esc;
+
+// Mini Debug / Health – PRO
+window.__FM_DEBUG__ = window.__FM_DEBUG__ || {
+  startedAt: new Date().toISOString(),
+  errors: [],
+  warnings: [],
+  info: []
+};
+
+function fmWarn(msg, data) {
+  window.__FM_DEBUG__.warnings.push({ t: new Date().toISOString(), msg, data });
+  console.warn("[FacilityOS]", msg, data || "");
+}
+function fmInfo(msg, data) {
+  window.__FM_DEBUG__.info.push({ t: new Date().toISOString(), msg, data });
+  console.info("[FacilityOS]", msg, data || "");
+}
+
+// Global Error Capture (ohne App-Abbruch)
+window.addEventListener('error', (e) => {
+  try {
+    window.__FM_DEBUG__.errors.push({
+      t: new Date().toISOString(),
+      type: "error",
+      message: e.message,
+      filename: e.filename,
+      lineno: e.lineno,
+      colno: e.colno,
+      stack: e.error && e.error.stack ? String(e.error.stack) : null
+    });
+  } catch (_) {}
+});
+window.addEventListener('unhandledrejection', (e) => {
+  try {
+    window.__FM_DEBUG__.errors.push({
+      t: new Date().toISOString(),
+      type: "unhandledrejection",
+      message: e.reason ? String(e.reason) : "Unhandled promise rejection",
+      stack: e.reason && e.reason.stack ? String(e.reason.stack) : null
+    });
+  } catch (_) {}
+});
+
+// Sanity Checks (loggt nur, blockiert nicht)
+function facilityHealthCheck() {
+  try {
+    if (!document.getElementById('app')) fmWarn("Root #app nicht gefunden – UI kann leer bleiben.");
+    if (!window.firebase) fmInfo("Firebase wird als ES-Module importiert (window.firebase ist ok, wenn nicht genutzt).");
+    // wichtige Funktionen, die wir in Render-Pipelines erwarten
+    const requiredFns = ["renderAll", "renderPartner"];
+    requiredFns.forEach((fn) => {
+      if (typeof window[fn] !== "function") {
+        // In ES-Module sind Funktionen nicht zwingend auf window – deshalb nur Hinweis.
+        fmInfo(`${fn} ist nicht auf window gebunden (ok bei module-scope).`);
+      }
+    });
+  } catch (err) {
+    fmWarn("HealthCheck Fehler", err);
+  }
+}
 window.generateRecurringDates = function(startDate, intervall, extensionMode=false) {
   const dates = [];
   const start = new Date(startDate + 'T00:00:00');
