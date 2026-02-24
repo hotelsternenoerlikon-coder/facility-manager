@@ -777,6 +777,10 @@
       <div class="grid-2"><div class="form-group"><label class="form-label">Raum / Detail</label><input class="form-input" id="g-raum" placeholder="z.B. Zimmer 312, Technikraum, Keller"></div><div class="form-group"><label class="form-label">&nbsp;</label><input type="hidden" id="g-standort"></div></div>
       <div class="grid-2"><div class="form-group"><label class="form-label">Nächste Wartung</label><input class="form-input" type="date" id="g-naechste-wartung"></div><div class="form-group"><label class="form-label">Zuständige Partnerfirma</label><select class="form-select" id="g-partner"><option value="">– auswählen –</option></select></div></div>
       <div class="form-group"><label class="form-label">Notizen</label><textarea class="form-textarea" id="g-notizen"></textarea></div>
+      <div id="geraet-ticketlog" class="card" style="margin-top:16px; display:none;">
+        <div class="card-header"><div class="card-title">Tickets & Störungen zu diesem Gerät</div></div>
+        <div class="card-body" id="geraet-ticketlog-body"></div>
+      </div>
     </div>
     <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('modal-geraet')">Abbrechen</button><button class="btn btn-primary" id="btn-save-geraet">Gerät speichern</button></div>
   </div>
@@ -849,6 +853,10 @@
         <div class="form-group"><label class="form-label">Kapazität / Grösse</label><input class="form-input" id="b-kapazitaet" placeholder="z.B. 2 Pers., 80m²"></div>
       </div>
       <div class="form-group"><label class="form-label">Notizen</label><textarea class="form-textarea" id="b-notizen"></textarea></div>
+      <div id="bereich-ticketlog" class="card" style="margin-top:16px; display:none;">
+        <div class="card-header"><div class="card-title">Tickets & Störungen zu diesem Bereich</div></div>
+        <div class="card-body" id="bereich-ticketlog-body"></div>
+      </div>
     </div>
     <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('modal-bereich')">Abbrechen</button><button class="btn btn-primary" id="btn-save-bereich">Bereich speichern</button></div>
   </div>
@@ -1325,6 +1333,9 @@ document.getElementById('btn-save-notfall').onclick = async () => {
     erreichbar: document.getElementById('n-erreichbar').value,
     notizen: document.getElementById('n-notizen').value,
   };
+  const existingPinned = (window._editId && window._editType==='notfaelle') ? !!(window.state.notfaelle.find(n=>n.id===window._editId)?.pinned) : false;
+  data.pinned = existingPinned;
+
   if(window._editId && window._editType==='notfaelle'){
     await updateDoc(doc(db,'notfaelle',window._editId), data);
     await addLog(`Notfallkontakt "${name}" bearbeitet`, '#dc2626');
@@ -1402,6 +1413,17 @@ window.deleteItem = async (col, id) => {
   if (!confirm('Wirklich löschen?')) return;
   await deleteDoc(doc(db,col,id));
   await addLog(`Eintrag gelöscht (${col})`, '#9a9890');
+};
+
+window.toggleNotfallPin = async (id, pinned) => {
+  try{
+    await updateDoc(doc(db,'notfaelle',id), { pinned: !pinned });
+    const name = window.state.notfaelle.find(n=>n.id===id)?.name || id;
+    await addLog(`Notfallkontakt ${!pinned?'angeheftet':'losgelöst'}: "${name}"`, '#dc2626');
+  }catch(e){
+    console.error(e);
+    alert('Konnte den Kontakt nicht anheften/loslösen.');
+  }
 };
 
 // ---- HELPERS ----
@@ -1487,6 +1509,7 @@ window.editItem = (type, id) => {
     document.getElementById('modal-geraet').querySelector('.modal-title').textContent='Gerät bearbeiten';
     document.getElementById('btn-save-geraet').textContent='Änderungen speichern';
     document.getElementById('modal-geraet').classList.remove('hidden');
+    showGeraetTicketLog(id);
   } else if(type==='partner'){
     document.getElementById('p-name').value=item.name||'';
     document.getElementById('p-bereich').value=item.bereich||'';
@@ -1531,6 +1554,7 @@ window.editItem = (type, id) => {
     document.getElementById('modal-bereich').querySelector('.modal-title').textContent='Bereich bearbeiten';
     document.getElementById('btn-save-bereich').textContent='Änderungen speichern';
     document.getElementById('modal-bereich').classList.remove('hidden');
+    showBereichTicketLog(id);
   }
 };
 </script>
@@ -1632,6 +1656,7 @@ function closeModal(id) {
   document.querySelectorAll(`#${id} input,#${id} textarea`).forEach(e=>{ if(e.type==='checkbox') e.checked=false; else e.value=''; });
   document.querySelectorAll(`#${id} select`).forEach(e=>e.selectedIndex=0);
   window._editId=null; window._editType=null;
+  hideEntityTicketLogs();
   // Reset titles and button labels
   const titleMap={'modal-ticket':'Neues Ticket / Störungsmeldung','modal-wartung':'Wartungsauftrag erfassen','modal-geraet':'Gerät / Anlage hinzufügen','modal-partner':'Partnerfirma hinzufügen','modal-notfall':'Notfallkontakt hinzufügen','modal-dokument':'Dokument erfassen','modal-bereich':'Hotelbereich hinzufügen'};
   const btnMap={'modal-ticket':'btn-save-ticket','modal-wartung':'btn-save-wartung','modal-geraet':'btn-save-geraet','modal-partner':'btn-save-partner','modal-notfall':'btn-save-notfall','modal-dokument':'btn-save-dokument','modal-bereich':'btn-save-bereich'};
@@ -1640,13 +1665,54 @@ function closeModal(id) {
   if(btnMap[id]) document.getElementById(btnMap[id]).textContent=saveLabelMap[id];
 }
 
+function _lc(a,b){
+  return String(a||'').localeCompare(String(b||''), 'de', { sensitivity:'base', numeric:true });
+}
+function _optEsc(str){
+  if(str===null||str===undefined) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function _isZimmerBereich(b){
+  if(!b) return false;
+  if(b.kategorie==='zimmer') return true;
+  if(b.zimmernummer) return true;
+  return /^\s*zimmer\s*\d+/i.test(b.name||'') || /^\s*\d+\s*$/.test(b.name||'');
+}
+function _zimmerNum(b){
+  if(!b) return null;
+  const zn = (b.zimmernummer||'').toString().trim();
+  if(zn && /^\d+$/.test(zn)) return parseInt(zn,10);
+  const m = (b.name||'').match(/(\d+)/);
+  return m ? parseInt(m[1],10) : null;
+}
+function _sortBereicheForUi(arr){
+  const rooms = [];
+  const other = [];
+  (arr||[]).forEach(b=> (_isZimmerBereich(b)?rooms:other).push(b));
+  other.sort((a,b)=>_lc(a.name,b.name));
+  rooms.sort((a,b)=>{
+    const an=_zimmerNum(a), bn=_zimmerNum(b);
+    if(an!=null && bn!=null) return an-bn;
+    if(an!=null) return -1;
+    if(bn!=null) return 1;
+    return _lc(a.name,b.name);
+  });
+  return other.concat(rooms);
+}
+
 function populateSelects() {
-  const g = state.geraete.map(g=>{
+  const geraeteSorted = [...state.geraete].sort((a,b)=>_lc(a.name,b.name));
+  const partnerSorted = [...state.partner].sort((a,b)=>_lc(a.name,b.name));
+  const bereicheSorted = _sortBereicheForUi(state.bereiche);
+
+  const g = geraeteSorted.map(g=>{
     const loc = (g.bereichName||g.standort||'') + (g.raum?' / '+g.raum:'');
-    return `<option value="${g.id}">${g.name}${loc?' ('+loc+')':''}</option>`;
+    return `<option value="${g.id}">${_optEsc(g.name||'')}${loc?' ('+_optEsc(loc)+')':''}</option>`;
   }).join('');
-  const p = state.partner.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
-  const b = state.bereiche.map(b=>`<option value="${b.id}">${b.name}</option>`).join('');
+
+  const p = partnerSorted.map(p=>`<option value="${p.id}">${_optEsc(p.name||'')}</option>`).join('');
+  const b = bereicheSorted.map(b=>`<option value="${b.id}">${_optEsc(b.name||'')}</option>`).join('');
+
   ['t-geraet','w-geraet','d-geraet'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML='<option value="">– auswählen –</option>'+g;});
   ['t-partner','w-partner'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML='<option value="">– auswählen –</option>'+p;});
   const gp=document.getElementById('g-partner');if(gp)gp.innerHTML='<option value="">– auswählen –</option>'+p;
@@ -1754,6 +1820,9 @@ function renderGeraete() {
   let data=state.geraete;
   if(state.geraeteFilter==='aktiv') data=data.filter(g=>g.status==='aktiv');
   else if(state.geraeteFilter==='stoerung') data=data.filter(g=>g.status==='stoerung');
+  // Alphabetisch sortieren
+  data = [...data].sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''), 'de', {sensitivity:'base', numeric:true}));
+
   const grid=document.getElementById('geraete-grid');
   grid.innerHTML=data.length?data.map(g=>`<div class="device-card"><div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:8px;"><div style="font-size:28px;">${kIcons[g.kategorie]||'🔧'}</div><select onchange="changeGeraetStatus('${g.id}',this.value)" style="border:1px solid var(--border2);border-radius:5px;padding:2px 6px;font-size:11.5px;background:var(--surface);"><option value="aktiv" ${g.status==='aktiv'?'selected':''}>✅ Aktiv</option><option value="stoerung" ${g.status==='stoerung'?'selected':''}>🔴 Störung</option><option value="wartung" ${g.status==='wartung'?'selected':''}>🟡 Wartung</option><option value="ausser_betrieb" ${g.status==='ausser_betrieb'?'selected':''}>⚫ Außer Betrieb</option></select></div><div style="font-weight:600;font-size:14px;margin-bottom:4px;">${g.name}</div><div style="font-size:12px;color:var(--text3);margin-bottom:6px;">${(g.bereichName||g.standort||'–') + (g.raum?' / '+g.raum:'')}</div>${g.hersteller?`<div style="font-size:12px;color:var(--text3);margin-bottom:4px;">🏭 ${g.hersteller}${g.seriennummer?' · SN: '+g.seriennummer:''}</div>`:''}${g.naechsteWartung?`<div style="font-size:12px;color:${new Date(g.naechsteWartung)<new Date()?'var(--red)':'var(--text3)'};margin-bottom:4px;">🔧 Wartung: ${fDate(g.naechsteWartung)}</div>`:''}${g.partnerName?`<div style="font-size:12px;color:var(--text3);margin-bottom:4px;">🤝 ${g.partnerName}</div>`:''}${g.notizen?`<div style="font-size:11.5px;color:var(--text3);border-top:1px solid var(--border);padding-top:8px;margin-top:6px;">${g.notizen}</div>`:''}<div style="display:flex;justify-content:flex-end;gap:6px;margin-top:10px;"><button class="btn btn-sm btn-edit" onclick="editItem('geraete','${g.id}')">✏️ Bearbeiten</button><button class="btn btn-secondary btn-sm" onclick="deleteItem('geraete','${g.id}')">🗑️</button></div></div>`).join(''):`<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">⚙️</div><p>Noch keine Geräte erfasst</p></div>`;
 }
@@ -1794,6 +1863,81 @@ function telHref(raw){
   return cleaned || s;
 }
 
+function _tsToDate(x){
+  if(!x) return null;
+  // Firestore Timestamp -> Date
+  if(typeof x === 'object' && typeof x.toDate === 'function') return x.toDate();
+  const d = new Date(x);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+function renderTicketLogList(tickets){
+  const data = [...tickets].sort((a,b)=>{
+    const ad=_tsToDate(a.createdAt), bd=_tsToDate(b.createdAt);
+    const at=ad?ad.getTime():0, bt=bd?bd.getTime():0;
+    return bt-at;
+  });
+
+  if(!data.length){
+    return `<div style="color:var(--text3);">Keine Tickets zugeordnet.</div>`;
+  }
+
+  return `<div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Datum</th>
+          <th>Betreff</th>
+          <th>Status</th>
+          <th>Prio</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        ${data.map(t=>{
+          const dt = t.createdAt ? fTs(t.createdAt) : '–';
+          const st = `<span class="badge ${sBadge[t.status]||'badge-gray'}">${sLabel[t.status]||t.status||'–'}</span>`;
+          const pr = `<span class="badge ${pBadge[t.prioritaet]||'badge-gray'}">${pLabel[t.prioritaet]||t.prioritaet||'–'}</span>`;
+          return `<tr>
+            <td style="font-family:'DM Mono',monospace;font-size:12px;">${dt}</td>
+            <td><span style="font-weight:500;">${esc(t.betreff||'')}</span></td>
+            <td>${st}</td>
+            <td>${pr}</td>
+            <td style="white-space:nowrap;">
+              <button class="btn btn-sm btn-edit" onclick="editItem('tickets','${t.id}')">✏️</button>
+            </td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>
+  </div>`;
+}
+
+function showGeraetTicketLog(geraetId){
+  const box = document.getElementById('geraet-ticketlog');
+  const body = document.getElementById('geraet-ticketlog-body');
+  if(!box || !body) return;
+  const tickets = (state.tickets||[]).filter(t=>t.geraetId===geraetId);
+  body.innerHTML = renderTicketLogList(tickets);
+  box.style.display = 'block';
+}
+
+function showBereichTicketLog(bereichId){
+  const box = document.getElementById('bereich-ticketlog');
+  const body = document.getElementById('bereich-ticketlog-body');
+  if(!box || !body) return;
+  const tickets = (state.tickets||[]).filter(t=>t.bereichId===bereichId);
+  body.innerHTML = renderTicketLogList(tickets);
+  box.style.display = 'block';
+}
+
+function hideEntityTicketLogs(){
+  const gb=document.getElementById('geraet-ticketlog'); if(gb) gb.style.display='none';
+  const bb=document.getElementById('bereich-ticketlog'); if(bb) bb.style.display='none';
+  const gbb=document.getElementById('geraet-ticketlog-body'); if(gbb) gbb.innerHTML='';
+  const bbb=document.getElementById('bereich-ticketlog-body'); if(bbb) bbb.innerHTML='';
+}
+
 function bereichIcon(b){
   const x=(b||'').toLowerCase();
   if(x.includes('aufzug')) return '🛗';
@@ -1811,9 +1955,12 @@ function renderPartner() {
   const grid = document.getElementById('partner-grid');
   if(!grid) return;
 
-  const data = (state.partnerFilter && state.partnerFilter!=='alle')
+  let data = (state.partnerFilter && state.partnerFilter!=='alle')
     ? state.partner.filter(p => (p.bereich||'Sonstiges') === state.partnerFilter)
     : state.partner;
+
+// Alphabetisch sortieren
+data = [...data].sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''), 'de', {sensitivity:'base', numeric:true}));
 
   if(!data.length){
     grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">🏭</div><p>Keine Partnerfirmen in dieser Kategorie.</p></div>`;
@@ -1855,8 +2002,48 @@ function renderPartner() {
 
 
 function renderNotfall() {
-  const grid=document.getElementById('notfall-grid');
-  grid.innerHTML=state.notfaelle.length?state.notfaelle.map(n=>`<div class="card" style="border-left:3px solid var(--red);"><div class="card-body"><div style="font-weight:600;font-size:15px;margin-bottom:6px;">${n.name}</div><div style="margin-bottom:12px;"><span class="badge badge-red">${n.kategorie}</span> <span class="badge badge-gray">${n.erreichbar}</span></div><div style="font-size:20px;font-weight:700;margin-bottom:8px;">📞 <a href="tel:${n.telefon}" style="color:var(--red);text-decoration:none;">${n.telefon}</a></div>${n.mobile?`<div style="font-size:13px;margin-bottom:8px;">📱 <a href="tel:${n.mobile}" style="color:var(--red);text-decoration:none;">${n.mobile}</a></div>`:''}${n.notizen?`<div style="font-size:12px;color:var(--text3);">${n.notizen}</div>`:''}<div style="display:flex;justify-content:flex-end;gap:6px;margin-top:10px;"><button class="btn btn-sm btn-edit" onclick="editItem('notfaelle','${n.id}')">✏️ Bearbeiten</button><button class="btn btn-secondary btn-sm" onclick="deleteItem('notfaelle','${n.id}')">🗑️</button></div></div></div>`).join(''):`<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">🚨</div><p>Noch keine Notfallkontakte</p></div>`;
+  const grid = document.getElementById('notfall-grid');
+  if(!grid) return;
+
+  const data = [...state.notfaelle].sort((a,b)=>{
+    const ap = !!a.pinned, bp = !!b.pinned;
+    if(ap!==bp) return ap ? -1 : 1; // pinned zuerst
+    return String(a.name||'').localeCompare(String(b.name||''), 'de', { sensitivity:'base', numeric:true });
+  });
+
+  if(!data.length){
+    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">🚨</div><p>Noch keine Notfallkontakte</p></div>`;
+    return;
+  }
+
+  grid.innerHTML = data.map(n=>{
+    const tel = n.telefon ? `<a href="tel:${telHref(n.telefon)}" style="color:var(--red);text-decoration:none;font-weight:700;">${esc(n.telefon)}</a>` : '–';
+    const mob = n.mobile ? `<a href="tel:${telHref(n.mobile)}" style="color:var(--red);text-decoration:none;">${esc(n.mobile)}</a>` : '';
+    const pinLbl = n.pinned ? '⭐ Angeheftet' : '☆ Anheften';
+
+    return `<div class="card" style="border-left:3px solid var(--red);">
+      <div class="card-body">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;">
+          <div style="font-weight:700;font-size:15px;line-height:1.2;">${esc(n.name||'')}</div>
+          <button class="btn btn-secondary btn-sm" onclick="toggleNotfallPin('${n.id}', ${n.pinned? 'true':'false'})" title="Kontakt anheften/loslösen">${pinLbl}</button>
+        </div>
+
+        <div style="margin-top:10px;margin-bottom:12px;">
+          <span class="badge badge-red">${esc(n.kategorie||'')}</span>
+          <span class="badge badge-gray">${esc(n.erreichbar||'')}</span>
+        </div>
+
+        <div style="font-size:18px;font-weight:800;margin-bottom:8px;">📞 ${tel}</div>
+        ${mob?`<div style="font-size:13px;margin-bottom:8px;">📱 ${mob}</div>`:''}
+        ${n.notizen?`<div style="font-size:12px;color:var(--text3);">${esc(n.notizen)}</div>`:''}
+
+        <div style="display:flex;justify-content:flex-end;gap:6px;margin-top:10px;">
+          <button class="btn btn-sm btn-edit" onclick="editItem('notfaelle','${n.id}')">✏️ Bearbeiten</button>
+          <button class="btn btn-secondary btn-sm" onclick="deleteItem('notfaelle','${n.id}')">🗑️</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
 }
 
 function renderDokumente() {
@@ -1960,8 +2147,25 @@ function renderDokumenteMobile() {
 function renderBereiche() {
   let data = state.bereiche;
   if(state.bereicheFilter && state.bereicheFilter!=='alle') data=data.filter(b=>b.kategorie===state.bereicheFilter);
-  data=[...data].sort((a,b)=>{
-    if(a.kategorie===b.kategorie) return (a.zimmernummer||a.name).localeCompare(b.zimmernummer||b.name, 'de', {numeric:true});
+  // Alphabetisch sortieren (Zimmer am Schluss, nach Nummer aufsteigend)
+  const rooms = [];
+  const other = [];
+  data.forEach(b=>{
+    const isRoom = (b.kategorie==='zimmer') || !!b.zimmernummer || /^\s*zimmer\s*\d+/i.test(b.name||'') || /^\s*\d+\s*$/.test(b.name||'');
+    (isRoom ? rooms : other).push(b);
+  });
+  other.sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''), 'de', {sensitivity:'base', numeric:true}));
+  rooms.sort((a,b)=>{
+    const an = (a.zimmernummer && /^\d+$/.test(String(a.zimmernummer).trim())) ? parseInt(String(a.zimmernummer).trim(),10) : (a.name||'').match(/(\d+)/)?.[1];
+    const bn = (b.zimmernummer && /^\d+$/.test(String(b.zimmernummer).trim())) ? parseInt(String(b.zimmernummer).trim(),10) : (b.name||'').match(/(\d+)/)?.[1];
+    const ai = an!=null ? parseInt(an,10) : null;
+    const bi = bn!=null ? parseInt(bn,10) : null;
+    if(ai!=null && bi!=null) return ai-bi;
+    if(ai!=null) return -1;
+    if(bi!=null) return 1;
+    return String(a.name||'').localeCompare(String(b.name||''), 'de', {sensitivity:'base', numeric:true});
+  });
+  data = other.concat(rooms);
     return a.kategorie.localeCompare(b.kategorie);
   });
   const grid=document.getElementById('bereiche-grid');
