@@ -457,6 +457,7 @@
         <button class="nav-item" onclick="showPage('aktivitaet')"><span class="nav-icon">📋</span> Aktivitätslog</button>
         <button class="nav-item" id="nav-benutzer" onclick="showPage('benutzer')" style="display:none"><span class="nav-icon">👥</span> Benutzerverwaltung <span class="nav-badge" id="access-req-badge" style="display:none">0</span></button>
         <button class="nav-item" id="nav-import" onclick="showPage('import')" style="display:none"><span class="nav-icon">📥</span> Daten importieren</button>
+        <button class="nav-item" id="nav-export" onclick="showPage('export')"><span class="nav-icon">📤</span> Daten exportieren</button>
       </div>
     </nav>
     <div style="padding:16px 20px;border-top:1px solid rgba(255,255,255,0.08);font-size:12px;color:rgba(255,255,255,0.3);">
@@ -526,7 +527,7 @@
         <button class="btn btn-primary" onclick="openModal('modal-wartung')">+ Neuer Wartungsauftrag</button>
       </div>
       <div class="card">
-        <div class="card-header"><span class="card-title">Wartungsaufträge & Serviceaufträge</span></div>
+        <div class="card-header"><span class="card-title">Wartungsaufträge & Serviceaufträge</span><div class="search-wrap"><span class="search-icon">🔍</span><input class="search-input" placeholder="Suchen..." oninput="state.wartungSearch=this.value;renderWartungen();renderWartungenMobile()"></div></div>
         <div class="table-wrap"><table><thead><tr><th>Bezeichnung</th><th>Gerät</th><th>Typ</th><th>Fällig am</th><th>Zuständig</th><th>Status</th><th></th></tr></thead><tbody id="wartung-table"></tbody></table></div>
         <div class="mobile-card-list" id="wartung-mobile"></div>
       </div>
@@ -548,7 +549,16 @@
         </div>
         <button class="btn btn-primary" onclick="openModal('modal-wartung')">+ Wartung planen</button>
       </div>
-      <div class="card"><div class="card-body"><div class="cal-grid" id="cal-header"></div><div class="cal-grid" id="cal-body" style="margin-top:4px;"></div></div></div>
+      <div class="card"><div class="card-body">
+        <div class="cal-grid" id="cal-header"></div>
+        <div class="cal-grid" id="cal-body" style="margin-top:4px;"></div>
+        <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:14px;padding-top:12px;border-top:1px solid var(--border);font-size:12px;color:var(--text3);">
+          <span><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:var(--accent-light);margin-right:5px;"></span>Geplant</span>
+          <span><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:var(--orange-light);margin-right:5px;"></span>Fällig</span>
+          <span><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:var(--green-light);margin-right:5px;"></span>Abgeschlossen</span>
+          <span><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:#f3f0ff;border:1px dashed #c4b5fd;margin-right:5px;"></span>Rolling-Vorschau (automatisch geplant)</span>
+        </div>
+      </div></div>
       <div class="card" style="margin-top:16px;"><div class="card-header"><span class="card-title">Ereignisse dieses Monats</span></div><div class="table-wrap"><table><thead><tr><th>Datum</th><th>Bezeichnung</th><th>Gerät</th><th>Typ</th><th>Status</th></tr></thead><tbody id="cal-events-list"></tbody></table></div></div>
     </div>
 
@@ -562,6 +572,7 @@
         </div>
         <button class="btn btn-primary" onclick="openModal('modal-geraet')">+ Gerät hinzufügen</button>
       </div>
+      <div style="margin-bottom:14px;"><div class="search-wrap"><span class="search-icon">🔍</span><input class="search-input" style="width:280px;" placeholder="Gerät suchen..." oninput="state.geraeteSearch=this.value;renderGeraete()"></div></div>
       <div class="device-grid" id="geraete-grid"><div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">⚙️</div><p>Noch keine Geräte erfasst</p></div></div>
     </div>
 
@@ -586,6 +597,7 @@
         </div>
         <button class="btn btn-primary" onclick="openModal('modal-bereich')">+ Bereich hinzufügen</button>
       </div>
+      <div style="margin-bottom:14px;margin-top:-6px;"><div class="search-wrap"><span class="search-icon">🔍</span><input class="search-input" style="width:280px;" placeholder="Bereich suchen..." oninput="state.bereicheSearch=this.value;renderBereiche()"></div></div>
       <div class="grid-3" id="bereiche-grid"><div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">🏨</div><p>Noch keine Bereiche erfasst</p></div></div>
     </div>
 
@@ -606,6 +618,7 @@
         </div>
         <button class="btn btn-primary" onclick="openModal('modal-partner')">+ Partnerfirma hinzufügen</button>
       </div>
+      <div style="margin-bottom:14px;margin-top:-6px;"><div class="search-wrap"><span class="search-icon">🔍</span><input class="search-input" style="width:280px;" placeholder="Partnerfirma suchen..." oninput="state.partnerSearch=this.value;renderPartner()"></div></div>
       <div id="partner-grid" class="grid-3"></div>
     </div>
 
@@ -615,12 +628,13 @@
         <div style="background:var(--red-light);border:1px solid #fca5a5;border-radius:8px;padding:10px 16px;font-size:13px;color:var(--red);">🚨 Notfallkontakte – nur bei echten Notfällen kontaktieren</div>
         <button class="btn btn-primary" onclick="openModal('modal-notfall')">+ Kontakt hinzufügen</button>
       </div>
+      <div style="margin-bottom:14px;margin-top:-6px;"><div class="search-wrap"><span class="search-icon">🔍</span><input class="search-input" style="width:280px;" placeholder="Kontakt suchen..." oninput="state.notfallSearch=this.value;renderNotfall()"></div></div>
       <div id="notfall-grid" class="grid-3"></div>
     </div>
 
     <!-- LOG -->
     <div class="page page-hidden" id="page-aktivitaet">
-      <div class="card"><div class="card-header"><span class="card-title">Vollständiger Aktivitätslog</span><span style="font-size:11.5px;color:var(--text3);" id="log-count"></span></div><div class="card-body" id="aktivitaet-full" style="max-height:600px;overflow-y:auto;"></div></div>
+      <div class="card"><div class="card-header"><span class="card-title">Vollständiger Aktivitätslog</span><div style="display:flex;align-items:center;gap:12px;"><span style="font-size:11.5px;color:var(--text3);" id="log-count"></span><div class="search-wrap"><span class="search-icon">🔍</span><input class="search-input" style="width:220px;" placeholder="Log durchsuchen..." oninput="state.logSearch=this.value;renderAktivitaet()"></div></div></div><div class="card-body" id="aktivitaet-full" style="max-height:600px;overflow-y:auto;"></div></div>
     </div>
 
     <!-- BENUTZERVERWALTUNG (nur Admins) -->
@@ -728,9 +742,101 @@
         <button class="mobile-mehr-item" onclick="showPage('aktivitaet')">📋<span>Aktivitätslog</span><span style="margin-left:auto;color:var(--text3);">›</span></button>
         <button class="mobile-mehr-item" id="mehr-benutzer" onclick="showPage('benutzer')" style="display:none">👥<span>Benutzerverwaltung</span><span style="margin-left:auto;color:var(--text3);">›</span></button>
         <button class="mobile-mehr-item" id="mehr-import" onclick="showPage('import')" style="display:none">📥<span>Daten importieren</span><span style="margin-left:auto;color:var(--text3);">›</span></button>
+        <button class="mobile-mehr-item" onclick="showPage('export')">📤<span>Daten exportieren</span><span style="margin-left:auto;color:var(--text3);">›</span></button>
         <div style="margin-top:8px;">
           <button onclick="fbSignOutMobile()" style="width:100%;padding:14px;border-radius:10px;border:1px solid var(--red);background:var(--red-light);color:var(--red);font-size:14px;font-weight:500;cursor:pointer;">⏏️ Abmelden</button>
         </div>
+      </div>
+    </div>
+    <!-- EXPORT -->
+    <div class="page page-hidden" id="page-export">
+      <div style="margin-bottom:20px;">
+        <p style="font-size:13.5px;color:var(--text2);">Exportiere deine aktuellen Daten als Excel-Datei (.xlsx). Alle Einträge des gewählten Bereichs werden vollständig exportiert.</p>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;" id="export-grid">
+
+        <!-- Tickets & Störungen -->
+        <div class="card">
+          <div class="card-header"><span class="card-title">🎫 Tickets & Störungen</span><span id="export-count-tickets" style="font-size:12px;color:var(--text3);"></span></div>
+          <div class="card-body">
+            <p style="font-size:13px;color:var(--text2);margin-bottom:16px;">Exportiert alle Tickets & Störungsmeldungen inkl. Status, Priorität, Gerät und Zuweisung.</p>
+            <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:14px;font-size:12px;color:var(--text3);">
+              <strong>Spalten:</strong> Betreff, Priorität, Status, Gerät, Bereich, Zugewiesen an, Gemeldet von, Beschreibung, Erstellt am
+            </div>
+            <button class="btn btn-primary" style="width:100%;justify-content:center;" onclick="exportData('tickets')">⬇️ Tickets exportieren</button>
+            <div id="export-result-tickets" style="margin-top:10px;"></div>
+          </div>
+        </div>
+
+        <!-- Wartungsaufträge -->
+        <div class="card">
+          <div class="card-header"><span class="card-title">🔧 Wartungsaufträge</span><span id="export-count-wartung" style="font-size:12px;color:var(--text3);"></span></div>
+          <div class="card-body">
+            <p style="font-size:13px;color:var(--text2);margin-bottom:16px;">Exportiert alle Wartungsaufträge inkl. Typ, Datum, Intervall, Gerät und Partnerfirma.</p>
+            <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:14px;font-size:12px;color:var(--text3);">
+              <strong>Spalten:</strong> Bezeichnung, Typ, Datum, Intervall, Gerät, Partner, Status, Notizen
+            </div>
+            <button class="btn btn-primary" style="width:100%;justify-content:center;" onclick="exportData('wartung')">⬇️ Wartungsaufträge exportieren</button>
+            <div id="export-result-wartung" style="margin-top:10px;"></div>
+          </div>
+        </div>
+
+        <!-- Geräte & Anlagen -->
+        <div class="card">
+          <div class="card-header"><span class="card-title">⚙️ Geräte & Anlagen</span><span id="export-count-geraete" style="font-size:12px;color:var(--text3);"></span></div>
+          <div class="card-body">
+            <p style="font-size:13px;color:var(--text2);margin-bottom:16px;">Exportiert alle erfassten Geräte & Anlagen inkl. Hersteller, Standort, Wartungsdaten.</p>
+            <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:14px;font-size:12px;color:var(--text3);">
+              <strong>Spalten:</strong> Name, Kategorie, Hersteller, Seriennummer, Standort, Baujahr, Nächste Wartung, Status, Notizen
+            </div>
+            <button class="btn btn-primary" style="width:100%;justify-content:center;" onclick="exportData('geraete')">⬇️ Geräte exportieren</button>
+            <div id="export-result-geraete" style="margin-top:10px;"></div>
+          </div>
+        </div>
+
+        <!-- Partnerfirmen -->
+        <div class="card">
+          <div class="card-header"><span class="card-title">🏭 Partnerfirmen</span><span id="export-count-partner" style="font-size:12px;color:var(--text3);"></span></div>
+          <div class="card-body">
+            <p style="font-size:13px;color:var(--text2);margin-bottom:16px;">Exportiert alle Partnerfirmen inkl. Kontaktdaten, Bereich und Vertragsnummer.</p>
+            <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:14px;font-size:12px;color:var(--text3);">
+              <strong>Spalten:</strong> Name, Bereich, Kontakt, Telefon, Mobile, Email, Website, Adresse, Vertrag, Notizen
+            </div>
+            <button class="btn btn-primary" style="width:100%;justify-content:center;" onclick="exportData('partner')">⬇️ Partnerfirmen exportieren</button>
+            <div id="export-result-partner" style="margin-top:10px;"></div>
+          </div>
+        </div>
+
+        <!-- Notfallkontakte -->
+        <div class="card" style="grid-column:1/-1;">
+          <div class="card-header"><span class="card-title">🚨 Notfallkontakte</span><span id="export-count-notfall" style="font-size:12px;color:var(--text3);"></span></div>
+          <div class="card-body" style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start;">
+            <div>
+              <p style="font-size:13px;color:var(--text2);margin-bottom:16px;">Exportiert alle gespeicherten Notfallkontakte inkl. Kategorie, Telefon und Erreichbarkeit.</p>
+              <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:12px;color:var(--text3);">
+                <strong>Spalten:</strong> Name, Kategorie, Telefon, Mobile, Erreichbar, Notizen
+              </div>
+            </div>
+            <div style="display:flex;align-items:flex-end;">
+              <div style="width:100%;">
+                <button class="btn btn-primary" style="width:100%;justify-content:center;" onclick="exportData('notfall')">⬇️ Notfallkontakte exportieren</button>
+                <div id="export-result-notfall" style="margin-top:10px;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Alles exportieren -->
+        <div class="card" style="grid-column:1/-1;background:var(--accent);border-color:var(--accent);">
+          <div class="card-body" style="display:flex;align-items:center;justify-content:space-between;gap:20px;">
+            <div>
+              <div style="font-size:15px;font-weight:600;color:#fff;margin-bottom:4px;">📦 Gesamtexport</div>
+              <div style="font-size:13px;color:rgba(255,255,255,0.8);">Exportiert alle Bereiche in einer Excel-Datei mit je einem separaten Tabellenblatt.</div>
+            </div>
+            <button class="btn" style="background:#fff;color:var(--accent);font-weight:600;white-space:nowrap;padding:10px 24px;" onclick="exportAll()">⬇️ Alles exportieren</button>
+          </div>
+        </div>
+
       </div>
     </div>
   </main>
@@ -1121,6 +1227,7 @@ window._addDoc = (colName, data) => addDoc(collection(db, colName), data);
 window._serverTimestamp = () => serverTimestamp();
 window._addLog = addLog;
 
+
 // Firestore
 function col(name) { return query(collection(db, name), orderBy('createdAt', 'desc')); }
 
@@ -1191,7 +1298,7 @@ function checkLoaded() { loadedCount++; if (loadedCount >= 8) { document.getElem
 // Ensure state exists before listeners render
 (function ensureState(){
   window.state = window.state || {};
-  const __stateDefaults = { tickets:[], wartungen:[], geraete:[], partner:[], notfaelle:[], dokumente:[], bereiche:[], log:[], ticketFilter:'alle', wartungFilter:'alle', geraeteFilter:'alle', partnerFilter:'alle', bereicheFilter:'alle', calMonth:new Date().getMonth(), calYear:new Date().getFullYear(), ticketSearch:'' };
+  const __stateDefaults = { tickets:[], wartungen:[], geraete:[], partner:[], notfaelle:[], dokumente:[], bereiche:[], log:[], ticketFilter:'alle', wartungFilter:'alle', geraeteFilter:'alle', partnerFilter:'alle', bereicheFilter:'alle', calMonth:new Date().getMonth(), calYear:new Date().getFullYear(), ticketSearch:'', wartungSearch:'', geraeteSearch:'', bereicheSearch:'', partnerSearch:'', notfallSearch:'', logSearch:'' };
   for (const k in __stateDefaults) { if (window.state[k] === undefined) window.state[k] = __stateDefaults[k]; }
 })();
 
@@ -1262,16 +1369,15 @@ document.getElementById('btn-save-wartung').onclick = async () => {
     await updateDoc(doc(db,'wartungen',window._editId), {...base, datum, status: new Date(datum)<new Date()?'faellig':'geplant'});
     await addLog(`Wartung "${bez}" bearbeitet`, '#d97706');
   } else {
-    const dates = generateRecurringDates(datum, intervall);
-    const seriesId = bez.replace(/\s+/g,'_') + '_' + datum;
-    for(const d of dates){
-      await addDoc(collection(db,'wartungen'), {
-        ...base, datum: d,
-        status: new Date(d)<new Date() ? 'faellig' : 'geplant',
-        seriesId, createdAt: serverTimestamp()
-      });
-    }
-    await addLog(`Wartung "${bez}" erstellt (${dates.length} Termin${dates.length>1?'e':''}, ${intervall})`, '#d97706');
+    // Rolling system: only create ONE entry per series. Next occurrence is auto-created on completion.
+    const seriesId = intervall !== 'einmalig' ? (bez.replace(/\s+/g,'_') + '_' + Date.now()) : null;
+    await addDoc(collection(db,'wartungen'), {
+      ...base, datum,
+      status: new Date(datum)<new Date() ? 'faellig' : 'geplant',
+      seriesId, createdAt: serverTimestamp()
+    });
+    const recurText = intervall !== 'einmalig' ? `, ${intervall} wiederkehrend (rolling)` : '';
+    await addLog(`Wartung "${bez}" erstellt (${fDate(datum)}${recurText})`, '#d97706');
   }
   closeModal('modal-wartung');
 };
@@ -1385,30 +1491,38 @@ window.updateWartungStatus = async (id, status) => {
   await updateDoc(doc(db,'wartungen',id), {status});
   const w = window.state.wartungen.find(w=>w.id===id);
   await addLog(`Wartung "${w?.bezeichnung||id}" → ${status}`, '#d97706');
-  // Auto-continue: if abgeschlossen or storniert AND recurring, create next occurrence after last planned
-  if((status==='abgeschlossen'||status==='storniert') && w && w.intervall && w.intervall!=='einmalig' && w.seriesId) {
-    // Find latest datum in same series that is still geplant or faellig
-    const sameSeries = window.state.wartungen.filter(x=>x.seriesId===w.seriesId && x.id!==id && x.status!=='abgeschlossen' && x.status!=='storniert');
-    if(sameSeries.length === 0) {
-      // All done – generate 2 more years from today
-      const nextStart = w.datum; // extend from this date
-      const newDates = generateRecurringDates(nextStart, w.intervall, true); // extension mode
-      const seriesId = w.seriesId;
-      for(const d of newDates){
-        // Only add if not already existing
-        const exists = window.state.wartungen.some(x=>x.seriesId===seriesId && x.datum===d);
-        if(!exists){
-          await addDoc(collection(db,'wartungen'), {
-            bezeichnung: w.bezeichnung, typ: w.typ,
-            geraetId: w.geraetId||'', geraetName: w.geraetName||'',
-            partnerId: w.partnerId||'', partnerName: w.partnerName||'',
-            intervall: w.intervall, notizen: w.notizen||'',
-            autoTicket: !!w.autoTicket,
-            datum: d, status: 'geplant', seriesId, createdAt: serverTimestamp()
-          });
-        }
+  // Rolling system: on completion of a recurring entry, create exactly ONE next occurrence
+  if(status === 'abgeschlossen' && w && w.intervall && w.intervall !== 'einmalig' && w.seriesId) {
+    // Check if there's already a future open entry in this series
+    const openInSeries = window.state.wartungen.filter(x =>
+      x.seriesId === w.seriesId && x.id !== id &&
+      x.status !== 'abgeschlossen' && x.status !== 'storniert'
+    );
+    if(openInSeries.length === 0) {
+      // Calculate next date from the completed entry's datum
+      const addMonths = (dateStr, m) => {
+        const d = new Date(dateStr + 'T00:00:00');
+        d.setMonth(d.getMonth() + m);
+        return d.toISOString().split('T')[0];
+      };
+      const steps = {monatlich:1, quartalsweise:3, halbjaehrlich:6, jaehrlich:12};
+      const step = steps[w.intervall] || 12;
+      const nextDatum = addMonths(w.datum, step);
+      // Avoid duplicates
+      const alreadyExists = window.state.wartungen.some(x => x.seriesId === w.seriesId && x.datum === nextDatum);
+      if(!alreadyExists) {
+        await addDoc(collection(db,'wartungen'), {
+          bezeichnung: w.bezeichnung, typ: w.typ,
+          geraetId: w.geraetId||'', geraetName: w.geraetName||'',
+          partnerId: w.partnerId||'', partnerName: w.partnerName||'',
+          intervall: w.intervall, notizen: w.notizen||'',
+          autoTicket: !!w.autoTicket,
+          datum: nextDatum,
+          status: new Date(nextDatum) < new Date() ? 'faellig' : 'geplant',
+          seriesId: w.seriesId, createdAt: serverTimestamp()
+        });
+        await addLog(`Nächste Wartung "${w.bezeichnung}" automatisch geplant für ${fDate(nextDatum)}`, '#d97706');
       }
-      await addLog(`Wartungsreihe "${w.bezeichnung}" automatisch verlängert`, '#d97706');
     }
   }
 };
@@ -1484,7 +1598,9 @@ window.editItem = (type, id) => {
     document.getElementById('t-betreff').value=item.betreff||'';
     document.getElementById('t-prioritaet').value=item.prioritaet||'mittel';
     document.getElementById('t-geraet').value=item.geraetId||'';
+    document.getElementById('t-bereich').value=item.bereichId||'';
     document.getElementById('t-partner').value=item.partnerId||'';
+    document.getElementById('t-gemeldet').value=item.gemeldetVon||item.gemeldet||'';
     document.getElementById('t-beschreibung').value=item.beschreibung||'';
     document.getElementById('modal-ticket').querySelector('.modal-title').textContent='Ticket bearbeiten';
     document.getElementById('btn-save-ticket').textContent='Änderungen speichern';
@@ -1568,7 +1684,7 @@ window.editItem = (type, id) => {
 
 <script>
 window.state = window.state || {};
-  const __stateDefaults = { tickets:[], wartungen:[], geraete:[], partner:[], notfaelle:[], dokumente:[], bereiche:[], log:[], ticketFilter:'alle', wartungFilter:'alle', geraeteFilter:'alle', partnerFilter:'alle', bereicheFilter:'alle', calMonth:new Date().getMonth(), calYear:new Date().getFullYear(), ticketSearch:'' };
+  const __stateDefaults = { tickets:[], wartungen:[], geraete:[], partner:[], notfaelle:[], dokumente:[], bereiche:[], log:[], ticketFilter:'alle', wartungFilter:'alle', geraeteFilter:'alle', partnerFilter:'alle', bereicheFilter:'alle', calMonth:new Date().getMonth(), calYear:new Date().getFullYear(), ticketSearch:'', wartungSearch:'', geraeteSearch:'', bereicheSearch:'', partnerSearch:'', notfallSearch:'', logSearch:'' };
   for (const k in __stateDefaults) { if (window.state[k] === undefined) window.state[k] = __stateDefaults[k]; }
 
 // Force responsive visibility (prevents table + mobile cards showing at the same time)
@@ -1586,7 +1702,7 @@ applyResponsiveVisibility();
 
 
 
-const pageLabels = {dashboard:'Dashboard',tickets:'Tickets & Störungen',wartung:'Wartungsaufträge',kalender:'Wartungskalender',geraete:'Geräte & Anlagen',bereiche:'Hotelbereiche',dokumente:'Dokumente',partner:'Partnerfirmen',notfall:'Notfallkontakte',aktivitaet:'Aktivitätslog',benutzer:'Benutzerverwaltung',import:'Daten importieren',mehr:'Mehr'};
+const pageLabels = {dashboard:'Dashboard',tickets:'Tickets & Störungen',wartung:'Wartungsaufträge',kalender:'Wartungskalender',geraete:'Geräte & Anlagen',bereiche:'Hotelbereiche',dokumente:'Dokumente',partner:'Partnerfirmen',notfall:'Notfallkontakte',aktivitaet:'Aktivitätslog',benutzer:'Benutzerverwaltung',import:'Daten importieren',export:'Daten exportieren',mehr:'Mehr'};
 
 // Pages reachable directly from bottom nav (no back button needed)
 const mainPages = new Set(['dashboard','tickets','geraete','notfall','mehr']);
@@ -1784,7 +1900,7 @@ const bLabel={zimmer:'Zimmer',seminar:'Seminarraum',restaurant:'Restaurant/Bar',
 function fDate(d){if(!d)return'–';try{return new Date(d+'T00:00:00').toLocaleDateString('de-DE');}catch(e){return d;}}
 function fTs(ts){if(!ts)return'–';try{const d=ts.toDate?ts.toDate():new Date(ts);return d.toLocaleDateString('de-DE')+' '+d.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});}catch(e){return'–';}}
 
-function renderAll() { renderDashboard();renderTickets();renderTicketsMobile();renderWartungen();renderWartungenMobile();renderGeraete();renderPartner();renderNotfall();renderDokumente();renderDokumenteMobile();renderBereiche();updateBadges(); }
+function renderAll() { renderDashboard();renderTickets();renderTicketsMobile();renderWartungen();renderWartungenMobile();renderGeraete();renderPartner();renderNotfall();renderDokumente();renderDokumenteMobile();renderBereiche();updateBadges();updateExportCounts(); }
 
 function renderDashboard() {
   const offene=state.tickets.filter(t=>t.status!=='erledigt');
@@ -1820,15 +1936,17 @@ function renderWartungen() {
   let data=[...state.wartungen];
   if(state.wartungFilter==='faellig') data=data.filter(w=>w.status==='faellig'||(new Date(w.datum)<new Date()&&w.status!=='abgeschlossen'&&w.status!=='storniert'));
   else if(state.wartungFilter!=='alle') data=data.filter(w=>w.status===state.wartungFilter);
+  if(state.wartungSearch){const q=state.wartungSearch.toLowerCase();data=data.filter(w=>(w.bezeichnung||'').toLowerCase().includes(q)||(w.geraetName||'').toLowerCase().includes(q)||(w.partnerName||'').toLowerCase().includes(q)||(w.typ||'').toLowerCase().includes(q));}
   data.sort((a,b)=>new Date(a.datum)-new Date(b.datum));
   const tb=document.getElementById('wartung-table');
-  tb.innerHTML=data.length?data.map(w=>`<tr><td><span style="font-weight:500;">${w.bezeichnung}</span>${w.seriesId?`<div style="font-size:10.5px;color:var(--text3);">🔁 ${w.intervall}</div>`:''}</td><td>${w.geraetName||'–'}</td><td><span class="badge badge-gray">${w.typ}</span></td><td style="font-family:'DM Mono',monospace;font-size:12px;${new Date(w.datum)<new Date()&&w.status!=='abgeschlossen'&&w.status!=='storniert'?'color:var(--red);font-weight:600;':''}">${fDate(w.datum)}</td><td>${w.partnerName||'–'}</td><td><select onchange="updateWartungStatus('${w.id}',this.value)" style="border:1px solid var(--border2);border-radius:5px;padding:3px 8px;font-size:12px;background:var(--surface);"><option value="geplant" ${w.status==='geplant'?'selected':''}>Geplant</option><option value="faellig" ${w.status==='faellig'?'selected':''}>Fällig</option><option value="abgeschlossen" ${w.status==='abgeschlossen'?'selected':''}>Abgeschlossen</option><option value="storniert" ${w.status==='storniert'?'selected':''}>Storniert</option></select></td><td style="white-space:nowrap;"><button class="btn btn-sm btn-edit" onclick="editItem('wartungen','${w.id}')">✏️</button> <button class="btn btn-secondary btn-sm" onclick="deleteItem('wartungen','${w.id}')">🗑️</button></td></tr>`).join(''):`<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">🔧</div><p>Keine Wartungsaufträge</p></div></td></tr>`;
+  tb.innerHTML=data.length?data.map(w=>`<tr><td><span style="font-weight:500;">${w.bezeichnung}</span>${w.seriesId?`<div style="font-size:10.5px;color:var(--text3);">🔁 ${w.intervall} · rolling</div>`:''}</td><td>${w.geraetName||'–'}</td><td><span class="badge badge-gray">${w.typ}</span></td><td style="font-family:'DM Mono',monospace;font-size:12px;${new Date(w.datum)<new Date()&&w.status!=='abgeschlossen'&&w.status!=='storniert'?'color:var(--red);font-weight:600;':''}">${fDate(w.datum)}</td><td>${w.partnerName||'–'}</td><td><select onchange="updateWartungStatus('${w.id}',this.value)" style="border:1px solid var(--border2);border-radius:5px;padding:3px 8px;font-size:12px;background:var(--surface);"><option value="geplant" ${w.status==='geplant'?'selected':''}>Geplant</option><option value="faellig" ${w.status==='faellig'?'selected':''}>Fällig</option><option value="abgeschlossen" ${w.status==='abgeschlossen'?'selected':''}>Abgeschlossen</option><option value="storniert" ${w.status==='storniert'?'selected':''}>Storniert</option></select></td><td style="white-space:nowrap;"><button class="btn btn-sm btn-edit" onclick="editItem('wartungen','${w.id}')">✏️</button> <button class="btn btn-secondary btn-sm" onclick="deleteItem('wartungen','${w.id}')">🗑️</button></td></tr>`).join(''):`<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">🔧</div><p>Keine Wartungsaufträge</p></div></td></tr>`;
 }
 
 function renderGeraete() {
   let data=state.geraete;
   if(state.geraeteFilter==='aktiv') data=data.filter(g=>g.status==='aktiv');
   else if(state.geraeteFilter==='stoerung') data=data.filter(g=>g.status==='stoerung');
+  if(state.geraeteSearch){const q=state.geraeteSearch.toLowerCase();data=data.filter(g=>(g.name||'').toLowerCase().includes(q)||(g.hersteller||'').toLowerCase().includes(q)||(g.bereichName||'').toLowerCase().includes(q)||(g.seriennummer||'').toLowerCase().includes(q));}
   // Alphabetisch sortieren
   data = [...data].sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''), 'de', {sensitivity:'base', numeric:true}));
 
@@ -1967,6 +2085,7 @@ function renderPartner() {
   let data = (state.partnerFilter && state.partnerFilter!=='alle')
     ? state.partner.filter(p => (p.bereich||'Sonstiges') === state.partnerFilter)
     : state.partner;
+  if(state.partnerSearch){const q=state.partnerSearch.toLowerCase();data=data.filter(p=>(p.name||'').toLowerCase().includes(q)||(p.bereich||'').toLowerCase().includes(q)||(p.kontakt||'').toLowerCase().includes(q)||(p.email||'').toLowerCase().includes(q));}
 
 // Alphabetisch sortieren
 data = [...data].sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''), 'de', {sensitivity:'base', numeric:true}));
@@ -2014,7 +2133,9 @@ function renderNotfall() {
   const grid = document.getElementById('notfall-grid');
   if(!grid) return;
 
-  const data = [...state.notfaelle].sort((a,b)=>{
+  let data = [...state.notfaelle];
+  if(state.notfallSearch){const q=state.notfallSearch.toLowerCase();data=data.filter(n=>(n.name||'').toLowerCase().includes(q)||(n.kategorie||'').toLowerCase().includes(q)||(n.telefon||'').includes(q)||(n.notizen||'').toLowerCase().includes(q));}
+  data = data.sort((a,b)=>{
     const ap = !!a.pinned, bp = !!b.pinned;
     if(ap!==bp) return ap ? -1 : 1; // pinned zuerst
     return String(a.name||'').localeCompare(String(b.name||''), 'de', { sensitivity:'base', numeric:true });
@@ -2062,8 +2183,10 @@ function renderDokumente() {
 
 function renderAktivitaet() {
   const el=document.getElementById('aktivitaet-full');
-  document.getElementById('log-count').textContent=state.log.length+' Einträge';
-  el.innerHTML=state.log.length?state.log.map(l=>`<div class="activity-item"><div class="activity-dot" style="background:${l.color}"></div><div style="flex:1;"><div class="activity-text">${l.text}</div><div class="activity-time">${fTs(l.createdAt)}${l.user?' · '+l.user:''}</div></div></div>`).join(''):'<div class="empty-state"><div class="empty-icon">📋</div><p>Noch keine Aktivitäten</p></div>';
+  let data = state.log;
+  if(state.logSearch){const q=state.logSearch.toLowerCase();data=data.filter(l=>(l.text||'').toLowerCase().includes(q)||(l.user||'').toLowerCase().includes(q));}
+  document.getElementById('log-count').textContent=(state.logSearch?data.length+' von ':'')+state.log.length+' Einträge';
+  el.innerHTML=data.length?data.map(l=>`<div class="activity-item"><div class="activity-dot" style="background:${l.color}"></div><div style="flex:1;"><div class="activity-text">${l.text}</div><div class="activity-time">${fTs(l.createdAt)}${l.user?' · '+l.user:''}</div></div></div>`).join(''):'<div class="empty-state"><div class="empty-icon">📋</div><p>Keine Einträge gefunden</p></div>';
 }
 
 function updateBadges() {
@@ -2109,6 +2232,7 @@ function renderWartungenMobile() {
   let data=[...state.wartungen];
   if(state.wartungFilter==='faellig') data=data.filter(w=>w.status==='faellig'||(new Date(w.datum)<new Date()&&w.status!=='abgeschlossen'&&w.status!=='storniert'));
   else if(state.wartungFilter!=='alle') data=data.filter(w=>w.status===state.wartungFilter);
+  if(state.wartungSearch){const q=state.wartungSearch.toLowerCase();data=data.filter(w=>(w.bezeichnung||'').toLowerCase().includes(q)||(w.geraetName||'').toLowerCase().includes(q)||(w.partnerName||'').toLowerCase().includes(q));}
   data.sort((a,b)=>new Date(a.datum)-new Date(b.datum));
   if(!data.length){el.innerHTML=`<div class="empty-state"><div class="empty-icon">🔧</div><p>Keine Wartungsaufträge</p></div>`;return;}
   el.innerHTML=data.map(w=>`<div class="mobile-card">
@@ -2156,6 +2280,7 @@ function renderDokumenteMobile() {
 function renderBereiche() {
   let data = state.bereiche;
   if(state.bereicheFilter && state.bereicheFilter!=='alle') data=data.filter(b=>b.kategorie===state.bereicheFilter);
+  if(state.bereicheSearch){const q=state.bereicheSearch.toLowerCase();data=data.filter(b=>(b.name||'').toLowerCase().includes(q)||(b.zimmernummer||'').toLowerCase().includes(q)||(b.etage||'').toLowerCase().includes(q)||(b.notizen||'').toLowerCase().includes(q));}
   // Alphabetisch sortieren (Zimmer am Schluss, nach Nummer aufsteigend)
   const rooms = [];
   const other = [];
@@ -2208,15 +2333,72 @@ function filterWartung(f,btn){state.wartungFilter=f;btn.closest('.tabs').querySe
 function filterGeraete(f,btn){state.geraeteFilter=f;btn.closest('.tabs').querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));btn.classList.add('active');renderGeraete();}
 function filterPartner(f,btn){state.partnerFilter=f;btn.closest('.tabs').querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));btn.classList.add('active');renderPartner();}
 
+// ---- VIRTUAL OCCURRENCES for rolling series ----
+function getVirtualOccurrences(year, month) {
+  const addMonths = (dateStr, m) => {
+    const d = new Date(dateStr + 'T00:00:00');
+    d.setMonth(d.getMonth() + m);
+    return d;
+  };
+  const steps = {monatlich:1, quartalsweise:3, halbjaehrlich:6, jaehrlich:12};
+  const virtual = [];
+
+  // Group wartungen by seriesId, only rolling ones
+  const seriesMap = {};
+  for(const w of (state.wartungen||[])) {
+    if(!w.seriesId || !w.intervall || w.intervall==='einmalig') continue;
+    if(!seriesMap[w.seriesId]) seriesMap[w.seriesId] = [];
+    seriesMap[w.seriesId].push(w);
+  }
+
+  for(const [seriesId, entries] of Object.entries(seriesMap)) {
+    const step = steps[entries[0].intervall];
+    if(!step) continue;
+    const template = entries[0]; // use first for metadata
+
+    // Find the latest datum in this series (real entry)
+    const latestDatum = entries.reduce((max, e) => e.datum > max ? e.datum : max, entries[0].datum);
+    const existingDates = new Set(entries.map(e => e.datum));
+
+    // Project forward from latest datum until we're past the target month
+    const targetEnd = new Date(year, month + 1, 0); // last day of target month
+    let cur = addMonths(latestDatum, step);
+    let safety = 0;
+    while(cur <= targetEnd && safety++ < 500) {
+      const dateStr = cur.toISOString().split('T')[0];
+      const curMonth = cur.getMonth();
+      const curYear = cur.getFullYear();
+      if(!existingDates.has(dateStr)) {
+        if(curYear === year && curMonth === month) {
+          virtual.push({
+            id: '__virtual__' + seriesId + '_' + dateStr,
+            bezeichnung: template.bezeichnung,
+            typ: template.typ,
+            geraetName: template.geraetName||'',
+            partnerName: template.partnerName||'',
+            intervall: template.intervall,
+            seriesId,
+            datum: dateStr,
+            status: 'virtual',
+            virtual: true
+          });
+        }
+      }
+      cur = addMonths(dateStr, step);
+    }
+  }
+  return virtual;
+}
+
 function renderCalendar() {
   const year=state.calYear,month=state.calMonth;
-  // Populate year dropdown (current year ±5)
+  // Populate year dropdown
   const ySel=document.getElementById('cal-year-select');
   if(ySel){
     const curY=new Date().getFullYear();
-    if(!ySel.options.length||parseInt(ySel.options[0].value)!==curY-5){
+    if(!ySel.options.length||parseInt(ySel.options[0].value)!==curY-2){
       ySel.innerHTML='';
-      for(let y=curY-5;y<=curY+5;y++) ySel.innerHTML+=`<option value="${y}">${y}</option>`;
+      for(let y=curY-2;y<=curY+10;y++) ySel.innerHTML+=`<option value="${y}">${y}</option>`;
     }
     ySel.value=year;
   }
@@ -2225,23 +2407,150 @@ function renderCalendar() {
   document.getElementById('cal-header').innerHTML=['Mo','Di','Mi','Do','Fr','Sa','So'].map(d=>`<div class="cal-day-label">${d}</div>`).join('');
   const first=new Date(year,month,1),last=new Date(year,month+1,0),today=new Date();
   let sdow=first.getDay();if(sdow===0)sdow=7;
-  const events=state.wartungen.filter(w=>{const d=new Date(w.datum);return d.getMonth()===month&&d.getFullYear()===year;});
+
+  // Real entries for this month
+  const realEvents=state.wartungen.filter(w=>{const d=new Date(w.datum);return d.getMonth()===month&&d.getFullYear()===year;});
+  // Virtual (projected) entries for rolling series
+  const virtualEvents = getVirtualOccurrences(year, month);
+  // Merge: real takes priority (suppress virtual if real date already covered by same seriesId)
+  const realDatesPerSeries = {};
+  for(const w of realEvents) { if(w.seriesId) { realDatesPerSeries[w.seriesId+w.datum]=true; } }
+  const filteredVirtual = virtualEvents.filter(v => !realDatesPerSeries[v.seriesId+v.datum]);
+  const allEvents = [...realEvents, ...filteredVirtual];
+
   let cells=[];
   for(let i=1;i<sdow;i++) cells.push({date:new Date(year,month,1-(sdow-i)),curr:false});
   for(let i=1;i<=last.getDate();i++) cells.push({date:new Date(year,month,i),curr:true});
   while(cells.length%7!==0) cells.push({date:new Date(year,month+1,cells.length-last.getDate()-sdow+2),curr:false});
+
   document.getElementById('cal-body').innerHTML=cells.map(c=>{
     const isToday=c.curr&&c.date.getDate()===today.getDate()&&c.date.getMonth()===today.getMonth()&&c.date.getFullYear()===today.getFullYear();
-    const de=events.filter(w=>new Date(w.datum).getDate()===c.date.getDate());
-    return `<div class="cal-day ${!c.curr?'other-month':''} ${isToday?'today':''}"><div class="cal-day-num" style="${isToday?'color:var(--accent);font-weight:700;':''}">${c.date.getDate()}</div>${de.map(e=>`<div class="cal-event ${e.status==='abgeschlossen'?'badge-green':e.status==='faellig'?'badge-orange':'badge-blue'}">${e.bezeichnung}</div>`).join('')}</div>`;
+    const de=allEvents.filter(w=>new Date(w.datum).getDate()===c.date.getDate());
+    return `<div class="cal-day ${!c.curr?'other-month':''} ${isToday?'today':''}"><div class="cal-day-num" style="${isToday?'color:var(--accent);font-weight:700;':''}">${c.date.getDate()}</div>${de.map(e=>e.virtual
+      ? `<div class="cal-event" style="background:#f3f0ff;color:#7c3aed;border:1px dashed #c4b5fd;opacity:0.85;" title="Geplant (rolling) – wird automatisch erstellt">🔁 ${e.bezeichnung}</div>`
+      : `<div class="cal-event ${e.status==='abgeschlossen'?'badge-green':e.status==='faellig'?'badge-orange':'badge-blue'}">${e.bezeichnung}</div>`
+    ).join('')}</div>`;
   }).join('');
-  const mev=[...events].sort((a,b)=>new Date(a.datum)-new Date(b.datum));
-  document.getElementById('cal-events-list').innerHTML=mev.length?mev.map(w=>`<tr><td style="font-family:'DM Mono',monospace;font-size:12px;">${fDate(w.datum)}</td><td>${w.bezeichnung}</td><td>${w.geraetName||'–'}</td><td><span class="badge badge-gray">${w.typ}</span></td><td><span class="badge ${sBadge[w.status]}">${sLabel[w.status]}</span></td></tr>`).join(''):`<tr><td colspan="5"><div class="empty-state" style="padding:24px;"><p>Keine Wartungen in diesem Monat</p></div></td></tr>`;
+
+  const mev=[...allEvents].sort((a,b)=>new Date(a.datum)-new Date(b.datum));
+  document.getElementById('cal-events-list').innerHTML=mev.length?mev.map(w=>w.virtual
+    ? `<tr style="opacity:0.75;"><td style="font-family:'DM Mono',monospace;font-size:12px;">${fDate(w.datum)}</td><td><span style="color:#7c3aed;">🔁 ${w.bezeichnung}</span></td><td>${w.geraetName||'–'}</td><td><span class="badge badge-gray">${w.typ||'–'}</span></td><td><span class="badge badge-violet">Rolling-Vorschau</span></td></tr>`
+    : `<tr><td style="font-family:'DM Mono',monospace;font-size:12px;">${fDate(w.datum)}</td><td>${w.bezeichnung}</td><td>${w.geraetName||'–'}</td><td><span class="badge badge-gray">${w.typ}</span></td><td><span class="badge ${sBadge[w.status]}">${sLabel[w.status]}</span></td></tr>`
+  ).join(''):`<tr><td colspan="5"><div class="empty-state" style="padding:24px;"><p>Keine Wartungen in diesem Monat</p></div></td></tr>`;
 }
 
 function changeMonth(dir){state.calMonth+=dir;if(state.calMonth>11){state.calMonth=0;state.calYear++;}if(state.calMonth<0){state.calMonth=11;state.calYear--;}renderCalendar();}
 
 setInterval(()=>{document.getElementById('clock').textContent=new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit',second:'2-digit'});},1000);
+
+// ---- EXPORT ----
+function updateExportCounts() {
+  const counts = {
+    tickets: state.tickets ? state.tickets.length : 0,
+    wartung: state.wartungen ? state.wartungen.length : 0,
+    geraete: state.geraete ? state.geraete.length : 0,
+    partner: state.partner ? state.partner.length : 0,
+    notfall: state.notfaelle ? state.notfaelle.length : 0,
+  };
+  const labels = {tickets:'tickets',wartung:'wartung',geraete:'geraete',partner:'partner',notfall:'notfall'};
+  for(const [key, count] of Object.entries(counts)) {
+    const el = document.getElementById(`export-count-${labels[key]}`);
+    if(el) el.textContent = count + ' Einträge';
+  }
+}
+
+const EXPORT_CONFIGS = {
+  tickets: {
+    filename: 'FacilityOS_Export_Tickets.xlsx',
+    sheetname: 'Tickets',
+    cols: ['Betreff','Priorität','Status','Gerät','Bereich','Zugewiesen an','Gemeldet von','Beschreibung','Erstellt am'],
+    map: (t) => [
+      t.betreff||'', t.prioritaet||'', t.status||'', t.geraetName||'', t.bereich||'',
+      t.partner||'', t.gemeldetVon||'', t.beschreibung||'',
+      t.createdAt && t.createdAt.toDate ? t.createdAt.toDate().toLocaleDateString('de-DE') : (t.createdAt||'')
+    ],
+    source: () => state.tickets || []
+  },
+  wartung: {
+    filename: 'FacilityOS_Export_Wartungsauftraege.xlsx',
+    sheetname: 'Wartungsaufträge',
+    cols: ['Bezeichnung','Typ','Datum','Intervall','Gerät','Partner','Status','Notizen'],
+    map: (w) => [w.bezeichnung||'', w.typ||'', w.datum||'', w.intervall||'', w.geraetName||'', w.partnerName||'', w.status||'', w.notizen||''],
+    source: () => state.wartungen || []
+  },
+  geraete: {
+    filename: 'FacilityOS_Export_Geraete.xlsx',
+    sheetname: 'Geräte & Anlagen',
+    cols: ['Name','Kategorie','Hersteller','Seriennummer','Standort','Baujahr','Nächste Wartung','Status','Notizen'],
+    map: (g) => [g.name||'', g.kategorie||'', g.hersteller||'', g.seriennummer||'', g.standort||'', g.baujahr||'', g.naechsteWartung||'', g.status||'', g.notizen||''],
+    source: () => state.geraete || []
+  },
+  partner: {
+    filename: 'FacilityOS_Export_Partnerfirmen.xlsx',
+    sheetname: 'Partnerfirmen',
+    cols: ['Name','Bereich','Kontakt','Telefon','Mobile','Email','Website','Adresse','Vertrag','Notizen'],
+    map: (p) => [p.name||'', p.bereich||'', p.kontakt||'', p.telefon||'', p.mobile||'', p.email||'', p.website||'', p.adresse||'', p.vertrag||'', p.notizen||''],
+    source: () => state.partner || []
+  },
+  notfall: {
+    filename: 'FacilityOS_Export_Notfallkontakte.xlsx',
+    sheetname: 'Notfallkontakte',
+    cols: ['Name','Kategorie','Telefon','Mobile','Erreichbar','Notizen'],
+    map: (n) => [n.name||'', n.kategorie||'', n.telefon||'', n.mobile||'', n.erreichbar||'', n.notizen||''],
+    source: () => state.notfaelle || []
+  }
+};
+
+window.exportData = function(type) {
+  const cfg = EXPORT_CONFIGS[type];
+  const resultEl = document.getElementById(`export-result-${type}`);
+  if(!cfg) return;
+  const rows = cfg.source();
+  if(!rows.length) {
+    resultEl.innerHTML = `<div style="background:var(--yellow-light);color:var(--yellow);padding:10px 12px;border-radius:7px;font-size:13px;">⚠️ Keine Daten vorhanden zum Exportieren.</div>`;
+    return;
+  }
+  try {
+    const wb = XLSX.utils.book_new();
+    const data = [cfg.cols, ...rows.map(cfg.map)];
+    const ws = XLSX.utils.aoa_to_sheet(data);
+    ws['!cols'] = cfg.cols.map(()=>({wch:22}));
+    // Bold header row
+    cfg.cols.forEach((_,i)=>{
+      const cell = ws[XLSX.utils.encode_cell({r:0,c:i})];
+      if(cell) { cell.s = { font: { bold: true }, fill: { fgColor: { rgb: 'EBF4FF' } } }; }
+    });
+    XLSX.utils.book_append_sheet(wb, ws, cfg.sheetname);
+    XLSX.writeFile(wb, cfg.filename);
+    if(resultEl) resultEl.innerHTML = `<div style="background:var(--green-light);color:var(--green);padding:10px 12px;border-radius:7px;font-size:13px;">✅ ${rows.length} Einträge erfolgreich exportiert.</div>`;
+    window._addLog && window._addLog(`Export ${type}: ${rows.length} Einträge exportiert`, '#0284c7');
+  } catch(e) {
+    if(resultEl) resultEl.innerHTML = `<div style="background:var(--red-light);color:var(--red);padding:10px 12px;border-radius:7px;font-size:13px;">❌ Fehler: ${e.message}</div>`;
+  }
+};
+
+window.exportAll = function() {
+  const types = ['tickets','wartung','geraete','partner','notfall'];
+  let totalRows = 0;
+  try {
+    const wb = XLSX.utils.book_new();
+    for(const type of types) {
+      const cfg = EXPORT_CONFIGS[type];
+      const rows = cfg.source();
+      const data = [cfg.cols, ...rows.map(cfg.map)];
+      const ws = XLSX.utils.aoa_to_sheet(data);
+      ws['!cols'] = cfg.cols.map(()=>({wch:22}));
+      XLSX.utils.book_append_sheet(wb, ws, cfg.sheetname);
+      totalRows += rows.length;
+    }
+    XLSX.writeFile(wb, `FacilityOS_Gesamtexport_${new Date().toISOString().slice(0,10)}.xlsx`);
+    window._addLog && window._addLog(`Gesamtexport: ${totalRows} Einträge in 5 Blättern exportiert`, '#0284c7');
+  } catch(e) {
+    alert('Export fehlgeschlagen: ' + e.message);
+  }
+};
+
+
 
 // ---- EXCEL IMPORT / EXPORT ----
 const TEMPLATES = {
