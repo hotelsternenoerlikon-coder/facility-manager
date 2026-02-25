@@ -1500,9 +1500,13 @@ window.updateWartungStatus = async (id, status) => {
     if(openInSeries.length === 0) {
       // Calculate next date from the completed entry's datum
       const addMonths = (dateStr, m) => {
-        const d = new Date(dateStr + 'T00:00:00');
-        d.setMonth(d.getMonth() + m);
-        return d.toISOString().split('T')[0];
+        const [y, mo, dy] = dateStr.split('-').map(Number);
+        let newMonth = mo - 1 + m; // 0-basiert
+        const newYear = y + Math.floor(newMonth / 12);
+        newMonth = newMonth % 12;
+        const maxDay = new Date(newYear, newMonth + 1, 0).getDate();
+        const newDay = Math.min(dy, maxDay);
+        return `${newYear}-${String(newMonth + 1).padStart(2,'0')}-${String(newDay).padStart(2,'0')}`;
       };
       const steps = {monatlich:1, zweimonatlich:2, quartalsweise:3, halbjaehrlich:6, jaehrlich:12};
       const step = steps[w.intervall] || 12;
@@ -1553,7 +1557,15 @@ window.generateRecurringDates = function(startDate, intervall, extensionMode=fal
   const cutoff = new Date();
   cutoff.setFullYear(cutoff.getFullYear() + 2);
   if(intervall === 'einmalig') return [startDate];
-  const addMonths = (d, m) => { const r = new Date(d); r.setMonth(r.getMonth()+m); return r; };
+  const addMonths = (d, m) => {
+    const base = (typeof d === 'string') ? d : `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    const [y, mo, dy] = base.split('-').map(Number);
+    let newMonth = mo - 1 + m;
+    const newYear = y + Math.floor(newMonth / 12);
+    newMonth = newMonth % 12;
+    const maxDay = new Date(newYear, newMonth + 1, 0).getDate();
+    return new Date(newYear, newMonth, Math.min(dy, maxDay));
+  };
   const intervals = {monatlich:1, zweimonatlich:2, quartalsweise:3, halbjaehrlich:6, jaehrlich:12};
   const step = intervals[intervall] || 12;
   let cur = extensionMode ? addMonths(start, step) : new Date(start);
@@ -2346,9 +2358,12 @@ function filterPartner(f,btn){state.partnerFilter=f;btn.closest('.tabs').querySe
 // ---- VIRTUAL OCCURRENCES for rolling series ----
 function getVirtualOccurrences(year, month) {
   const addMonths = (dateStr, m) => {
-    const d = new Date(dateStr + 'T00:00:00');
-    d.setMonth(d.getMonth() + m);
-    return d;
+    const [y, mo, dy] = dateStr.split('-').map(Number);
+    let newMonth = mo - 1 + m;
+    const newYear = y + Math.floor(newMonth / 12);
+    newMonth = newMonth % 12;
+    const maxDay = new Date(newYear, newMonth + 1, 0).getDate();
+    return new Date(newYear, newMonth, Math.min(dy, maxDay));
   };
   const steps = {monatlich:1, zweimonatlich:2, quartalsweise:3, halbjaehrlich:6, jaehrlich:12};
   const virtual = [];
