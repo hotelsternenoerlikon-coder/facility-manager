@@ -865,7 +865,7 @@
     <div class="modal-body">
       <div class="grid-2"><div class="form-group"><label class="form-label">Bezeichnung *</label><input class="form-input" id="w-bezeichnung"></div><div class="form-group"><label class="form-label">Typ</label><select class="form-select" id="w-typ"><option value="inspektion">Inspektion</option><option value="wartung">Wartung</option><option value="reparatur">Reparatur</option><option value="pruefung">Prüfung/TÜV</option><option value="service">Serviceauftrag</option></select></div></div>
       <div class="grid-2"><div class="form-group"><label class="form-label">Gerät / Anlage</label><select class="form-select" id="w-geraet" onchange="onWartungGeraetChange(this.value)"><option value="">– auswählen –</option></select></div><div class="form-group"><label class="form-label">Zuständige Firma</label><select class="form-select" id="w-partner"><option value="">– auswählen –</option></select></div></div>
-      <div class="grid-2"><div class="form-group"><label class="form-label">Fälligkeitsdatum *</label><input class="form-input" type="date" id="w-datum"></div><div class="form-group"><label class="form-label">Wiederholung</label><select class="form-select" id="w-intervall"><option value="einmalig">Einmalig</option><option value="monatlich">Monatlich</option><option value="quartalsweise">Quartalsweise</option><option value="halbjaehrlich">Halbjährlich</option><option value="jaehrlich">Jährlich</option></select></div></div>
+      <div class="grid-2"><div class="form-group"><label class="form-label">Fälligkeitsdatum *</label><input class="form-input" type="date" id="w-datum"></div><div class="form-group"><label class="form-label">Wiederholung</label><select class="form-select" id="w-intervall"><option value="einmalig">Einmalig</option><option value="monatlich">Monatlich</option><option value="zweimonatlich">2-Monatlich</option><option value="quartalsweise">Quartalsweise</option><option value="halbjaehrlich">Halbjährlich</option><option value="jaehrlich">Jährlich</option></select></div></div>
       <div class="form-group" style="margin-top:-6px;"><label class="checkbox"><input type="checkbox" id="w-autoTicket"> <span>Ticket automatisch erstellen (bei Fälligkeit wird beim Öffnen der App ein Ticket erstellt)</span></label></div>
       <div class="form-group"><label class="form-label">Notizen</label><textarea class="form-textarea" id="w-notizen"></textarea></div>
     </div>
@@ -1505,7 +1505,7 @@ window.updateWartungStatus = async (id, status) => {
         d.setMonth(d.getMonth() + m);
         return d.toISOString().split('T')[0];
       };
-      const steps = {monatlich:1, quartalsweise:3, halbjaehrlich:6, jaehrlich:12};
+      const steps = {monatlich:1, zweimonatlich:2, quartalsweise:3, halbjaehrlich:6, jaehrlich:12};
       const step = steps[w.intervall] || 12;
       const nextDatum = addMonths(w.datum, step);
       // Avoid duplicates
@@ -1555,7 +1555,7 @@ window.generateRecurringDates = function(startDate, intervall, extensionMode=fal
   cutoff.setFullYear(cutoff.getFullYear() + 2);
   if(intervall === 'einmalig') return [startDate];
   const addMonths = (d, m) => { const r = new Date(d); r.setMonth(r.getMonth()+m); return r; };
-  const intervals = {monatlich:1, quartalsweise:3, halbjaehrlich:6, jaehrlich:12};
+  const intervals = {monatlich:1, zweimonatlich:2, quartalsweise:3, halbjaehrlich:6, jaehrlich:12};
   const step = intervals[intervall] || 12;
   let cur = extensionMode ? addMonths(start, step) : new Date(start);
   while(cur <= cutoff) {
@@ -2340,7 +2340,7 @@ function getVirtualOccurrences(year, month) {
     d.setMonth(d.getMonth() + m);
     return d;
   };
-  const steps = {monatlich:1, quartalsweise:3, halbjaehrlich:6, jaehrlich:12};
+  const steps = {monatlich:1, zweimonatlich:2, quartalsweise:3, halbjaehrlich:6, jaehrlich:12};
   const virtual = [];
 
   // Group wartungen by seriesId, only rolling ones
