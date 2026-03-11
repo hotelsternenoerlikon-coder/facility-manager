@@ -854,7 +854,25 @@
       <div class="grid-2"><div class="form-group"><label class="form-label">Betreff *</label><input class="form-input" id="t-betreff" placeholder="Kurze Beschreibung"></div><div class="form-group"><label class="form-label">Priorität *</label><select class="form-select" id="t-prioritaet"><option value="kritisch">🔴 Kritisch</option><option value="hoch">🟠 Hoch</option><option value="mittel" selected>🟡 Mittel</option><option value="niedrig">🟢 Niedrig</option></select></div></div>
       <div class="grid-2">
         <div class="form-group"><label class="form-label">Gerät / Anlage</label><select class="form-select" id="t-geraet" onchange="onTicketGeraetChange(this.value)"><option value="">– auswählen –</option></select></div>
-        <div class="form-group"><label class="form-label">Hotelbereich</label><select class="form-select" id="t-bereich"><option value="">– auswählen –</option></select></div>
+        <div class="form-group" id="t-bereich-group"><label class="form-label">Hotelbereich</label><select class="form-select" id="t-bereich"><option value="">– auswählen –</option></select></div>
+      </div>
+      <!-- Mehrere Zimmer Toggle -->
+      <div class="form-group" style="margin-bottom:8px;">
+        <label class="checkbox" style="cursor:pointer;display:inline-flex;align-items:center;gap:8px;font-size:13.5px;">
+          <input type="checkbox" id="t-mehrere-zimmer" onchange="toggleMehrereZimmer(this.checked)">
+          <span>🏨 Mehrere Zimmer betroffen</span>
+        </label>
+      </div>
+      <!-- Zimmer-Auswahl Panel (versteckt bis Toggle aktiv) -->
+      <div id="t-zimmer-panel" style="display:none;margin-bottom:12px;border:1px solid var(--border2);border-radius:10px;padding:14px;background:var(--surface2);">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
+          <span style="font-size:13px;font-weight:600;color:var(--text1);">Zimmer auswählen</span>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="zimmerAlleAuswaehlen(true)">✅ Alle</button>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="zimmerAlleAuswaehlen(false)">☐ Keine</button>
+          </div>
+        </div>
+        <div id="t-zimmer-etagen" style="display:flex;flex-direction:column;gap:12px;max-height:280px;overflow-y:auto;padding-right:4px;"></div>
       </div>
       <div class="grid-2"><div class="form-group"><label class="form-label">Zugewiesen an</label><select class="form-select" id="t-partner"><option value="">– auswählen –</option></select></div><div class="form-group"><label class="form-label">Gemeldet von</label><input class="form-input" id="t-gemeldet" placeholder="Name / Abteilung"></div></div>
       <div class="form-group"><label class="form-label">Beschreibung</label><textarea class="form-textarea" id="t-beschreibung" placeholder="Detaillierte Beschreibung..."></textarea></div>
@@ -1328,18 +1346,111 @@ async function addLog(text, color='#2563eb') {
   await addDoc(collection(db,'log'), { text, color, user: currentUser?.displayName||currentUser?.email||'', createdAt: serverTimestamp() });
 }
 
+// ---- Multi-Zimmer Funktionen ----
+window.toggleMehrereZimmer = function(active) {
+  const panel = document.getElementById('t-zimmer-panel');
+  const bereichGroup = document.getElementById('t-bereich-group');
+  panel.style.display = active ? 'block' : 'none';
+  bereichGroup.style.display = active ? 'none' : 'block';
+  if (active) renderZimmerPanel();
+};
+
+window.renderZimmerPanel = function() {
+  const zimmer = (window.state.bereiche || [])
+    .filter(b => b.kategorie === 'zimmer')
+    .sort((a, b) => {
+      const na = parseInt(a.zimmernummer || a.name) || 0;
+      const nb = parseInt(b.zimmernummer || b.name) || 0;
+      return na - nb;
+    });
+  if (!zimmer.length) {
+    document.getElementById('t-zimmer-etagen').innerHTML = '<p style="font-size:13px;color:var(--text3);">Keine Zimmer in Hotelbereiche erfasst.</p>';
+    return;
+  }
+  const etagen = {};
+  zimmer.forEach(z => {
+    const nr = (z.zimmernummer || z.name || '').toString().trim();
+    const firstDigit = nr[0];
+    const etage = /[0-9]/.test(firstDigit) ? firstDigit : '0';
+    if (!etagen[etage]) etagen[etage] = [];
+    etagen[etage].push(z);
+  });
+  const etagenKeys = Object.keys(etagen).sort();
+  document.getElementById('t-zimmer-etagen').innerHTML = etagenKeys.map(etage => {
+    const label = etage === '0' ? 'Erdgeschoss / Andere' : `Etage ${etage}`;
+    const rooms = etagen[etage];
+    return `<div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+        <label style="font-size:12.5px;font-weight:600;color:var(--text2);cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
+          <input type="checkbox" class="etage-cb" data-etage="${etage}" onchange="zimmerEtageAuswaehlen('${etage}',this.checked)" style="width:15px;height:15px;cursor:pointer;">
+          🏢 ${label}
+        </label>
+        <span style="font-size:11px;color:var(--text3);">(${rooms.length} Zimmer)</span>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;padding-left:22px;">
+        ${rooms.map(z => `<label style="cursor:pointer;display:inline-flex;align-items:center;gap:5px;font-size:12.5px;background:var(--surface);border:1px solid var(--border2);border-radius:6px;padding:4px 9px;white-space:nowrap;">
+          <input type="checkbox" class="zimmer-cb" data-id="${z.id}" data-name="${esc(z.name)}" data-etage="${etage}" onchange="updateEtageCheckbox('${etage}')" style="cursor:pointer;">
+          ${esc(z.zimmernummer || z.name)}
+        </label>`).join('')}
+      </div>
+    </div>`;
+  }).join('');
+};
+
+window.zimmerAlleAuswaehlen = function(checked) {
+  document.querySelectorAll('#t-zimmer-etagen .zimmer-cb').forEach(cb => cb.checked = checked);
+  document.querySelectorAll('#t-zimmer-etagen .etage-cb').forEach(cb => cb.checked = checked);
+};
+
+window.zimmerEtageAuswaehlen = function(etage, checked) {
+  document.querySelectorAll(`.zimmer-cb[data-etage="${etage}"]`).forEach(cb => cb.checked = checked);
+};
+
+window.updateEtageCheckbox = function(etage) {
+  const all = document.querySelectorAll(`.zimmer-cb[data-etage="${etage}"]`);
+  const checked = document.querySelectorAll(`.zimmer-cb[data-etage="${etage}"]:checked`);
+  const etageCb = document.querySelector(`.etage-cb[data-etage="${etage}"]`);
+  if (etageCb) etageCb.checked = all.length > 0 && all.length === checked.length;
+};
+
+function getSelectedZimmer() {
+  const cbs = document.querySelectorAll('#t-zimmer-etagen .zimmer-cb:checked');
+  return Array.from(cbs).map(cb => ({ bereichId: cb.dataset.id, name: cb.dataset.name, erledigt: false }));
+}
+
+function resetZimmerPanel() {
+  const cb = document.getElementById('t-mehrere-zimmer');
+  if (cb) cb.checked = false;
+  const panel = document.getElementById('t-zimmer-panel');
+  if (panel) panel.style.display = 'none';
+  const bg = document.getElementById('t-bereich-group');
+  if (bg) bg.style.display = 'block';
+  const et = document.getElementById('t-zimmer-etagen');
+  if (et) et.innerHTML = '';
+}
+
 // SAVE buttons wired here (module scope)
 document.getElementById('btn-save-ticket').onclick = async () => {
   const betreff = document.getElementById('t-betreff').value.trim();
   if (!betreff) { alert('Bitte einen Betreff eingeben.'); return; }
+  const mehrereZimmer = document.getElementById('t-mehrere-zimmer').checked;
   const gId = document.getElementById('t-geraet').value;
   const pId = document.getElementById('t-partner').value;
-  const bId = document.getElementById('t-bereich').value;
+  let bId = '', zimmerListe = [];
+  if (mehrereZimmer) {
+    zimmerListe = getSelectedZimmer();
+    if (!zimmerListe.length) { alert('Bitte mindestens ein Zimmer auswählen.'); return; }
+  } else {
+    bId = document.getElementById('t-bereich').value;
+  }
   const data = {
     betreff, prioritaet: document.getElementById('t-prioritaet').value,
     geraetId: gId, geraetName: window.state.geraete.find(g=>g.id===gId)?.name||'',
     partnerId: pId, partnerName: window.state.partner.find(p=>p.id===pId)?.name||'',
-    bereichId: bId, bereichName: window.state.bereiche.find(b=>b.id===bId)?.name||'',
+    bereichId: mehrereZimmer ? '' : bId,
+    bereichName: mehrereZimmer ? `${zimmerListe.length} Zimmer` : (window.state.bereiche.find(b=>b.id===bId)?.name||''),
+    mehrereZimmer: mehrereZimmer,
+    zimmerListe: mehrereZimmer ? zimmerListe : [],
     gemeldet: document.getElementById('t-gemeldet').value,
     beschreibung: document.getElementById('t-beschreibung').value,
   };
@@ -1490,6 +1601,21 @@ window.updateTicketStatus = async (id, status) => {
   const t = window.state.tickets.find(t=>t.id===id);
   await addLog(`Ticket "${t?.betreff||id}" → ${status} (${currentUser?.displayName||''})`, '#2563eb');
 };
+
+window.toggleZimmerErledigt = async (ticketId, bereichId, erledigt) => {
+  const ticket = window.state.tickets.find(t => t.id === ticketId);
+  if (!ticket || !ticket.zimmerListe) return;
+  const updated = ticket.zimmerListe.map(z =>
+    z.bereichId === bereichId ? {...z, erledigt} : z
+  );
+  const alleErledigt = updated.every(z => z.erledigt);
+  const updates = { zimmerListe: updated };
+  if (alleErledigt) updates.status = 'erledigt';
+  await updateDoc(doc(db,'tickets',ticketId), updates);
+  if (alleErledigt) {
+    await addLog(`Ticket "${ticket.betreff}" → erledigt (alle Zimmer abgehakt, ${currentUser?.displayName||''})`, '#16a34a');
+  }
+};
 window.updateWartungStatus = async (id, status) => {
   await updateDoc(doc(db,'wartungen',id), {status});
   const w = window.state.wartungen.find(w=>w.id===id);
@@ -1613,10 +1739,22 @@ window.editItem = (type, id) => {
     document.getElementById('t-betreff').value=item.betreff||'';
     document.getElementById('t-prioritaet').value=item.prioritaet||'mittel';
     document.getElementById('t-geraet').value=item.geraetId||'';
-    document.getElementById('t-bereich').value=item.bereichId||'';
     document.getElementById('t-partner').value=item.partnerId||'';
     document.getElementById('t-gemeldet').value=item.gemeldetVon||item.gemeldet||'';
     document.getElementById('t-beschreibung').value=item.beschreibung||'';
+    if(item.mehrereZimmer && item.zimmerListe && item.zimmerListe.length) {
+      document.getElementById('t-mehrere-zimmer').checked = true;
+      toggleMehrereZimmer(true);
+      // After render, check saved zimmer
+      setTimeout(() => {
+        (item.zimmerListe || []).forEach(z => {
+          const cb = document.querySelector(`#t-zimmer-etagen .zimmer-cb[data-id="${z.bereichId}"]`);
+          if(cb) { cb.checked = true; updateEtageCheckbox(cb.dataset.etage); }
+        });
+      }, 50);
+    } else {
+      document.getElementById('t-bereich').value=item.bereichId||'';
+    }
     document.getElementById('modal-ticket').querySelector('.modal-title').textContent='Ticket bearbeiten';
     document.getElementById('btn-save-ticket').textContent='Änderungen speichern';
     document.getElementById('modal-ticket').classList.remove('hidden');
@@ -1802,6 +1940,7 @@ function closeModal(id) {
   const saveLabelMap={'modal-ticket':'Ticket erstellen','modal-wartung':'Auftrag erstellen','modal-geraet':'Gerät speichern','modal-partner':'Firma speichern','modal-notfall':'Kontakt speichern','modal-dokument':'Speichern','modal-bereich':'Bereich speichern'};
   if(titleMap[id]) document.querySelector(`#${id} .modal-title`).textContent=titleMap[id];
   if(btnMap[id]) document.getElementById(btnMap[id]).textContent=saveLabelMap[id];
+  if(id==='modal-ticket') resetZimmerPanel();
 }
 
 function _lc(a,b){
@@ -1929,7 +2068,17 @@ function renderDashboard() {
   document.getElementById('kpi-wartungen-faellig').textContent=faellig.length;
   document.getElementById('kpi-partner').textContent=state.partner.length;
   const dt=document.getElementById('dash-tickets'),ct=state.tickets.filter(t=>t.status!=='erledigt'&&(t.prioritaet==='kritisch'||t.prioritaet==='hoch')).slice(0,5);
-  dt.innerHTML=ct.length?ct.map(t=>`<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);"><span class="badge ${pBadge[t.prioritaet]}">${pLabel[t.prioritaet]}</span><span style="flex:1;font-size:13px;">${t.betreff}</span><span class="badge ${sBadge[t.status]}">${sLabel[t.status]}</span></div>`).join(''):'<div class="empty-state"><div class="empty-icon">✅</div><p>Keine kritischen Tickets</p></div>';
+  dt.innerHTML=ct.length?ct.map(t=>{
+    const hasZimmer = t.mehrereZimmer && t.zimmerListe && t.zimmerListe.length > 0;
+    const zdone = hasZimmer ? t.zimmerListe.filter(z=>z.erledigt).length : 0;
+    const ztotal = hasZimmer ? t.zimmerListe.length : 0;
+    return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);">
+      <span class="badge ${pBadge[t.prioritaet]}">${pLabel[t.prioritaet]}</span>
+      <span style="flex:1;font-size:13px;">${t.betreff}</span>
+      ${hasZimmer?`<span style="font-size:11.5px;color:${zdone===ztotal?'var(--green)':'var(--text3)'};">🏨 ${zdone}/${ztotal}</span>`:''}
+      <span class="badge ${sBadge[t.status]}">${sLabel[t.status]}</span>
+    </div>`;
+  }).join(''):'<div class="empty-state"><div class="empty-icon">✅</div><p>Keine kritischen Tickets</p></div>';
   const dw=document.getElementById('dash-wartungen'),up=[...state.wartungen].filter(w=>w.status!=='abgeschlossen').sort((a,b)=>new Date(a.datum)-new Date(b.datum)).slice(0,5);
   dw.innerHTML=up.length?up.map(w=>`<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);"><span style="font-family:'DM Mono',monospace;font-size:12px;color:var(--text3);min-width:80px;">${fDate(w.datum)}</span><span style="flex:1;font-size:13px;">${w.bezeichnung}</span><span class="badge ${sBadge[w.status]}">${sLabel[w.status]}</span></div>`).join(''):'<div class="empty-state"><div class="empty-icon">📅</div><p>Keine anstehenden Wartungen</p></div>';
   const dg=document.getElementById('dash-geraete');
@@ -1948,8 +2097,27 @@ function renderTickets() {
   // update sort indicators
   ['betreff','geraetName','bereichName','prioritaet','status','ersteller','partnerName'].forEach(c=>{const el=document.getElementById('sort-ticket-'+c);if(el)el.textContent=ts&&ts.col===c?(ts.dir===1?'▲':'▼'):'';});
   const tb=document.getElementById('tickets-table');
-  tb.innerHTML=data.length?data.map(t=>`<tr><td><span style="font-weight:500;">${t.betreff}</span>${t.autoGenerated?` <span class="badge badge-violet">🤖 Automatisch aus Wartung</span>`:''}${t.beschreibung?`<div style="font-size:12px;color:var(--text3);">${t.beschreibung.substring(0,60)}${t.beschreibung.length>60?'...':''}</div>`:''}</td><td>${t.geraetName||'–'}</td><td>${t.bereichName?`<span class="badge badge-blue">${t.bereichName}</span>`:'–'}</td><td><span class="badge ${pBadge[t.prioritaet]}">${pLabel[t.prioritaet]}</span></td><td><select onchange="updateTicketStatus('${t.id}',this.value)" style="border:1px solid var(--border2);border-radius:5px;padding:3px 8px;font-size:12px;background:var(--surface);"><option value="offen" ${t.status==='offen'?'selected':''}>Offen</option><option value="in_bearbeitung" ${t.status==='in_bearbeitung'?'selected':''}>In Bearbeitung</option><option value="erledigt" ${t.status==='erledigt'?'selected':''}>Erledigt</option></select></td><td style="font-size:12px;color:var(--text3);">${t.ersteller||t.gemeldet||'–'}</td><td>${t.partnerName||'–'}</td><td style="white-space:nowrap;"><button class="btn btn-sm btn-edit" onclick="editItem('tickets','${t.id}')">✏️</button> <button class="btn btn-secondary btn-sm" onclick="deleteItem('tickets','${t.id}')">🗑️</button></td></tr>`).join(''):`<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">🎫</div><p>Keine Tickets gefunden</p></div></td></tr>`;
+  tb.innerHTML=data.length?data.map(t=>{
+    const hasZimmer = t.mehrereZimmer && t.zimmerListe && t.zimmerListe.length > 0;
+    const zdone = hasZimmer ? t.zimmerListe.filter(z=>z.erledigt).length : 0;
+    const ztotal = hasZimmer ? t.zimmerListe.length : 0;
+    const zimmerProgress = hasZimmer ? `<span onclick="toggleZimmerDetail('${t.id}')" style="cursor:pointer;display:inline-flex;align-items:center;gap:5px;background:var(--surface2);border:1px solid var(--border2);border-radius:5px;padding:2px 7px;font-size:11.5px;color:${zdone===ztotal?'var(--green)':'var(--text2)'};" title="Zimmer anzeigen">🏨 ${zdone}/${ztotal} <span style="font-size:10px;">▼</span></span>` : '';
+    const zimmerRows = hasZimmer ? `<tr id="zimmer-detail-${t.id}" style="display:none;"><td colspan="8" style="padding:0 12px 10px 12px;background:var(--surface2);"><div style="display:flex;flex-wrap:wrap;gap:6px;padding:10px 0 4px;">${t.zimmerListe.map(z=>`<label style="display:inline-flex;align-items:center;gap:5px;font-size:12.5px;background:var(--surface);border:1px solid ${z.erledigt?'var(--green)':'var(--border2)'};border-radius:6px;padding:4px 9px;cursor:pointer;text-decoration:${z.erledigt?'line-through':'none'};color:${z.erledigt?'var(--text3)':'var(--text1)'};" title="${z.erledigt?'Erledigt – klicken zum Rückgängig':'Klicken zum Abhaken'}"><input type="checkbox" ${z.erledigt?'checked':''} onchange="toggleZimmerErledigt('${t.id}','${z.bereichId}',this.checked)" style="cursor:pointer;">${esc(z.name)}</label>`).join('')}</div></td></tr>` : '';
+    return `<tr><td><span style="font-weight:500;">${t.betreff}</span>${t.autoGenerated?` <span class="badge badge-violet">🤖 Automatisch aus Wartung</span>`:''}${hasZimmer?` <span class="badge badge-blue">🏨 Multi-Zimmer</span>`:''}${t.beschreibung?`<div style="font-size:12px;color:var(--text3);">${t.beschreibung.substring(0,60)}${t.beschreibung.length>60?'...':''}</div>`:''}</td><td>${t.geraetName||'–'}</td><td>${hasZimmer?zimmerProgress:(t.bereichName?`<span class="badge badge-blue">${t.bereichName}</span>`:'–')}</td><td><span class="badge ${pBadge[t.prioritaet]}">${pLabel[t.prioritaet]}</span></td><td><select onchange="updateTicketStatus('${t.id}',this.value)" style="border:1px solid var(--border2);border-radius:5px;padding:3px 8px;font-size:12px;background:var(--surface);"><option value="offen" ${t.status==='offen'?'selected':''}>Offen</option><option value="in_bearbeitung" ${t.status==='in_bearbeitung'?'selected':''}>In Bearbeitung</option><option value="erledigt" ${t.status==='erledigt'?'selected':''}>Erledigt</option></select></td><td style="font-size:12px;color:var(--text3);">${t.ersteller||t.gemeldet||'–'}</td><td>${t.partnerName||'–'}</td><td style="white-space:nowrap;"><button class="btn btn-sm btn-edit" onclick="editItem('tickets','${t.id}')">✏️</button> <button class="btn btn-secondary btn-sm" onclick="deleteItem('tickets','${t.id}')">🗑️</button></td></tr>${zimmerRows}`;
+  }).join(''):`<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">🎫</div><p>Keine Tickets gefunden</p></div></td></tr>`;
 }
+
+window.toggleZimmerDetail = function(ticketId) {
+  const row = document.getElementById('zimmer-detail-' + ticketId);
+  if (!row) return;
+  row.style.display = row.style.display === 'none' ? 'table-row' : 'none';
+};
+
+window.toggleZimmerDetailMobile = function(ticketId) {
+  const el = document.getElementById('zimmer-mobile-' + ticketId);
+  if (!el) return;
+  el.style.display = el.style.display === 'none' ? 'flex' : 'none';
+};
 
 function renderWartungen() {
   let data=[...state.wartungen];
@@ -2239,17 +2407,24 @@ function renderTicketsMobile() {
   else if(state.ticketFilter!=='alle') data=data.filter(t=>t.status===state.ticketFilter);
   if(state.ticketSearch){const q=state.ticketSearch.toLowerCase();data=data.filter(t=>(t.betreff||'').toLowerCase().includes(q)||(t.bereichName||'').toLowerCase().includes(q)||(t.ersteller||'').toLowerCase().includes(q)||(t.gemeldet||'').toLowerCase().includes(q));}
   if(!data.length){el.innerHTML=`<div class="empty-state"><div class="empty-icon">🎫</div><p>Keine Tickets gefunden</p></div>`;return;}
-  el.innerHTML=data.map(t=>`<div class="mobile-card">
+  el.innerHTML=data.map(t=>{
+    const hasZimmer = t.mehrereZimmer && t.zimmerListe && t.zimmerListe.length > 0;
+    const zdone = hasZimmer ? t.zimmerListe.filter(z=>z.erledigt).length : 0;
+    const ztotal = hasZimmer ? t.zimmerListe.length : 0;
+    return `<div class="mobile-card">
     <div class="mobile-card-header">
-      <div class="mobile-card-title">${t.betreff}</div>
+      <div class="mobile-card-title">${t.betreff}${hasZimmer?' <span style="font-size:11px;">🏨</span>':''}</div>
       <span class="badge ${pBadge[t.prioritaet]}">${pLabel[t.prioritaet]}</span>
     </div>
     <div class="mobile-card-meta">
       <span class="badge ${sBadge[t.status]}">${sLabel[t.status]}</span>
       ${t.autoGenerated?`<span class="badge badge-violet">🤖 Automatisch aus Wartung</span>`:''}
+      ${hasZimmer?`<span class="badge badge-blue" style="cursor:pointer;" onclick="toggleZimmerDetailMobile('${t.id}')">🏨 ${zdone}/${ztotal} Zimmer ▾</span>`:''}
+      ${!hasZimmer&&t.bereichName?`<span class="badge badge-blue">${t.bereichName}</span>`:''}
       ${t.geraetName?`<span class="badge badge-gray">⚙️ ${t.geraetName}</span>`:''}
       ${t.partnerName?`<span class="badge badge-gray">🏭 ${t.partnerName}</span>`:''}
     </div>
+    ${hasZimmer?`<div id="zimmer-mobile-${t.id}" style="display:none;flex-wrap:wrap;gap:5px;margin-bottom:8px;">${t.zimmerListe.map(z=>`<label style="display:inline-flex;align-items:center;gap:4px;font-size:12px;background:var(--surface);border:1px solid ${z.erledigt?'var(--green)':'var(--border2)'};border-radius:6px;padding:4px 8px;cursor:pointer;text-decoration:${z.erledigt?'line-through':'none'};color:${z.erledigt?'var(--text3)':'var(--text1)'};" ><input type="checkbox" ${z.erledigt?'checked':''} onchange="toggleZimmerErledigt('${t.id}','${z.bereichId}',this.checked)" style="cursor:pointer;">${esc(z.name)}</label>`).join('')}</div>`:''}
     ${t.beschreibung?`<div style="font-size:12.5px;color:var(--text3);margin-bottom:6px;">${t.beschreibung.substring(0,80)}${t.beschreibung.length>80?'...':''}</div>`:''}
     <div style="font-size:11.5px;color:var(--text3);">📅 ${fTs(t.createdAt)}${t.ersteller?' · '+t.ersteller:''}</div>
     <div class="mobile-card-actions">
@@ -2261,7 +2436,8 @@ function renderTicketsMobile() {
       <button class="btn btn-sm btn-edit" onclick="editItem('tickets','${t.id}')">✏️</button>
       <button class="btn btn-secondary btn-sm" onclick="deleteItem('tickets','${t.id}')">🗑️</button>
     </div>
-  </div>`).join('');
+  </div>`;
+  }).join('');
 }
 
 function renderWartungenMobile() {
