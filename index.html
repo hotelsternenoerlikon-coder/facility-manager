@@ -442,6 +442,7 @@
         <button class="nav-item" onclick="showPage('tickets')"><span class="nav-icon">🎫</span> Tickets & Störungen <span class="nav-badge" id="ticket-count-badge" style="display:none">0</span></button>
         <button class="nav-item" onclick="showPage('wartung')"><span class="nav-icon">🔧</span> Wartungsaufträge</button>
         <button class="nav-item" onclick="showPage('kalender')"><span class="nav-icon">📅</span> Wartungskalender</button>
+        <button class="nav-item" onclick="showPage('termine')"><span class="nav-icon">🗓️</span> Termine</button>
       </div>
       <div class="nav-section">
         <div class="nav-label">Bestand</div>
@@ -740,6 +741,7 @@
       <div style="display:flex;flex-direction:column;gap:10px;">
         <button class="mobile-mehr-item" onclick="showPage('wartung')">🔧<span>Wartungsaufträge</span><span style="margin-left:auto;color:var(--text3);">›</span></button>
         <button class="mobile-mehr-item" onclick="showPage('kalender')">📅<span>Wartungskalender</span><span style="margin-left:auto;color:var(--text3);">›</span></button>
+        <button class="mobile-mehr-item" onclick="showPage('termine')">🗓️<span>Termine</span><span style="margin-left:auto;color:var(--text3);">›</span></button>
         <button class="mobile-mehr-item" onclick="showPage('bereiche')">🏨<span>Hotelbereiche</span><span style="margin-left:auto;color:var(--text3);">›</span></button>
         <button class="mobile-mehr-item" onclick="showPage('dokumente')">📄<span>Dokumente</span><span style="margin-left:auto;color:var(--text3);">›</span></button>
         <button class="mobile-mehr-item" onclick="showPage('partner')">🏭<span>Partnerfirmen</span><span style="margin-left:auto;color:var(--text3);">›</span></button>
@@ -750,6 +752,41 @@
         <div style="margin-top:8px;">
           <button onclick="fbSignOutMobile()" style="width:100%;padding:14px;border-radius:10px;border:1px solid var(--red);background:var(--red-light);color:var(--red);font-size:14px;font-weight:500;cursor:pointer;">⏏️ Abmelden</button>
         </div>
+      </div>
+    </div>
+    <!-- TERMINE -->
+    <div class="page page-hidden" id="page-termine">
+      <div class="section-header mb-24">
+        <div class="tabs">
+          <button class="tab active" onclick="filterTermine('alle',this)">Alle</button>
+          <button class="tab" onclick="filterTermine('zukunft',this)">Bevorstehend</button>
+          <button class="tab" onclick="filterTermine('heute',this)">Heute</button>
+          <button class="tab" onclick="filterTermine('vergangen',this)">Vergangen</button>
+        </div>
+        <button class="btn btn-primary" onclick="openModal('modal-termin')">+ Neuer Termin</button>
+        <button class="btn btn-secondary" onclick="downloadAllTermineICS()" title="Alle Termine als ICS exportieren">📥 Alle als ICS</button>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">🗓️ Terminübersicht</span>
+          <div class="search-wrap"><span class="search-icon">🔍</span><input class="search-input" placeholder="Suchen..." oninput="window.state.terminSearch=this.value;renderTermine();"></div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Titel</th>
+                <th>Datum & Zeit</th>
+                <th>Typ</th>
+                <th>Verknüpfung</th>
+                <th>Erstellt von</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="termine-table"></tbody>
+          </table>
+        </div>
+        <div class="mobile-card-list" id="termine-mobile"></div>
       </div>
     </div>
     <!-- EXPORT -->
@@ -847,6 +884,73 @@
 </div>
 
 <!-- MODALS -->
+<div class="modal-overlay hidden" id="modal-termin">
+  <div class="modal">
+    <div class="modal-header"><span class="modal-title">Neuer Termin</span><button class="modal-close" onclick="closeModal('modal-termin')">×</button></div>
+    <div class="modal-body">
+      <div class="grid-2">
+        <div class="form-group"><label class="form-label">Titel *</label><input class="form-input" id="te-titel" placeholder="z.B. Aufzug-Inspektion, Besprechung Haustechnik"></div>
+        <div class="form-group"><label class="form-label">Typ</label>
+          <select class="form-select" id="te-typ">
+            <option value="termin">📅 Termin</option>
+            <option value="wartung">🔧 Wartung / Service</option>
+            <option value="inspektion">🔍 Inspektion / Prüfung</option>
+            <option value="meeting">👥 Besprechung</option>
+            <option value="lieferung">📦 Lieferung</option>
+            <option value="sonstiges">📌 Sonstiges</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="form-group"><label class="form-label">Datum *</label><input class="form-input" type="date" id="te-datum"></div>
+        <div class="form-group"><label class="form-label">Uhrzeit</label>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <input class="form-input" type="time" id="te-zeit-von" placeholder="Von" style="flex:1;">
+            <span style="color:var(--text3);font-size:13px;">bis</span>
+            <input class="form-input" type="time" id="te-zeit-bis" placeholder="Bis" style="flex:1;">
+          </div>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label">Verknüpft mit Ticket</label>
+          <select class="form-select" id="te-ticket"><option value="">– kein Ticket –</option></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Verknüpft mit Wartungsauftrag</label>
+          <select class="form-select" id="te-wartung"><option value="">– kein Wartungsauftrag –</option></select>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="form-group"><label class="form-label">Partnerfirma</label><select class="form-select" id="te-partner"><option value="">– auswählen –</option></select></div>
+        <div class="form-group"><label class="form-label">Erinnerung</label>
+          <select class="form-select" id="te-erinnerung">
+            <option value="">Keine</option>
+            <option value="0">Am Tag des Termins</option>
+            <option value="1440">1 Tag vorher</option>
+            <option value="2880">2 Tage vorher</option>
+            <option value="10080">1 Woche vorher</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group"><label class="form-label">Notizen / Beschreibung</label><textarea class="form-textarea" id="te-notizen" placeholder="Weitere Informationen zum Termin..."></textarea></div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('modal-termin')">Abbrechen</button><button class="btn btn-primary" id="btn-save-termin" onclick="saveTermin()">Termin speichern</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="modal-termin-detail">
+  <div class="modal">
+    <div class="modal-header"><span class="modal-title" id="termin-detail-title">Termin</span><button class="modal-close" onclick="closeModal('modal-termin-detail')">×</button></div>
+    <div class="modal-body" id="termin-detail-body"></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-termin-detail')">Schließen</button>
+      <button class="btn btn-secondary" id="btn-termin-edit" onclick="editTerminFromDetail()">✏️ Bearbeiten</button>
+      <button class="btn btn-primary" id="btn-termin-ics" onclick="downloadICSFromDetail()">📥 ICS herunterladen</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay hidden" id="modal-ticket">
   <div class="modal">
     <div class="modal-header"><span class="modal-title">Neues Ticket / Störungsmeldung</span><button class="modal-close" onclick="closeModal('modal-ticket')">×</button></div>
@@ -877,7 +981,7 @@
       <div class="grid-2"><div class="form-group"><label class="form-label">Zugewiesen an</label><select class="form-select" id="t-partner"><option value="">– auswählen –</option></select></div><div class="form-group"><label class="form-label">Gemeldet von</label><input class="form-input" id="t-gemeldet" placeholder="Name / Abteilung"></div></div>
       <div class="form-group"><label class="form-label">Beschreibung</label><textarea class="form-textarea" id="t-beschreibung" placeholder="Detaillierte Beschreibung..."></textarea></div>
     </div>
-    <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('modal-ticket')">Abbrechen</button><button class="btn btn-primary" id="btn-save-ticket">Ticket erstellen</button></div>
+    <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('modal-ticket')">Abbrechen</button><button class="btn btn-secondary" id="btn-ticket-termin" onclick="openTerminFromTicket()" style="display:none;">🗓️ Termin erstellen</button><button class="btn btn-primary" id="btn-save-ticket">Ticket erstellen</button></div>
   </div>
 </div>
 
@@ -891,7 +995,7 @@
       <div class="form-group" style="margin-top:-6px;"><label class="checkbox"><input type="checkbox" id="w-autoTicket"> <span>Ticket automatisch erstellen (bei Fälligkeit wird beim Öffnen der App ein Ticket erstellt)</span></label></div>
       <div class="form-group"><label class="form-label">Notizen</label><textarea class="form-textarea" id="w-notizen"></textarea></div>
     </div>
-    <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('modal-wartung')">Abbrechen</button><button class="btn btn-primary" id="btn-save-wartung">Auftrag erstellen</button></div>
+    <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('modal-wartung')">Abbrechen</button><button class="btn btn-secondary" id="btn-wartung-termin" onclick="openTerminFromWartung()" style="display:none;">🗓️ Termin erstellen</button><button class="btn btn-primary" id="btn-save-wartung">Auftrag erstellen</button></div>
   </div>
 </div>
 
@@ -1246,6 +1350,8 @@ window.setUserRole = async (emailKey, role) => {
 
 // Expose Firebase functions for import
 window._addDoc = (colName, data) => addDoc(collection(db, colName), data);
+window._updateDoc = (colName, id, data) => updateDoc(doc(db, colName, id), data);
+window._deleteDoc = (colName, id) => deleteDoc(doc(db, colName, id));
 window._serverTimestamp = () => serverTimestamp();
 window._addLog = addLog;
 
@@ -1315,12 +1421,12 @@ async function generateTicketsFromDueWartungen() {
   }
 }
 
-function checkLoaded() { loadedCount++; if (loadedCount >= 8) { document.getElementById('loading-overlay').classList.add('hidden'); if(!_wartungTicketGenDone){ _wartungTicketGenDone=true; generateTicketsFromDueWartungen(); } } }
+function checkLoaded() { loadedCount++; if (loadedCount >= 9) { document.getElementById('loading-overlay').classList.add('hidden'); if(!_wartungTicketGenDone){ _wartungTicketGenDone=true; generateTicketsFromDueWartungen(); } } }
 
 // Ensure state exists before listeners render
 (function ensureState(){
   window.state = window.state || {};
-  const __stateDefaults = { tickets:[], wartungen:[], geraete:[], partner:[], notfaelle:[], dokumente:[], bereiche:[], log:[], ticketFilter:'aktiv', wartungFilter:'zukunft', geraeteFilter:'alle', partnerFilter:'alle', bereicheFilter:'alle', calMonth:new Date().getMonth(), calYear:new Date().getFullYear(), ticketSearch:'', wartungSearch:'', ticketSort:{col:null,dir:1}, wartungSort:{col:null,dir:1}, geraeteSearch:'', bereicheSearch:'', partnerSearch:'', notfallSearch:'', logSearch:'' };
+  const __stateDefaults = { tickets:[], wartungen:[], geraete:[], partner:[], notfaelle:[], dokumente:[], bereiche:[], log:[], termine:[], ticketFilter:'aktiv', wartungFilter:'zukunft', geraeteFilter:'alle', partnerFilter:'alle', bereicheFilter:'alle', calMonth:new Date().getMonth(), calYear:new Date().getFullYear(), ticketSearch:'', wartungSearch:'', ticketSort:{col:null,dir:1}, wartungSort:{col:null,dir:1}, geraeteSearch:'', bereicheSearch:'', partnerSearch:'', notfallSearch:'', logSearch:'', terminFilter:'alle', terminSearch:'' };
   for (const k in __stateDefaults) { if (window.state[k] === undefined) window.state[k] = __stateDefaults[k]; }
 })();
 
@@ -1336,6 +1442,7 @@ function startListeners() {
   onSnapshot(col('dokumente'), s => { window.state.dokumente = s.docs.map(d=>({id:d.id,...d.data()})); renderAll(); checkLoaded(); }, ()=>checkLoaded());
   onSnapshot(col('bereiche'), s => { window.state.bereiche = s.docs.map(d=>({id:d.id,...d.data()})); renderAll(); checkLoaded(); }, ()=>checkLoaded());
   onSnapshot(col('log'), s => { window.state.log = s.docs.map(d=>({id:d.id,...d.data()})); renderAll(); checkLoaded(); }, ()=>checkLoaded());
+  onSnapshot(col('termine'), s => { window.state.termine = s.docs.map(d=>({id:d.id,...d.data()})); renderAll(); checkLoaded(); }, ()=>checkLoaded());
 
   document.getElementById('sync-dot').style.background = 'var(--green)';
   document.getElementById('sync-label').textContent = 'Live-Sync aktiv';
@@ -1757,6 +1864,8 @@ window.editItem = (type, id) => {
     }
     document.getElementById('modal-ticket').querySelector('.modal-title').textContent='Ticket bearbeiten';
     document.getElementById('btn-save-ticket').textContent='Änderungen speichern';
+    document.getElementById('btn-ticket-termin').style.display='inline-flex';
+    document.getElementById('btn-ticket-termin').dataset.ticketId=item.id;
     document.getElementById('modal-ticket').classList.remove('hidden');
   } else if(type==='wartungen'){
     document.getElementById('w-bezeichnung').value=item.bezeichnung||'';
@@ -1769,6 +1878,8 @@ window.editItem = (type, id) => {
     document.getElementById('w-notizen').value=item.notizen||'';
     document.getElementById('modal-wartung').querySelector('.modal-title').textContent='Wartungsauftrag bearbeiten';
     document.getElementById('btn-save-wartung').textContent='Änderungen speichern';
+    document.getElementById('btn-wartung-termin').style.display='inline-flex';
+    document.getElementById('btn-wartung-termin').dataset.wartungId=item.id;
     document.getElementById('modal-wartung').classList.remove('hidden');
   } else if(type==='geraete'){
     document.getElementById('g-name').value=item.name||'';
@@ -1836,7 +1947,7 @@ window.editItem = (type, id) => {
 
 <script>
 window.state = window.state || {};
-  const __stateDefaults = { tickets:[], wartungen:[], geraete:[], partner:[], notfaelle:[], dokumente:[], bereiche:[], log:[], ticketFilter:'aktiv', wartungFilter:'zukunft', geraeteFilter:'alle', partnerFilter:'alle', bereicheFilter:'alle', calMonth:new Date().getMonth(), calYear:new Date().getFullYear(), ticketSearch:'', wartungSearch:'', ticketSort:{col:null,dir:1}, wartungSort:{col:null,dir:1}, geraeteSearch:'', bereicheSearch:'', partnerSearch:'', notfallSearch:'', logSearch:'' };
+  const __stateDefaults = { tickets:[], wartungen:[], geraete:[], partner:[], notfaelle:[], dokumente:[], bereiche:[], log:[], termine:[], ticketFilter:'aktiv', wartungFilter:'zukunft', geraeteFilter:'alle', partnerFilter:'alle', bereicheFilter:'alle', calMonth:new Date().getMonth(), calYear:new Date().getFullYear(), ticketSearch:'', wartungSearch:'', ticketSort:{col:null,dir:1}, wartungSort:{col:null,dir:1}, geraeteSearch:'', bereicheSearch:'', partnerSearch:'', notfallSearch:'', logSearch:'', terminFilter:'alle', terminSearch:'' };
   for (const k in __stateDefaults) { if (window.state[k] === undefined) window.state[k] = __stateDefaults[k]; }
 
 // Force responsive visibility (prevents table + mobile cards showing at the same time)
@@ -1854,7 +1965,7 @@ applyResponsiveVisibility();
 
 
 
-const pageLabels = {dashboard:'Dashboard',tickets:'Tickets & Störungen',wartung:'Wartungsaufträge',kalender:'Wartungskalender',geraete:'Geräte & Anlagen',bereiche:'Hotelbereiche',dokumente:'Dokumente',partner:'Partnerfirmen',notfall:'Notfallkontakte',aktivitaet:'Aktivitätslog',benutzer:'Benutzerverwaltung',import:'Daten importieren',export:'Daten exportieren',mehr:'Mehr'};
+const pageLabels = {dashboard:'Dashboard',tickets:'Tickets & Störungen',wartung:'Wartungsaufträge',kalender:'Wartungskalender',termine:'Termine',geraete:'Geräte & Anlagen',bereiche:'Hotelbereiche',dokumente:'Dokumente',partner:'Partnerfirmen',notfall:'Notfallkontakte',aktivitaet:'Aktivitätslog',benutzer:'Benutzerverwaltung',import:'Daten importieren',export:'Daten exportieren',mehr:'Mehr'};
 
 // Pages reachable directly from bottom nav (no back button needed)
 const mainPages = new Set(['dashboard','tickets','geraete','notfall','mehr']);
@@ -1872,6 +1983,7 @@ window.goBack = () => {
 const fabActions = {
   tickets: () => openModal('modal-ticket'),
   wartung: () => openModal('modal-wartung'),
+  termine: () => openModal('modal-termin'),
   geraete: () => openModal('modal-geraet'),
   bereiche: () => openModal('modal-bereich'),
   partner: () => openModal('modal-partner'),
@@ -1935,12 +2047,13 @@ function closeModal(id) {
   window._editId=null; window._editType=null;
   hideEntityTicketLogs();
   // Reset titles and button labels
-  const titleMap={'modal-ticket':'Neues Ticket / Störungsmeldung','modal-wartung':'Wartungsauftrag erfassen','modal-geraet':'Gerät / Anlage hinzufügen','modal-partner':'Partnerfirma hinzufügen','modal-notfall':'Notfallkontakt hinzufügen','modal-dokument':'Dokument erfassen','modal-bereich':'Hotelbereich hinzufügen'};
-  const btnMap={'modal-ticket':'btn-save-ticket','modal-wartung':'btn-save-wartung','modal-geraet':'btn-save-geraet','modal-partner':'btn-save-partner','modal-notfall':'btn-save-notfall','modal-dokument':'btn-save-dokument','modal-bereich':'btn-save-bereich'};
-  const saveLabelMap={'modal-ticket':'Ticket erstellen','modal-wartung':'Auftrag erstellen','modal-geraet':'Gerät speichern','modal-partner':'Firma speichern','modal-notfall':'Kontakt speichern','modal-dokument':'Speichern','modal-bereich':'Bereich speichern'};
+  const titleMap={'modal-ticket':'Neues Ticket / Störungsmeldung','modal-wartung':'Wartungsauftrag erfassen','modal-geraet':'Gerät / Anlage hinzufügen','modal-partner':'Partnerfirma hinzufügen','modal-notfall':'Notfallkontakt hinzufügen','modal-dokument':'Dokument erfassen','modal-bereich':'Hotelbereich hinzufügen','modal-termin':'Neuer Termin'};
+  const btnMap={'modal-ticket':'btn-save-ticket','modal-wartung':'btn-save-wartung','modal-geraet':'btn-save-geraet','modal-partner':'btn-save-partner','modal-notfall':'btn-save-notfall','modal-dokument':'btn-save-dokument','modal-bereich':'btn-save-bereich','modal-termin':'btn-save-termin'};
+  const saveLabelMap={'modal-ticket':'Ticket erstellen','modal-wartung':'Auftrag erstellen','modal-geraet':'Gerät speichern','modal-partner':'Firma speichern','modal-notfall':'Kontakt speichern','modal-dokument':'Speichern','modal-bereich':'Bereich speichern','modal-termin':'Termin speichern'};
   if(titleMap[id]) document.querySelector(`#${id} .modal-title`).textContent=titleMap[id];
   if(btnMap[id]) document.getElementById(btnMap[id]).textContent=saveLabelMap[id];
-  if(id==='modal-ticket') resetZimmerPanel();
+  if(id==='modal-ticket') { resetZimmerPanel(); document.getElementById('btn-ticket-termin').style.display='none'; }
+  if(id==='modal-wartung') document.getElementById('btn-wartung-termin').style.display='none';
 }
 
 function _lc(a,b){
@@ -1992,10 +2105,21 @@ function populateSelects() {
   const b = bereicheSorted.map(b=>`<option value="${b.id}">${_optEsc(b.name||'')}</option>`).join('');
 
   ['t-geraet','w-geraet','d-geraet'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML='<option value="">– auswählen –</option>'+g;});
-  ['t-partner','w-partner'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML='<option value="">– auswählen –</option>'+p;});
+  ['t-partner','w-partner','te-partner'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML='<option value="">– auswählen –</option>'+p;});
   const gp=document.getElementById('g-partner');if(gp)gp.innerHTML='<option value="">– auswählen –</option>'+p;
   const tb=document.getElementById('t-bereich');if(tb)tb.innerHTML='<option value="">– auswählen –</option>'+b;
   const gb=document.getElementById('g-bereich');if(gb)gb.innerHTML='<option value="">– auswählen –</option>'+b;
+  // Populate ticket/wartung selects in Termin modal
+  const teTicket=document.getElementById('te-ticket');
+  if(teTicket){
+    const openTickets=[...state.tickets].filter(t=>t.status!=='erledigt').sort((a,b)=>_lc(a.betreff,b.betreff));
+    teTicket.innerHTML='<option value="">– kein Ticket –</option>'+openTickets.map(t=>`<option value="${t.id}">${_optEsc(t.betreff||'')}</option>`).join('');
+  }
+  const teWartung=document.getElementById('te-wartung');
+  if(teWartung){
+    const futureWartungen=[...state.wartungen].filter(w=>w.status!=='abgeschlossen'&&w.status!=='storniert').sort((a,b)=>_lc(a.bezeichnung,b.bezeichnung));
+    teWartung.innerHTML='<option value="">– kein Wartungsauftrag –</option>'+futureWartungen.map(w=>`<option value="${w.id}">${_optEsc(w.bezeichnung||'')}</option>`).join('');
+  }
 }
 
 // Auto-fill Bereich when Gerät is selected in ticket modal
@@ -2053,7 +2177,7 @@ const bLabel={zimmer:'Zimmer',seminar:'Seminarraum',restaurant:'Restaurant/Bar',
 function fDate(d){if(!d)return'–';try{return new Date(d+'T00:00:00').toLocaleDateString('de-DE');}catch(e){return d;}}
 function fTs(ts){if(!ts)return'–';try{const d=ts.toDate?ts.toDate():new Date(ts);return d.toLocaleDateString('de-DE')+' '+d.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});}catch(e){return'–';}}
 
-function renderAll() { renderDashboard();renderTickets();renderTicketsMobile();renderWartungen();renderWartungenMobile();renderGeraete();renderPartner();renderNotfall();renderDokumente();renderDokumenteMobile();renderBereiche();updateBadges();updateExportCounts(); }
+function renderAll() { renderDashboard();renderTickets();renderTicketsMobile();renderWartungen();renderWartungenMobile();renderGeraete();renderPartner();renderNotfall();renderDokumente();renderDokumenteMobile();renderBereiche();updateBadges();updateExportCounts();renderTermine(); }
 
 function renderDashboard() {
   const offene=state.tickets.filter(t=>t.status!=='erledigt');
@@ -2853,6 +2977,272 @@ window.handleImport = async function(input, type) {
   } catch(e) {
     resultEl.innerHTML=`<div style="background:var(--red-light);color:var(--red);padding:10px 12px;border-radius:7px;font-size:13px;">❌ Fehler: ${e.message}</div>`;
   }
+};
+
+// ============================================================
+// TERMINE – Funktionen
+// ============================================================
+
+function terminTypIcon(typ){
+  const icons={termin:'📅',wartung:'🔧',inspektion:'🔍',meeting:'👥',lieferung:'📦',sonstiges:'📌'};
+  return icons[typ]||'📅';
+}
+function terminTypLabel(typ){
+  const labels={termin:'Termin',wartung:'Wartung / Service',inspektion:'Inspektion / Prüfung',meeting:'Besprechung',lieferung:'Lieferung',sonstiges:'Sonstiges'};
+  return labels[typ]||typ;
+}
+
+window.filterTermine = function(f, btn){
+  window.state.terminFilter=f;
+  document.querySelectorAll('#page-termine .tab').forEach(t=>t.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  renderTermine();
+};
+
+function renderTermine(){
+  const tbody=document.getElementById('termine-table');
+  const mlist=document.getElementById('termine-mobile');
+  if(!tbody) return;
+  const today=new Date(); today.setHours(0,0,0,0);
+  const search=(window.state.terminSearch||'').toLowerCase();
+  const filter=window.state.terminFilter||'alle';
+  let items=[...(window.state.termine||[])];
+  items.sort((a,b)=>(a.datum||'').localeCompare(b.datum||''));
+  items=items.filter(t=>{
+    if(search && !(t.titel||'').toLowerCase().includes(search) && !(t.notizen||'').toLowerCase().includes(search)) return false;
+    const d=t.datum?new Date(t.datum):null;
+    if(d) d.setHours(0,0,0,0);
+    if(filter==='zukunft') return d && d>=today;
+    if(filter==='heute') return d && d.getTime()===today.getTime();
+    if(filter==='vergangen') return d && d<today;
+    return true;
+  });
+  if(!items.length){
+    tbody.innerHTML=`<tr><td colspan="6" style="text-align:center;color:var(--text3);padding:32px;">Keine Termine gefunden</td></tr>`;
+    if(mlist) mlist.innerHTML=`<div class="empty-state"><div class="empty-icon">🗓️</div><p>Keine Termine</p></div>`;
+    return;
+  }
+  tbody.innerHTML=items.map(t=>{
+    const d=t.datum?new Date(t.datum+'T00:00:00'):null;
+    const dateStr=d?d.toLocaleDateString('de-CH',{day:'2-digit',month:'2-digit',year:'numeric'}):'–';
+    const zeitStr=t.zeitVon?(t.zeitVon+(t.zeitBis?' – '+t.zeitBis:'')):'Ganztägig';
+    const isPast=d&&d<today;
+    const isToday=d&&d.getTime()===today.getTime();
+    const dateBadge=isToday?`<span style="background:#2563eb22;color:#2563eb;font-size:10px;padding:2px 6px;border-radius:8px;margin-left:4px;">Heute</span>`:
+      isPast?`<span style="background:var(--red-light);color:var(--red);font-size:10px;padding:2px 6px;border-radius:8px;margin-left:4px;">Vergangen</span>`:'';
+    const ticketRef=t.ticketId?(window.state.tickets||[]).find(tk=>tk.id===t.ticketId):null;
+    const wartungRef=t.wartungId?(window.state.wartungen||[]).find(w=>w.id===t.wartungId):null;
+    let verknLink='–';
+    if(ticketRef) verknLink=`<span style="cursor:pointer;color:var(--blue);text-decoration:underline;" onclick="showPage('tickets')"># ${_optEsc(ticketRef.betreff||'Ticket')}</span>`;
+    else if(wartungRef) verknLink=`<span style="cursor:pointer;color:var(--blue);text-decoration:underline;" onclick="showPage('wartung')">🔧 ${_optEsc(wartungRef.bezeichnung||'Wartung')}</span>`;
+    return `<tr>
+      <td><span style="font-weight:500;">${terminTypIcon(t.typ)} ${_optEsc(t.titel||'')}</span></td>
+      <td>${dateStr} ${dateBadge}<br><span style="font-size:12px;color:var(--text3);">${zeitStr}</span></td>
+      <td><span style="font-size:12px;">${terminTypLabel(t.typ)}</span></td>
+      <td>${verknLink}</td>
+      <td style="font-size:12px;color:var(--text3);">${_optEsc(t.ersteller||'')}</td>
+      <td style="white-space:nowrap;">
+        <button class="icon-btn" title="ICS herunterladen" onclick="downloadICS('${t.id}')">📥</button>
+        <button class="icon-btn" title="Details" onclick="showTerminDetail('${t.id}')">👁️</button>
+        <button class="icon-btn" title="Bearbeiten" onclick="editTermin('${t.id}')">✏️</button>
+        <button class="icon-btn icon-btn-danger" title="Löschen" onclick="deleteTermin('${t.id}')">🗑️</button>
+      </td>
+    </tr>`;
+  }).join('');
+  if(mlist) mlist.innerHTML=items.map(t=>{
+    const d=t.datum?new Date(t.datum+'T00:00:00'):null;
+    const dateStr=d?d.toLocaleDateString('de-CH',{day:'2-digit',month:'2-digit',year:'numeric'}):'–';
+    const zeitStr=t.zeitVon?(t.zeitVon+(t.zeitBis?' – '+t.zeitBis:'')):'Ganztägig';
+    return `<div class="mobile-card" onclick="showTerminDetail('${t.id}')">
+      <div class="mobile-card-title">${terminTypIcon(t.typ)} ${_optEsc(t.titel||'')}</div>
+      <div class="mobile-card-meta">${dateStr} · ${zeitStr}</div>
+      <div class="mobile-card-meta">${terminTypLabel(t.typ)}</div>
+      <div class="mobile-card-actions">
+        <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();downloadICS('${t.id}')">📥 ICS</button>
+        <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();editTermin('${t.id}')">✏️</button>
+        <button class="btn btn-secondary btn-sm" style="color:var(--red);" onclick="event.stopPropagation();deleteTermin('${t.id}')">🗑️</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+window.saveTermin = async function(){
+  const titel=(document.getElementById('te-titel').value||'').trim();
+  if(!titel){ alert('Bitte Titel eingeben.'); return; }
+  const datum=document.getElementById('te-datum').value;
+  if(!datum){ alert('Bitte Datum auswählen.'); return; }
+  const ticketEl=document.getElementById('te-ticket');
+  const wartungEl=document.getElementById('te-wartung');
+  const ticketId=ticketEl?ticketEl.value:'';
+  const wartungId=wartungEl?wartungEl.value:'';
+  const ticketRef=ticketId?(window.state.tickets||[]).find(t=>t.id===ticketId):null;
+  const wartungRef=wartungId?(window.state.wartungen||[]).find(w=>w.id===wartungId):null;
+  const partnerId=document.getElementById('te-partner').value||'';
+  const partnerRef=partnerId?(window.state.partner||[]).find(p=>p.id===partnerId):null;
+  const data={
+    titel, typ:document.getElementById('te-typ').value||'termin',
+    datum, zeitVon:document.getElementById('te-zeit-von').value||'',
+    zeitBis:document.getElementById('te-zeit-bis').value||'',
+    ticketId, ticketTitel:ticketRef?ticketRef.betreff:'',
+    wartungId, wartungTitel:wartungRef?wartungRef.bezeichnung:'',
+    partnerId, partnerName:partnerRef?partnerRef.name:'',
+    erinnerung:document.getElementById('te-erinnerung').value||'',
+    notizen:document.getElementById('te-notizen').value||'',
+    ersteller:window._currentUser?.displayName||window._currentUser?.email||'',
+    createdAt:window._serverTimestamp()
+  };
+  try {
+    if(window._editId && window._editType==='termine'){
+      await window._updateDoc('termine', window._editId, data);
+      await window._addLog(`Termin bearbeitet: "${titel}"`, '#7c3aed');
+    } else {
+      await window._addDoc('termine', data);
+      await window._addLog(`Termin erstellt: "${titel}"`, '#2563eb');
+    }
+    closeModal('modal-termin');
+  } catch(e){ alert('Fehler beim Speichern: '+e.message); }
+};
+
+window.editTermin = function(id){
+  const t=(window.state.termine||[]).find(x=>x.id===id);
+  if(!t) return;
+  populateSelects();
+  window._editId=id; window._editType='termine';
+  document.getElementById('te-titel').value=t.titel||'';
+  document.getElementById('te-typ').value=t.typ||'termin';
+  document.getElementById('te-datum').value=t.datum||'';
+  document.getElementById('te-zeit-von').value=t.zeitVon||'';
+  document.getElementById('te-zeit-bis').value=t.zeitBis||'';
+  setTimeout(()=>{
+    const tk=document.getElementById('te-ticket'); if(tk) tk.value=t.ticketId||'';
+    const w=document.getElementById('te-wartung'); if(w) w.value=t.wartungId||'';
+    const p=document.getElementById('te-partner'); if(p) p.value=t.partnerId||'';
+  },50);
+  document.getElementById('te-erinnerung').value=t.erinnerung||'';
+  document.getElementById('te-notizen').value=t.notizen||'';
+  document.getElementById('modal-termin').querySelector('.modal-title').textContent='Termin bearbeiten';
+  document.getElementById('btn-save-termin').textContent='Änderungen speichern';
+  document.getElementById('modal-termin').classList.remove('hidden');
+};
+
+window.deleteTermin = async function(id){
+  const t=(window.state.termine||[]).find(x=>x.id===id);
+  if(!t) return;
+  if(!confirm(`Termin "${t.titel}" wirklich löschen?`)) return;
+  await window._deleteDoc('termine', id);
+  await window._addLog(`Termin gelöscht: "${t.titel}"`, '#dc2626');
+};
+
+window.showTerminDetail = function(id){
+  const t=(window.state.termine||[]).find(x=>x.id===id);
+  if(!t) return;
+  window._terminDetailId=id;
+  const d=t.datum?new Date(t.datum+'T00:00:00'):null;
+  const dateStr=d?d.toLocaleDateString('de-CH',{weekday:'long',day:'2-digit',month:'long',year:'numeric'}):'–';
+  const zeitStr=t.zeitVon?(t.zeitVon+(t.zeitBis?' – '+t.zeitBis:'')):'Ganztägig';
+  const ticketRef=t.ticketId?(window.state.tickets||[]).find(tk=>tk.id===t.ticketId):null;
+  const wartungRef=t.wartungId?(window.state.wartungen||[]).find(w=>w.id===t.wartungId):null;
+  document.getElementById('termin-detail-title').textContent=`${terminTypIcon(t.typ)} ${t.titel}`;
+  document.getElementById('termin-detail-body').innerHTML=`
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+      <div><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">Datum</div><div style="font-weight:500;">${dateStr}</div></div>
+      <div><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">Uhrzeit</div><div style="font-weight:500;">${zeitStr}</div></div>
+      <div><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">Typ</div><div>${terminTypLabel(t.typ)}</div></div>
+      <div><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">Erstellt von</div><div>${_optEsc(t.ersteller||'–')}</div></div>
+      ${t.partnerName?`<div><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">Partnerfirma</div><div>${_optEsc(t.partnerName)}</div></div>`:''}
+      ${ticketRef?`<div><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">Ticket</div><div style="color:var(--blue);cursor:pointer;" onclick="closeModal('modal-termin-detail');showPage('tickets')"># ${_optEsc(ticketRef.betreff)}</div></div>`:''}
+      ${wartungRef?`<div><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">Wartungsauftrag</div><div style="color:var(--blue);cursor:pointer;" onclick="closeModal('modal-termin-detail');showPage('wartung')">🔧 ${_optEsc(wartungRef.bezeichnung)}</div></div>`:''}
+    </div>
+    ${t.notizen?`<div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:13.5px;color:var(--text1);white-space:pre-wrap;">${_optEsc(t.notizen)}</div>`:''}
+  `;
+  document.getElementById('modal-termin-detail').classList.remove('hidden');
+};
+
+window.editTerminFromDetail = function(){ const id=window._terminDetailId; closeModal('modal-termin-detail'); if(id) editTermin(id); };
+window.downloadICSFromDetail = function(){ const id=window._terminDetailId; if(id) downloadICS(id); };
+
+window.downloadICS = function(id){
+  const t=(window.state.termine||[]).find(x=>x.id===id);
+  if(!t) return;
+  const ics=buildICS(t);
+  const blob=new Blob([ics],{type:'text/calendar;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download=(t.titel||'Termin').replace(/[^a-z0-9äöü\s\-]/gi,'_')+'.ics';
+  a.click(); URL.revokeObjectURL(url);
+};
+
+window.downloadAllTermineICS = function(){
+  const items=window.state.termine||[];
+  if(!items.length){ alert('Keine Termine vorhanden.'); return; }
+  const lines=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//FacilityOS Hotel Sternen Oerlikon//DE','CALSCALE:GREGORIAN','METHOD:PUBLISH'];
+  items.forEach(t=>{ const ev=buildICSEvent(t); if(ev) lines.push(...ev); });
+  lines.push('END:VCALENDAR');
+  const blob=new Blob([lines.join('\r\n')],{type:'text/calendar;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download='FacilityOS_Termine.ics'; a.click(); URL.revokeObjectURL(url);
+};
+
+function buildICS(t){
+  const lines=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//FacilityOS Hotel Sternen Oerlikon//DE','CALSCALE:GREGORIAN','METHOD:PUBLISH'];
+  const ev=buildICSEvent(t); if(ev) lines.push(...ev);
+  lines.push('END:VCALENDAR');
+  return lines.join('\r\n');
+}
+
+function buildICSEvent(t){
+  if(!t.datum) return null;
+  const uid=`termin-${t.id||Date.now()}@facilityos.hotel-sternen-oerlikon`;
+  const now=new Date(); const dtstamp=now.toISOString().replace(/[-:]/g,'').slice(0,15)+'Z';
+  let dtstart, dtend;
+  if(t.zeitVon){
+    dtstart=`${t.datum.replace(/-/g,'')}T${t.zeitVon.replace(':','')}00`;
+    const endTime=t.zeitBis||t.zeitVon;
+    dtend=`${t.datum.replace(/-/g,'')}T${endTime.replace(':','')}00`;
+    if(dtend<=dtstart){ const ed=new Date(t.datum+'T'+endTime); ed.setHours(ed.getHours()+1); dtend=`${t.datum.replace(/-/g,'')}T${String(ed.getHours()).padStart(2,'0')}${String(ed.getMinutes()).padStart(2,'0')}00`; }
+  } else {
+    dtstart=t.datum.replace(/-/g,'');
+    const nd=new Date(t.datum+'T00:00:00'); nd.setDate(nd.getDate()+1);
+    dtend=nd.toISOString().slice(0,10).replace(/-/g,'');
+  }
+  const desc=[terminTypLabel(t.typ),t.partnerName?'Firma: '+t.partnerName:'',t.ticketTitel?'Ticket: '+t.ticketTitel:'',t.wartungTitel?'Wartungsauftrag: '+t.wartungTitel:'',t.notizen||''].filter(Boolean).join('\\n');
+  const esc=s=>String(s||'').replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\n/g,'\\n');
+  const lines=['BEGIN:VEVENT','UID:'+uid,'DTSTAMP:'+dtstamp];
+  if(t.zeitVon){ lines.push('DTSTART:'+dtstart,'DTEND:'+dtend); } else { lines.push('DTSTART;VALUE=DATE:'+dtstart,'DTEND;VALUE=DATE:'+dtend); }
+  lines.push('SUMMARY:'+esc(t.titel||'Termin'));
+  if(desc) lines.push('DESCRIPTION:'+esc(desc));
+  if(t.erinnerung!==undefined&&t.erinnerung!==''){
+    const mins=parseInt(t.erinnerung)||0;
+    lines.push('BEGIN:VALARM','TRIGGER:-PT'+mins+'M','ACTION:DISPLAY','DESCRIPTION:Erinnerung: '+esc(t.titel||''),'END:VALARM');
+  }
+  lines.push('END:VEVENT');
+  return lines;
+}
+
+window.openTerminFromTicket = function(){
+  const btn=document.getElementById('btn-ticket-termin');
+  const ticketId=btn?.dataset?.ticketId||window._editId||'';
+  const ticket=ticketId?(window.state.tickets||[]).find(t=>t.id===ticketId):null;
+  closeModal('modal-ticket');
+  populateSelects();
+  if(ticket){ document.getElementById('te-titel').value=ticket.betreff||''; document.getElementById('te-typ').value='termin'; setTimeout(()=>{ const el=document.getElementById('te-ticket'); if(el) el.value=ticketId; },50); }
+  document.getElementById('modal-termin').querySelector('.modal-title').textContent='Neuer Termin';
+  document.getElementById('btn-save-termin').textContent='Termin speichern';
+  document.getElementById('modal-termin').classList.remove('hidden');
+};
+
+window.openTerminFromWartung = function(){
+  const btn=document.getElementById('btn-wartung-termin');
+  const wartungId=btn?.dataset?.wartungId||window._editId||'';
+  const wartung=wartungId?(window.state.wartungen||[]).find(w=>w.id===wartungId):null;
+  closeModal('modal-wartung');
+  populateSelects();
+  if(wartung){ document.getElementById('te-titel').value=wartung.bezeichnung||''; document.getElementById('te-typ').value='wartung'; document.getElementById('te-datum').value=wartung.datum||''; setTimeout(()=>{ const el=document.getElementById('te-wartung'); if(el) el.value=wartungId; const pe=document.getElementById('te-partner'); if(pe&&wartung.partnerId) pe.value=wartung.partnerId; },50); }
+  document.getElementById('modal-termin').querySelector('.modal-title').textContent='Neuer Termin';
+  document.getElementById('btn-save-termin').textContent='Termin speichern';
+  document.getElementById('modal-termin').classList.remove('hidden');
 };
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script></body>
