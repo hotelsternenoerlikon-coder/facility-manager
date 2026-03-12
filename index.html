@@ -513,7 +513,7 @@
       </div>
       <div class="card">
         <div class="card-header"><span class="card-title">Tickets & Störungsmeldungen</span><div class="search-wrap"><span class="search-icon">🔍</span><input class="search-input" placeholder="Suchen..." oninput="state.ticketSearch=this.value;renderTickets();renderTicketsMobile()"></div></div>
-        <div class="table-wrap"><table><thead><tr id="tickets-thead"><th onclick="sortTable('ticket','betreff')" style="cursor:pointer;user-select:none;">Betreff <span id="sort-ticket-betreff"></span></th><th onclick="sortTable('ticket','geraetName')" style="cursor:pointer;user-select:none;">Gerät <span id="sort-ticket-geraetName"></span></th><th onclick="sortTable('ticket','bereichName')" style="cursor:pointer;user-select:none;">Bereich <span id="sort-ticket-bereichName"></span></th><th onclick="sortTable('ticket','prioritaet')" style="cursor:pointer;user-select:none;">Priorität <span id="sort-ticket-prioritaet"></span></th><th onclick="sortTable('ticket','status')" style="cursor:pointer;user-select:none;">Status <span id="sort-ticket-status"></span></th><th onclick="sortTable('ticket','ersteller')" style="cursor:pointer;user-select:none;">Erstellt von <span id="sort-ticket-ersteller"></span></th><th onclick="sortTable('ticket','partnerName')" style="cursor:pointer;user-select:none;">Zugewiesen <span id="sort-ticket-partnerName"></span></th><th></th></tr></thead><tbody id="tickets-table"></tbody></table></div>
+        <div class="table-wrap"><table><thead><tr id="tickets-thead"><th onclick="sortTable('ticket','betreff')" style="cursor:pointer;user-select:none;">Betreff <span id="sort-ticket-betreff"></span></th><th onclick="sortTable('ticket','geraetName')" style="cursor:pointer;user-select:none;">Gerät <span id="sort-ticket-geraetName"></span></th><th onclick="sortTable('ticket','bereichName')" style="cursor:pointer;user-select:none;">Bereich <span id="sort-ticket-bereichName"></span></th><th onclick="sortTable('ticket','prioritaet')" style="cursor:pointer;user-select:none;">Priorität <span id="sort-ticket-prioritaet"></span></th><th onclick="sortTable('ticket','status')" style="cursor:pointer;user-select:none;">Status <span id="sort-ticket-status"></span></th><th onclick="sortTable('ticket','ersteller')" style="cursor:pointer;user-select:none;">Erstellt von <span id="sort-ticket-ersteller"></span></th><th onclick="sortTable('ticket','partnerName')" style="cursor:pointer;user-select:none;">Zugewiesen <span id="sort-ticket-partnerName"></span></th><th>Termin</th><th></th></tr></thead><tbody id="tickets-table"></tbody></table></div>
         <div class="mobile-card-list" id="tickets-mobile"></div>
       </div>
     </div>
@@ -533,7 +533,7 @@
       </div>
       <div class="card">
         <div class="card-header"><span class="card-title">Wartungsaufträge & Serviceaufträge</span><div class="search-wrap"><span class="search-icon">🔍</span><input class="search-input" placeholder="Suchen..." oninput="state.wartungSearch=this.value;renderWartungen();renderWartungenMobile()"></div></div>
-        <div class="table-wrap"><table><thead><tr><th onclick="sortTable('wartung','bezeichnung')" style="cursor:pointer;user-select:none;">Bezeichnung <span id="sort-wartung-bezeichnung"></span></th><th onclick="sortTable('wartung','geraetName')" style="cursor:pointer;user-select:none;">Gerät <span id="sort-wartung-geraetName"></span></th><th onclick="sortTable('wartung','typ')" style="cursor:pointer;user-select:none;">Typ <span id="sort-wartung-typ"></span></th><th onclick="sortTable('wartung','datum')" style="cursor:pointer;user-select:none;">Fällig am <span id="sort-wartung-datum">▲</span></th><th onclick="sortTable('wartung','partnerName')" style="cursor:pointer;user-select:none;">Zuständig <span id="sort-wartung-partnerName"></span></th><th onclick="sortTable('wartung','status')" style="cursor:pointer;user-select:none;">Status <span id="sort-wartung-status"></span></th><th></th></tr></thead><tbody id="wartung-table"></tbody></table></div>
+        <div class="table-wrap"><table><thead><tr><th onclick="sortTable('wartung','bezeichnung')" style="cursor:pointer;user-select:none;">Bezeichnung <span id="sort-wartung-bezeichnung"></span></th><th onclick="sortTable('wartung','geraetName')" style="cursor:pointer;user-select:none;">Gerät <span id="sort-wartung-geraetName"></span></th><th onclick="sortTable('wartung','typ')" style="cursor:pointer;user-select:none;">Typ <span id="sort-wartung-typ"></span></th><th onclick="sortTable('wartung','datum')" style="cursor:pointer;user-select:none;">Fällig am <span id="sort-wartung-datum">▲</span></th><th onclick="sortTable('wartung','partnerName')" style="cursor:pointer;user-select:none;">Zuständig <span id="sort-wartung-partnerName"></span></th><th onclick="sortTable('wartung','status')" style="cursor:pointer;user-select:none;">Status <span id="sort-wartung-status"></span></th><th>Termin</th><th></th></tr></thead><tbody id="wartung-table"></tbody></table></div>
         <div class="mobile-card-list" id="wartung-mobile"></div>
       </div>
     </div>
@@ -2226,9 +2226,22 @@ function renderTickets() {
     const zdone = hasZimmer ? t.zimmerListe.filter(z=>z.erledigt).length : 0;
     const ztotal = hasZimmer ? t.zimmerListe.length : 0;
     const zimmerProgress = hasZimmer ? `<span onclick="toggleZimmerDetail('${t.id}')" style="cursor:pointer;display:inline-flex;align-items:center;gap:5px;background:var(--surface2);border:1px solid var(--border2);border-radius:5px;padding:2px 7px;font-size:11.5px;color:${zdone===ztotal?'var(--green)':'var(--text2)'};" title="Zimmer anzeigen">🏨 ${zdone}/${ztotal} <span style="font-size:10px;">▼</span></span>` : '';
-    const zimmerRows = hasZimmer ? `<tr id="zimmer-detail-${t.id}" style="display:none;"><td colspan="8" style="padding:0 12px 10px 12px;background:var(--surface2);"><div style="display:flex;flex-wrap:wrap;gap:6px;padding:10px 0 4px;">${t.zimmerListe.map(z=>`<label style="display:inline-flex;align-items:center;gap:5px;font-size:12.5px;background:var(--surface);border:1px solid ${z.erledigt?'var(--green)':'var(--border2)'};border-radius:6px;padding:4px 9px;cursor:pointer;text-decoration:${z.erledigt?'line-through':'none'};color:${z.erledigt?'var(--text3)':'var(--text1)'};" title="${z.erledigt?'Erledigt – klicken zum Rückgängig':'Klicken zum Abhaken'}"><input type="checkbox" ${z.erledigt?'checked':''} onchange="toggleZimmerErledigt('${t.id}','${z.bereichId}',this.checked)" style="cursor:pointer;">${esc(z.name)}</label>`).join('')}</div></td></tr>` : '';
-    return `<tr><td><span style="font-weight:500;">${t.betreff}</span>${t.autoGenerated?` <span class="badge badge-violet">🤖 Automatisch aus Wartung</span>`:''}${hasZimmer?` <span class="badge badge-blue">🏨 Multi-Zimmer</span>`:''}${t.beschreibung?`<div style="font-size:12px;color:var(--text3);">${t.beschreibung.substring(0,60)}${t.beschreibung.length>60?'...':''}</div>`:''}</td><td>${t.geraetName||'–'}</td><td>${hasZimmer?zimmerProgress:(t.bereichName?`<span class="badge badge-blue">${t.bereichName}</span>`:'–')}</td><td><span class="badge ${pBadge[t.prioritaet]}">${pLabel[t.prioritaet]}</span></td><td><select onchange="updateTicketStatus('${t.id}',this.value)" style="border:1px solid var(--border2);border-radius:5px;padding:3px 8px;font-size:12px;background:var(--surface);"><option value="offen" ${t.status==='offen'?'selected':''}>Offen</option><option value="in_bearbeitung" ${t.status==='in_bearbeitung'?'selected':''}>In Bearbeitung</option><option value="erledigt" ${t.status==='erledigt'?'selected':''}>Erledigt</option></select></td><td style="font-size:12px;color:var(--text3);">${t.ersteller||t.gemeldet||'–'}</td><td>${t.partnerName||'–'}</td><td style="white-space:nowrap;"><button class="btn btn-sm btn-edit" onclick="editItem('tickets','${t.id}')">✏️</button> <button class="btn btn-secondary btn-sm" onclick="deleteItem('tickets','${t.id}')">🗑️</button></td></tr>${zimmerRows}`;
-  }).join(''):`<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">🎫</div><p>Keine Tickets gefunden</p></div></td></tr>`;
+    const zimmerRows = hasZimmer ? `<tr id="zimmer-detail-${t.id}" style="display:none;"><td colspan="9" style="padding:0 12px 10px 12px;background:var(--surface2);"><div style="display:flex;flex-wrap:wrap;gap:6px;padding:10px 0 4px;">${t.zimmerListe.map(z=>`<label style="display:inline-flex;align-items:center;gap:5px;font-size:12.5px;background:var(--surface);border:1px solid ${z.erledigt?'var(--green)':'var(--border2)'};border-radius:6px;padding:4px 9px;cursor:pointer;text-decoration:${z.erledigt?'line-through':'none'};color:${z.erledigt?'var(--text3)':'var(--text1)'};" title="${z.erledigt?'Erledigt – klicken zum Rückgängig':'Klicken zum Abhaken'}"><input type="checkbox" ${z.erledigt?'checked':''} onchange="toggleZimmerErledigt('${t.id}','${z.bereichId}',this.checked)" style="cursor:pointer;">${esc(z.name)}</label>`).join('')}</div></td></tr>` : '';
+    // Termin verknüpft mit diesem Ticket
+    const linkedTermin = (state.termine||[]).filter(te=>te.ticketId===t.id).sort((a,b)=>(a.datum||'').localeCompare(b.datum||''));
+    const terminCell = linkedTermin.length
+      ? linkedTermin.map(te=>{
+          const d=te.datum?new Date(te.datum+'T00:00:00'):null;
+          const ds=d?d.toLocaleDateString('de-CH',{day:'2-digit',month:'2-digit',year:'numeric'}):'–';
+          const today=new Date();today.setHours(0,0,0,0);
+          const isPast=d&&d<today;
+          const isToday=d&&d.getTime()===today.getTime();
+          const col=isToday?'var(--blue)':isPast?'var(--red)':'var(--green)';
+          return `<span onclick="showTerminDetail('${te.id}')" style="cursor:pointer;display:inline-block;white-space:nowrap;color:${col};font-size:12px;font-family:'DM Mono',monospace;" title="${te.titel||''}">🗓️ ${ds}</span>`;
+        }).join('<br>')
+      : `<button onclick="openTerminQuick('ticket','${t.id}','${(t.betreff||'').replace(/'/g,'\\x27')}')" class="btn btn-secondary btn-sm" style="font-size:11px;padding:2px 7px;">+ Termin</button>`;
+    return `<tr><td><span style="font-weight:500;">${t.betreff}</span>${t.autoGenerated?` <span class="badge badge-violet">🤖 Automatisch aus Wartung</span>`:''}${hasZimmer?` <span class="badge badge-blue">🏨 Multi-Zimmer</span>`:''}${t.beschreibung?`<div style="font-size:12px;color:var(--text3);">${t.beschreibung.substring(0,60)}${t.beschreibung.length>60?'...':''}</div>`:''}</td><td>${t.geraetName||'–'}</td><td>${hasZimmer?zimmerProgress:(t.bereichName?`<span class="badge badge-blue">${t.bereichName}</span>`:'–')}</td><td><span class="badge ${pBadge[t.prioritaet]}">${pLabel[t.prioritaet]}</span></td><td><select onchange="updateTicketStatus('${t.id}',this.value)" style="border:1px solid var(--border2);border-radius:5px;padding:3px 8px;font-size:12px;background:var(--surface);"><option value="offen" ${t.status==='offen'?'selected':''}>Offen</option><option value="in_bearbeitung" ${t.status==='in_bearbeitung'?'selected':''}>In Bearbeitung</option><option value="erledigt" ${t.status==='erledigt'?'selected':''}>Erledigt</option></select></td><td style="font-size:12px;color:var(--text3);">${t.ersteller||t.gemeldet||'–'}</td><td>${t.partnerName||'–'}</td><td>${terminCell}</td><td style="white-space:nowrap;"><button class="btn btn-sm btn-edit" onclick="editItem('tickets','${t.id}')">✏️</button> <button class="btn btn-secondary btn-sm" onclick="deleteItem('tickets','${t.id}')">🗑️</button></td></tr>${zimmerRows}`;
+  }).join(''):`<tr><td colspan="9"><div class="empty-state"><div class="empty-icon">🎫</div><p>Keine Tickets gefunden</p></div></td></tr>`;
 }
 
 window.toggleZimmerDetail = function(ticketId) {
@@ -2255,7 +2268,21 @@ function renderWartungen() {
   // update sort indicators
   ['bezeichnung','geraetName','typ','datum','partnerName','status'].forEach(c=>{const el=document.getElementById('sort-wartung-'+c);if(el)el.textContent=ws&&ws.col===c?(ws.dir===1?'▲':'▼'):(c==='datum'&&(!ws||!ws.col)?'▲':'');});
   const tb=document.getElementById('wartung-table');
-  tb.innerHTML=data.length?data.map(w=>`<tr><td><span style="font-weight:500;">${w.bezeichnung}</span>${w.seriesId?`<div style="font-size:10.5px;color:var(--text3);">🔁 ${w.intervall} · rolling</div>`:''}</td><td>${w.geraetName||'–'}</td><td><span class="badge badge-gray">${w.typ}</span></td><td style="font-family:'DM Mono',monospace;font-size:12px;${new Date(w.datum)<new Date()&&w.status!=='abgeschlossen'&&w.status!=='storniert'?'color:var(--red);font-weight:600;':''}">${fDate(w.datum)}</td><td>${w.partnerName||'–'}</td><td><select onchange="updateWartungStatus('${w.id}',this.value)" style="border:1px solid var(--border2);border-radius:5px;padding:3px 8px;font-size:12px;background:var(--surface);"><option value="geplant" ${w.status==='geplant'?'selected':''}>Geplant</option><option value="faellig" ${w.status==='faellig'?'selected':''}>Fällig</option><option value="abgeschlossen" ${w.status==='abgeschlossen'?'selected':''}>Abgeschlossen</option><option value="storniert" ${w.status==='storniert'?'selected':''}>Storniert</option></select></td><td style="white-space:nowrap;"><button class="btn btn-sm btn-edit" onclick="editItem('wartungen','${w.id}')">✏️</button> <button class="btn btn-secondary btn-sm" onclick="deleteItem('wartungen','${w.id}')">🗑️</button></td></tr>`).join(''):`<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">🔧</div><p>Keine Wartungsaufträge</p></div></td></tr>`;
+  tb.innerHTML=data.length?data.map(w=>{
+    const linkedTermin = (state.termine||[]).filter(te=>te.wartungId===w.id).sort((a,b)=>(a.datum||'').localeCompare(b.datum||''));
+    const terminCell = linkedTermin.length
+      ? linkedTermin.map(te=>{
+          const d=te.datum?new Date(te.datum+'T00:00:00'):null;
+          const ds=d?d.toLocaleDateString('de-CH',{day:'2-digit',month:'2-digit',year:'numeric'}):'–';
+          const today=new Date();today.setHours(0,0,0,0);
+          const isPast=d&&d<today;
+          const isToday=d&&d.getTime()===today.getTime();
+          const col=isToday?'var(--blue)':isPast?'var(--red)':'var(--green)';
+          return `<span onclick="showTerminDetail('${te.id}')" style="cursor:pointer;display:inline-block;white-space:nowrap;color:${col};font-size:12px;font-family:'DM Mono',monospace;" title="${te.titel||''}">🗓️ ${ds}</span>`;
+        }).join('<br>')
+      : `<button onclick="openTerminQuick('wartung','${w.id}','${(w.bezeichnung||'').replace(/'/g,'\\x27')}','${w.datum||''}')" class="btn btn-secondary btn-sm" style="font-size:11px;padding:2px 7px;">+ Termin</button>`;
+    return `<tr><td><span style="font-weight:500;">${w.bezeichnung}</span>${w.seriesId?`<div style="font-size:10.5px;color:var(--text3);">🔁 ${w.intervall} · rolling</div>`:''}</td><td>${w.geraetName||'–'}</td><td><span class="badge badge-gray">${w.typ}</span></td><td style="font-family:'DM Mono',monospace;font-size:12px;${new Date(w.datum)<new Date()&&w.status!=='abgeschlossen'&&w.status!=='storniert'?'color:var(--red);font-weight:600;':''}">${fDate(w.datum)}</td><td>${w.partnerName||'–'}</td><td><select onchange="updateWartungStatus('${w.id}',this.value)" style="border:1px solid var(--border2);border-radius:5px;padding:3px 8px;font-size:12px;background:var(--surface);"><option value="geplant" ${w.status==='geplant'?'selected':''}>Geplant</option><option value="faellig" ${w.status==='faellig'?'selected':''}>Fällig</option><option value="abgeschlossen" ${w.status==='abgeschlossen'?'selected':''}>Abgeschlossen</option><option value="storniert" ${w.status==='storniert'?'selected':''}>Storniert</option></select></td><td>${terminCell}</td><td style="white-space:nowrap;"><button class="btn btn-sm btn-edit" onclick="editItem('wartungen','${w.id}')">✏️</button> <button class="btn btn-secondary btn-sm" onclick="deleteItem('wartungen','${w.id}')">🗑️</button></td></tr>`;
+  }).join(''):`<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">🔧</div><p>Keine Wartungsaufträge</p></div></td></tr>`;
 }
 
 // Berechnet das nächste offene Wartungsdatum für ein Gerät aus den Wartungsaufträgen
@@ -3220,6 +3247,25 @@ function buildICSEvent(t){
   lines.push('END:VEVENT');
   return lines;
 }
+
+// Quick-open Termin modal from ticket/wartung row (inline "+ Termin" button)
+window.openTerminQuick = function(type, id, titel, datum){
+  populateSelects();
+  window._editId=null; window._editType=null;
+  document.getElementById('te-titel').value=titel||'';
+  document.getElementById('te-datum').value=datum||'';
+  document.getElementById('te-typ').value=type==='wartung'?'wartung':'termin';
+  setTimeout(()=>{
+    if(type==='ticket'){ const el=document.getElementById('te-ticket'); if(el) el.value=id; }
+    if(type==='wartung'){ const el=document.getElementById('te-wartung'); if(el) el.value=id;
+      const w=(window.state.wartungen||[]).find(x=>x.id===id);
+      if(w?.partnerId){ const pe=document.getElementById('te-partner'); if(pe) pe.value=w.partnerId; }
+    }
+  },50);
+  document.getElementById('modal-termin').querySelector('.modal-title').textContent='Neuer Termin';
+  document.getElementById('btn-save-termin').textContent='Termin speichern';
+  document.getElementById('modal-termin').classList.remove('hidden');
+};
 
 window.openTerminFromTicket = function(){
   const btn=document.getElementById('btn-ticket-termin');
