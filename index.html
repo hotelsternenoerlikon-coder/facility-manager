@@ -185,6 +185,9 @@
   .cal-day.today { border-color: var(--accent); }
   .cal-day-num { font-size: 12px; font-weight: 500; margin-bottom: 4px; }
   .cal-event { font-size: 10.5px; padding: 2px 5px; border-radius: 3px; margin-bottom: 2px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .cal-event[style*="cursor:pointer"]:hover { filter: brightness(0.92); }
+  #jahres-table tbody tr:hover td { filter: brightness(0.97); }
+  #jahres-table th:hover { background: #1d4ed8 !important; color:#fff !important; }
 
   .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
   .dot-green { background: var(--green); }
@@ -541,30 +544,61 @@
     <!-- KALENDER -->
     <div class="page page-hidden" id="page-kalender">
       <div class="section-header mb-24">
-        <div style="display:flex;align-items:center;gap:8px;">
-          <button class="btn btn-secondary btn-sm" onclick="changeMonth(-1)">←</button>
-          <select id="cal-month-select" onchange="state.calMonth=parseInt(this.value);renderCalendar()" style="border:1px solid var(--border2);border-radius:7px;padding:6px 10px;font-size:13.5px;background:var(--surface);font-family:'DM Sans',sans-serif;cursor:pointer;">
-            <option value="0">Januar</option><option value="1">Februar</option><option value="2">März</option>
-            <option value="3">April</option><option value="4">Mai</option><option value="5">Juni</option>
-            <option value="6">Juli</option><option value="7">August</option><option value="8">September</option>
-            <option value="9">Oktober</option><option value="10">November</option><option value="11">Dezember</option>
-          </select>
-          <select id="cal-year-select" onchange="state.calYear=parseInt(this.value);renderCalendar()" style="border:1px solid var(--border2);border-radius:7px;padding:6px 10px;font-size:13.5px;background:var(--surface);font-family:'DM Sans',sans-serif;cursor:pointer;"></select>
-          <button class="btn btn-secondary btn-sm" onclick="changeMonth(1)">→</button>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <div style="display:flex;border:1px solid var(--border2);border-radius:8px;overflow:hidden;">
+            <button id="cal-view-monat" onclick="setCalView('monat')" style="padding:6px 14px;font-size:13px;font-weight:500;background:var(--accent);color:#fff;border:none;cursor:pointer;">Monat</button>
+            <button id="cal-view-jahr" onclick="setCalView('jahr')" style="padding:6px 14px;font-size:13px;font-weight:500;background:var(--surface);color:var(--text2);border:none;cursor:pointer;border-left:1px solid var(--border2);">Jahr</button>
+          </div>
+          <div id="cal-nav-monat" style="display:flex;align-items:center;gap:8px;">
+            <button class="btn btn-secondary btn-sm" onclick="changeMonth(-1)">←</button>
+            <select id="cal-month-select" onchange="state.calMonth=parseInt(this.value);renderCalendar()" style="border:1px solid var(--border2);border-radius:7px;padding:6px 10px;font-size:13.5px;background:var(--surface);font-family:'DM Sans',sans-serif;cursor:pointer;">
+              <option value="0">Januar</option><option value="1">Februar</option><option value="2">März</option>
+              <option value="3">April</option><option value="4">Mai</option><option value="5">Juni</option>
+              <option value="6">Juli</option><option value="7">August</option><option value="8">September</option>
+              <option value="9">Oktober</option><option value="10">November</option><option value="11">Dezember</option>
+            </select>
+            <select id="cal-year-select" onchange="state.calYear=parseInt(this.value);renderCalendar()" style="border:1px solid var(--border2);border-radius:7px;padding:6px 10px;font-size:13.5px;background:var(--surface);font-family:'DM Sans',sans-serif;cursor:pointer;"></select>
+            <button class="btn btn-secondary btn-sm" onclick="changeMonth(1)">→</button>
+          </div>
+          <div id="cal-nav-jahr" style="display:none;align-items:center;gap:8px;">
+            <button class="btn btn-secondary btn-sm" onclick="changeJahreskalYear(-1)">←</button>
+            <select id="cal-jahres-year-select" onchange="state.calJahresYear=parseInt(this.value);renderJahreskalender()" style="border:1px solid var(--border2);border-radius:7px;padding:6px 10px;font-size:13.5px;background:var(--surface);font-family:'DM Sans',sans-serif;cursor:pointer;"></select>
+            <button class="btn btn-secondary btn-sm" onclick="changeJahreskalYear(1)">→</button>
+            <span id="cal-jahres-range" style="font-size:13px;color:var(--text3);"></span>
+          </div>
         </div>
         <button class="btn btn-primary" onclick="openModal('modal-wartung')">+ Wartung planen</button>
       </div>
-      <div class="card"><div class="card-body">
-        <div class="cal-grid" id="cal-header"></div>
-        <div class="cal-grid" id="cal-body" style="margin-top:4px;"></div>
-        <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:14px;padding-top:12px;border-top:1px solid var(--border);font-size:12px;color:var(--text3);">
-          <span><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:var(--accent-light);margin-right:5px;"></span>Geplant</span>
-          <span><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:var(--orange-light);margin-right:5px;"></span>Fällig</span>
-          <span><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:var(--green-light);margin-right:5px;"></span>Abgeschlossen</span>
-          <span><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:#f3f0ff;border:1px dashed #c4b5fd;margin-right:5px;"></span>Rolling-Vorschau (automatisch geplant)</span>
-        </div>
-      </div></div>
-      <div class="card" style="margin-top:16px;"><div class="card-header"><span class="card-title">Ereignisse dieses Monats</span></div><div class="table-wrap"><table><thead><tr><th>Datum</th><th>Bezeichnung</th><th>Gerät</th><th>Typ</th><th>Status</th></tr></thead><tbody id="cal-events-list"></tbody></table></div></div>
+
+      <!-- MONATSKALENDER -->
+      <div id="cal-monat-view">
+        <div class="card"><div class="card-body">
+          <div class="cal-grid" id="cal-header"></div>
+          <div class="cal-grid" id="cal-body" style="margin-top:4px;"></div>
+          <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:14px;padding-top:12px;border-top:1px solid var(--border);font-size:12px;color:var(--text3);">
+            <span><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:var(--accent-light);margin-right:5px;"></span>Geplant</span>
+            <span><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:var(--orange-light);margin-right:5px;"></span>Fällig</span>
+            <span><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:var(--green-light);margin-right:5px;"></span>Abgeschlossen</span>
+            <span><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:#f3f0ff;border:1px dashed #c4b5fd;margin-right:5px;"></span>Rolling-Vorschau (automatisch geplant)</span>
+          </div>
+        </div></div>
+        <div class="card" style="margin-top:16px;"><div class="card-header"><span class="card-title">Ereignisse dieses Monats</span></div><div class="table-wrap"><table><thead><tr><th>Datum</th><th>Bezeichnung</th><th>Gerät</th><th>Typ</th><th>Status</th><th></th></tr></thead><tbody id="cal-events-list"></tbody></table></div></div>
+      </div>
+
+      <!-- JAHRESKALENDER -->
+      <div id="cal-jahr-view" style="display:none;">
+        <div class="card"><div class="card-body" style="padding:0;">
+          <div style="overflow-x:auto;">
+            <table id="jahres-table" style="width:100%;border-collapse:collapse;min-width:900px;"></table>
+          </div>
+          <div style="display:flex;gap:16px;flex-wrap:wrap;margin:14px 16px 6px;padding-top:12px;border-top:1px solid var(--border);font-size:12px;color:var(--text3);">
+            <span><span style="display:inline-block;width:22px;height:14px;border-radius:3px;background:var(--accent-light);border:1px solid #93c5fd;margin-right:5px;vertical-align:middle;"></span>Geplant</span>
+            <span><span style="display:inline-block;width:22px;height:14px;border-radius:3px;background:var(--orange-light);border:1px solid #fdba74;margin-right:5px;vertical-align:middle;"></span>Fällig</span>
+            <span><span style="display:inline-block;width:22px;height:14px;border-radius:3px;background:var(--green-light);border:1px solid #86efac;margin-right:5px;vertical-align:middle;"></span>Abgeschlossen</span>
+            <span><span style="display:inline-block;width:22px;height:14px;border-radius:3px;background:#f3f0ff;border:1px dashed #c4b5fd;margin-right:5px;vertical-align:middle;"></span>Rolling-Vorschau</span>
+          </div>
+        </div></div>
+      </div>
     </div>
 
     <!-- GERÄTE -->
@@ -1426,7 +1460,7 @@ function checkLoaded() { loadedCount++; if (loadedCount >= 9) { document.getElem
 // Ensure state exists before listeners render
 (function ensureState(){
   window.state = window.state || {};
-  const __stateDefaults = { tickets:[], wartungen:[], geraete:[], partner:[], notfaelle:[], dokumente:[], bereiche:[], log:[], termine:[], ticketFilter:'aktiv', wartungFilter:'zukunft', geraeteFilter:'alle', partnerFilter:'alle', bereicheFilter:'alle', calMonth:new Date().getMonth(), calYear:new Date().getFullYear(), ticketSearch:'', wartungSearch:'', ticketSort:{col:null,dir:1}, wartungSort:{col:null,dir:1}, geraeteSearch:'', bereicheSearch:'', partnerSearch:'', notfallSearch:'', logSearch:'', terminFilter:'alle', terminSearch:'' };
+  const __stateDefaults = { tickets:[], wartungen:[], geraete:[], partner:[], notfaelle:[], dokumente:[], bereiche:[], log:[], termine:[], ticketFilter:'aktiv', wartungFilter:'zukunft', geraeteFilter:'alle', partnerFilter:'alle', bereicheFilter:'alle', calMonth:new Date().getMonth(), calYear:new Date().getFullYear(), ticketSearch:'', wartungSearch:'', ticketSort:{col:null,dir:1}, wartungSort:{col:null,dir:1}, geraeteSearch:'', bereicheSearch:'', partnerSearch:'', notfallSearch:'', logSearch:'', terminFilter:'alle', terminSearch:'', calView:'monat', calJahresYear:new Date().getFullYear() };
   for (const k in __stateDefaults) { if (window.state[k] === undefined) window.state[k] = __stateDefaults[k]; }
 })();
 
@@ -1435,7 +1469,7 @@ function startListeners() {
   document.getElementById('loading-overlay').classList.remove('hidden');
 
   onSnapshot(col('tickets'), s => { window.state.tickets = s.docs.map(d=>({id:d.id,...d.data()})); renderAll(); checkLoaded(); }, ()=>checkLoaded());
-  onSnapshot(col('wartungen'), s => { window.state.wartungen = s.docs.map(d=>({id:d.id,...d.data()})); renderAll(); if(!document.getElementById('page-kalender').classList.contains('page-hidden')) renderCalendar(); checkLoaded(); }, ()=>checkLoaded());
+  onSnapshot(col('wartungen'), s => { window.state.wartungen = s.docs.map(d=>({id:d.id,...d.data()})); renderAll(); if(!document.getElementById('page-kalender').classList.contains('page-hidden')){ if(state.calView==='jahr') renderJahreskalender(); else renderCalendar(); } checkLoaded(); }, ()=>checkLoaded());
   onSnapshot(col('geraete'), s => { window.state.geraete = s.docs.map(d=>({id:d.id,...d.data()})); renderAll(); checkLoaded(); }, ()=>checkLoaded());
   onSnapshot(col('partner'), s => { window.state.partner = s.docs.map(d=>({id:d.id,...d.data()})); renderAll(); checkLoaded(); }, ()=>checkLoaded());
   onSnapshot(col('notfaelle'), s => { window.state.notfaelle = s.docs.map(d=>({id:d.id,...d.data()})); renderAll(); checkLoaded(); }, ()=>checkLoaded());
@@ -1947,7 +1981,7 @@ window.editItem = (type, id) => {
 
 <script>
 window.state = window.state || {};
-  const __stateDefaults = { tickets:[], wartungen:[], geraete:[], partner:[], notfaelle:[], dokumente:[], bereiche:[], log:[], termine:[], ticketFilter:'aktiv', wartungFilter:'zukunft', geraeteFilter:'alle', partnerFilter:'alle', bereicheFilter:'alle', calMonth:new Date().getMonth(), calYear:new Date().getFullYear(), ticketSearch:'', wartungSearch:'', ticketSort:{col:null,dir:1}, wartungSort:{col:null,dir:1}, geraeteSearch:'', bereicheSearch:'', partnerSearch:'', notfallSearch:'', logSearch:'', terminFilter:'alle', terminSearch:'' };
+  const __stateDefaults = { tickets:[], wartungen:[], geraete:[], partner:[], notfaelle:[], dokumente:[], bereiche:[], log:[], termine:[], ticketFilter:'aktiv', wartungFilter:'zukunft', geraeteFilter:'alle', partnerFilter:'alle', bereicheFilter:'alle', calMonth:new Date().getMonth(), calYear:new Date().getFullYear(), ticketSearch:'', wartungSearch:'', ticketSort:{col:null,dir:1}, wartungSort:{col:null,dir:1}, geraeteSearch:'', bereicheSearch:'', partnerSearch:'', notfallSearch:'', logSearch:'', terminFilter:'alle', terminSearch:'', calView:'monat', calJahresYear:new Date().getFullYear() };
   for (const k in __stateDefaults) { if (window.state[k] === undefined) window.state[k] = __stateDefaults[k]; }
 
 // Force responsive visibility (prevents table + mobile cards showing at the same time)
@@ -2035,7 +2069,7 @@ function showPage(name, navBtn, isBack) {
   const fab = document.getElementById('fab-btn');
   if(fab) fab.style.display = fabActions[name] ? 'flex' : 'none';
 
-  if(name==='kalender') renderCalendar();
+  if(name==='kalender'){ if(state.calView==='jahr') renderJahreskalender(); else renderCalendar(); }
   if(name==='aktivitaet') renderAktivitaet();
 }
 
@@ -2770,6 +2804,29 @@ function getVirtualOccurrences(year, month) {
   return virtual;
 }
 
+function setCalView(v){
+  state.calView=v;
+  const monatBtn=document.getElementById('cal-view-monat');
+  const jahrBtn=document.getElementById('cal-view-jahr');
+  const monatView=document.getElementById('cal-monat-view');
+  const jahrView=document.getElementById('cal-jahr-view');
+  const navMonat=document.getElementById('cal-nav-monat');
+  const navJahr=document.getElementById('cal-nav-jahr');
+  if(v==='monat'){
+    monatBtn.style.background='var(--accent)'; monatBtn.style.color='#fff';
+    jahrBtn.style.background='var(--surface)'; jahrBtn.style.color='var(--text2)';
+    monatView.style.display=''; jahrView.style.display='none';
+    navMonat.style.display='flex'; navJahr.style.display='none';
+    renderCalendar();
+  } else {
+    jahrBtn.style.background='var(--accent)'; jahrBtn.style.color='#fff';
+    monatBtn.style.background='var(--surface)'; monatBtn.style.color='var(--text2)';
+    monatView.style.display='none'; jahrView.style.display='';
+    navMonat.style.display='none'; navJahr.style.display='flex';
+    renderJahreskalender();
+  }
+}
+
 function renderCalendar() {
   const year=state.calYear,month=state.calMonth;
   // Populate year dropdown
@@ -2788,11 +2845,8 @@ function renderCalendar() {
   const first=new Date(year,month,1),last=new Date(year,month+1,0),today=new Date();
   let sdow=first.getDay();if(sdow===0)sdow=7;
 
-  // Real entries for this month
   const realEvents=state.wartungen.filter(w=>{const d=new Date(w.datum);return d.getMonth()===month&&d.getFullYear()===year;});
-  // Virtual (projected) entries for rolling series
   const virtualEvents = getVirtualOccurrences(year, month);
-  // Merge: real takes priority (suppress virtual if real date already covered by same seriesId)
   const realDatesPerSeries = {};
   for(const w of realEvents) { if(w.seriesId) { realDatesPerSeries[w.seriesId+w.datum]=true; } }
   const filteredVirtual = virtualEvents.filter(v => !realDatesPerSeries[v.seriesId+v.datum]);
@@ -2807,19 +2861,139 @@ function renderCalendar() {
     const isToday=c.curr&&c.date.getDate()===today.getDate()&&c.date.getMonth()===today.getMonth()&&c.date.getFullYear()===today.getFullYear();
     const de=allEvents.filter(w=>new Date(w.datum).getDate()===c.date.getDate());
     return `<div class="cal-day ${!c.curr?'other-month':''} ${isToday?'today':''}"><div class="cal-day-num" style="${isToday?'color:var(--accent);font-weight:700;':''}">${c.date.getDate()}</div>${de.map(e=>e.virtual
-      ? `<div class="cal-event" style="background:#f3f0ff;color:#7c3aed;border:1px dashed #c4b5fd;opacity:0.85;" title="Geplant (rolling) – wird automatisch erstellt">🔁 ${e.bezeichnung}</div>`
-      : `<div class="cal-event ${e.status==='abgeschlossen'?'badge-green':e.status==='faellig'?'badge-orange':'badge-blue'}">${e.bezeichnung}</div>`
+      ? `<div class="cal-event" style="background:#f3f0ff;color:#7c3aed;border:1px dashed #c4b5fd;opacity:0.85;cursor:default;" title="Geplant (rolling) – wird automatisch erstellt">🔁 ${e.bezeichnung}</div>`
+      : `<div class="cal-event ${e.status==='abgeschlossen'?'badge-green':e.status==='faellig'?'badge-orange':'badge-blue'}" style="cursor:pointer;" onclick="openWartungDetail('${e.id}')" title="${e.bezeichnung} – klicken für Details">${e.bezeichnung}</div>`
     ).join('')}</div>`;
   }).join('');
 
   const mev=[...allEvents].sort((a,b)=>new Date(a.datum)-new Date(b.datum));
   document.getElementById('cal-events-list').innerHTML=mev.length?mev.map(w=>w.virtual
-    ? `<tr style="opacity:0.75;"><td style="font-family:'DM Mono',monospace;font-size:12px;">${fDate(w.datum)}</td><td><span style="color:#7c3aed;">🔁 ${w.bezeichnung}</span></td><td>${w.geraetName||'–'}</td><td><span class="badge badge-gray">${w.typ||'–'}</span></td><td><span class="badge badge-violet">Rolling-Vorschau</span></td></tr>`
-    : `<tr><td style="font-family:'DM Mono',monospace;font-size:12px;">${fDate(w.datum)}</td><td>${w.bezeichnung}</td><td>${w.geraetName||'–'}</td><td><span class="badge badge-gray">${w.typ}</span></td><td><span class="badge ${sBadge[w.status]}">${sLabel[w.status]}</span></td></tr>`
-  ).join(''):`<tr><td colspan="5"><div class="empty-state" style="padding:24px;"><p>Keine Wartungen in diesem Monat</p></div></td></tr>`;
+    ? `<tr style="opacity:0.75;"><td style="font-family:'DM Mono',monospace;font-size:12px;">${fDate(w.datum)}</td><td><span style="color:#7c3aed;">🔁 ${w.bezeichnung}</span></td><td>${w.geraetName||'–'}</td><td><span class="badge badge-gray">${w.typ||'–'}</span></td><td><span class="badge badge-violet">Rolling-Vorschau</span></td><td></td></tr>`
+    : `<tr style="cursor:pointer;" onclick="openWartungDetail('${w.id}')" title="Klicken für Details"><td style="font-family:'DM Mono',monospace;font-size:12px;">${fDate(w.datum)}</td><td style="font-weight:500;">${w.bezeichnung}</td><td>${w.geraetName||'–'}</td><td><span class="badge badge-gray">${w.typ}</span></td><td><span class="badge ${sBadge[w.status]}">${sLabel[w.status]}</span></td><td style="color:var(--text3);font-size:18px;line-height:1;">›</td></tr>`
+  ).join(''):`<tr><td colspan="6"><div class="empty-state" style="padding:24px;"><p>Keine Wartungen in diesem Monat</p></div></td></tr>`;
+}
+
+function openWartungDetail(id) {
+  const w = (state.wartungen||[]).find(x=>x.id===id);
+  if(!w) return;
+  editItem('wartungen', id);
 }
 
 function changeMonth(dir){state.calMonth+=dir;if(state.calMonth>11){state.calMonth=0;state.calYear++;}if(state.calMonth<0){state.calMonth=11;state.calYear--;}renderCalendar();}
+function changeJahreskalYear(dir){state.calJahresYear+=dir;renderJahreskalender();}
+
+// ---- JAHRESKALENDER ----
+const MONATSNAMEN=['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
+const MONATSNAMEN_LANG=['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
+
+function renderJahreskalender() {
+  const startYear = state.calJahresYear || new Date().getFullYear();
+  // Populate year dropdown for Jahreskalender
+  const ySel=document.getElementById('cal-jahres-year-select');
+  if(ySel){
+    const curY=new Date().getFullYear();
+    if(!ySel.options.length||parseInt(ySel.options[0].value)!==curY-3){
+      ySel.innerHTML='';
+      for(let y=curY-3;y<=curY+10;y++) ySel.innerHTML+=`<option value="${y}">${y}</option>`;
+    }
+    ySel.value=startYear;
+  }
+  // Show range label: startYear – startYear+1 (rolling 12 months)
+  const rangeEl=document.getElementById('cal-jahres-range');
+  if(rangeEl) rangeEl.textContent=`${startYear} – ${startYear+1}`;
+
+  // Collect all wartungen across the 12 months
+  const today=new Date(); today.setHours(0,0,0,0);
+  // We show from Jan startYear to Dec startYear+1 (24 months) — but only 12 visible starting now-ish
+  // Actually: show Jan startYear to Dec (startYear+1), user can navigate
+  // Gather real + virtual for both years
+  const allReal = state.wartungen.filter(w=>{
+    const d=new Date(w.datum);
+    return (d.getFullYear()===startYear || d.getFullYear()===startYear+1);
+  });
+  const virtualAll = [];
+  for(let y=startYear;y<=startYear+1;y++){
+    for(let m=0;m<12;m++) virtualAll.push(...getVirtualOccurrences(y,m));
+  }
+  const realDatesPerSeries={};
+  for(const w of allReal){ if(w.seriesId) realDatesPerSeries[w.seriesId+w.datum]=true; }
+  const filteredVirtual=virtualAll.filter(v=>!realDatesPerSeries[v.seriesId+v.datum]);
+  const allEvents=[...allReal,...filteredVirtual];
+
+  // Group by bezeichnung (Zeile) and build unique list
+  const rowMap={}; // key: bezeichnung+geraetName -> {label, geraetName, partnerName, entries:[]}
+  for(const w of allEvents){
+    const key=(w.bezeichnung||'')+'||'+(w.geraetName||'');
+    if(!rowMap[key]) rowMap[key]={bezeichnung:w.bezeichnung||'',geraetName:w.geraetName||'',partnerName:w.partnerName||'',typ:w.typ||'',entries:[]};
+    rowMap[key].entries.push(w);
+  }
+  const rows=Object.values(rowMap).sort((a,b)=>a.bezeichnung.localeCompare(b.bezeichnung,'de',{sensitivity:'base'}));
+
+  // Build months array: Jan startYear .. Dec startYear+1 (24 months, or just 12?)
+  // Show all 24 months (2 years) matching Excel template style
+  const months=[];
+  for(let m=0;m<12;m++) months.push({year:startYear,month:m});
+  for(let m=0;m<12;m++) months.push({year:startYear+1,month:m});
+
+  // Build table
+  const table=document.getElementById('jahres-table');
+  if(!table) return;
+
+  // Header row 1: year groups
+  let thead=`<thead>
+    <tr>
+      <th rowspan="2" style="min-width:200px;max-width:260px;text-align:left;padding:10px 12px;background:var(--text);color:#fff;font-size:13px;font-weight:600;position:sticky;left:0;z-index:2;border-bottom:2px solid rgba(255,255,255,0.15);">Bezeichnung</th>
+      <th rowspan="2" style="min-width:100px;text-align:left;padding:10px 8px;background:var(--text);color:rgba(255,255,255,0.6);font-size:11px;font-weight:500;border-left:1px solid rgba(255,255,255,0.1);border-bottom:2px solid rgba(255,255,255,0.15);">Gerät / Firma</th>
+      <th colspan="12" style="text-align:center;padding:8px;background:#1e3a5f;color:#93c5fd;font-size:13px;font-weight:700;border-left:2px solid rgba(255,255,255,0.2);">${startYear}</th>
+      <th colspan="12" style="text-align:center;padding:8px;background:#1a3a2a;color:#86efac;font-size:13px;font-weight:700;border-left:2px solid rgba(255,255,255,0.2);">${startYear+1}</th>
+    </tr>
+    <tr>`;
+  for(const {year,month} of months){
+    const isCurrentMonth=today.getFullYear()===year&&today.getMonth()===month;
+    thead+=`<th onclick="goToMonth(${year},${month})" style="min-width:52px;text-align:center;padding:6px 4px;font-size:11px;font-weight:600;cursor:pointer;border-left:1px solid rgba(255,255,255,0.1);background:${isCurrentMonth?'#2563eb':'rgba(0,0,0,0.2)'};color:${isCurrentMonth?'#fff':'rgba(255,255,255,0.7)'};transition:background 0.15s;" title="${MONATSNAMEN_LANG[month]} ${year}">${MONATSNAMEN[month]}</th>`;
+  }
+  thead+=`</tr></thead>`;
+
+  // Body
+  let tbody='<tbody>';
+  if(!rows.length){
+    tbody+=`<tr><td colspan="${2+months.length}" style="text-align:center;padding:32px;color:var(--text3);">Keine Wartungsaufträge in diesem Zeitraum</td></tr>`;
+  }
+  for(let ri=0;ri<rows.length;ri++){
+    const row=rows[ri];
+    const zebra=ri%2===0?'var(--surface)':'var(--surface2)';
+    tbody+=`<tr style="background:${zebra};">
+      <td style="padding:8px 12px;font-size:13px;font-weight:500;color:var(--text1);position:sticky;left:0;z-index:1;background:${zebra};border-bottom:1px solid var(--border);min-width:200px;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${_optEsc(row.bezeichnung)}">${_optEsc(row.bezeichnung)}</td>
+      <td style="padding:8px 8px;font-size:11.5px;color:var(--text3);border-left:1px solid var(--border);border-bottom:1px solid var(--border);vertical-align:middle;">${_optEsc(row.geraetName||row.partnerName||'–')}</td>`;
+    for(const {year,month} of months){
+      const entriesForCell=row.entries.filter(e=>{const d=new Date(e.datum);return d.getFullYear()===year&&d.getMonth()===month;});
+      const isCurrentMonth=today.getFullYear()===year&&today.getMonth()===month;
+      const borderLeft=month===0?'border-left:2px solid var(--border2);':'border-left:1px solid var(--border);';
+      if(!entriesForCell.length){
+        tbody+=`<td style="text-align:center;padding:4px;border-bottom:1px solid var(--border);${borderLeft}background:${isCurrentMonth?'rgba(37,99,235,0.04)':''};" onclick="goToMonth(${year},${month})" title="Keine Wartung – klicken für ${MONATSNAMEN_LANG[month]} ${year}" style="cursor:pointer;"></td>`;
+      } else {
+        // Show dot/badge for each entry
+        const dots=entriesForCell.map(e=>{
+          if(e.virtual) return `<span title="Rolling-Vorschau: ${e.bezeichnung}" style="display:inline-block;width:20px;height:16px;border-radius:3px;background:#f3f0ff;border:1px dashed #c4b5fd;line-height:16px;font-size:9px;text-align:center;cursor:default;">🔁</span>`;
+          const bg=e.status==='abgeschlossen'?'var(--green-light)':e.status==='faellig'?'var(--orange-light)':'var(--accent-light)';
+          const border=e.status==='abgeschlossen'?'#86efac':e.status==='faellig'?'#fdba74':'#93c5fd';
+          const symbol=e.status==='abgeschlossen'?'✓':e.status==='faellig'?'!':'●';
+          const col=e.status==='abgeschlossen'?'#16a34a':e.status==='faellig'?'#ea580c':'#2563eb';
+          return `<span onclick="event.stopPropagation();openWartungDetail('${e.id}')" title="${_optEsc(e.bezeichnung)} – ${sLabel[e.status]||e.status} (${fDate(e.datum)})" style="display:inline-block;width:24px;height:18px;border-radius:3px;background:${bg};border:1px solid ${border};line-height:18px;font-size:10px;font-weight:700;text-align:center;cursor:pointer;color:${col};margin:1px;">${symbol}</span>`;
+        }).join('');
+        tbody+=`<td style="text-align:center;padding:3px 2px;border-bottom:1px solid var(--border);${borderLeft}background:${isCurrentMonth?'rgba(37,99,235,0.04)':''};">${dots}</td>`;
+      }
+    }
+    tbody+=`</tr>`;
+  }
+  tbody+='</tbody>';
+  table.innerHTML=thead+tbody;
+}
+
+window.goToMonth = function(year, month){
+  state.calYear=year; state.calMonth=month;
+  setCalView('monat');
+};
 
 setInterval(()=>{document.getElementById('clock').textContent=new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit',second:'2-digit'});},1000);
 
