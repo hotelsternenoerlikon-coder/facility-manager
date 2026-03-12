@@ -1623,8 +1623,27 @@ document.getElementById('btn-save-wartung').onclick = async () => {
     autoTicket: document.getElementById('w-autoTicket').checked,
   };
   if(window._editId && window._editType==='wartungen'){
-    await updateDoc(doc(db,'wartungen',window._editId), {...base, datum, status: new Date(datum)<new Date()?'faellig':'geplant'});
-    await addLog(`Wartung "${bez}" bearbeitet`, '#d97706');
+    const existing = window.state.wartungen.find(w=>w.id===window._editId);
+    const oldIntervall = existing?.intervall||'einmalig';
+    const oldSeriesId = existing?.seriesId||null;
+    let seriesId = oldSeriesId;
+
+    if(intervall === 'einmalig') {
+      // Wurde auf Einmalig gesetzt → Serie aufheben
+      seriesId = null;
+    } else if(intervall !== oldIntervall || !oldSeriesId) {
+      // Intervall geändert ODER war vorher einmalig → neue Serie starten
+      seriesId = bez.replace(/\s+/g,'_') + '_' + Date.now();
+    }
+    // sonst: gleiches Intervall + seriesId bleibt
+
+    await updateDoc(doc(db,'wartungen',window._editId), {
+      ...base, datum,
+      status: new Date(datum)<new Date()?'faellig':'geplant',
+      seriesId: seriesId || null
+    });
+    const recurText = intervall !== 'einmalig' ? `, ${intervall} wiederkehrend (rolling)` : '';
+    await addLog(`Wartung "${bez}" bearbeitet${recurText}`, '#d97706');
   } else {
     // Rolling system: only create ONE entry per series. Next occurrence is auto-created on completion.
     const seriesId = intervall !== 'einmalig' ? (bez.replace(/\s+/g,'_') + '_' + Date.now()) : null;
