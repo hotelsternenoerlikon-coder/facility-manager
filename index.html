@@ -2238,11 +2238,11 @@ function renderDashboard() {
     </div>`;
   }).join(''):'<div class="empty-state"><div class="empty-icon">✅</div><p>Keine kritischen Tickets</p></div>';
   const dw=document.getElementById('dash-wartungen'),up=[...state.wartungen].filter(w=>w.status!=='abgeschlossen').sort((a,b)=>new Date(a.datum)-new Date(b.datum)).slice(0,5);
-  dw.innerHTML=up.length?up.map(w=>`<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);"><span style="font-family:'DM Mono',monospace;font-size:12px;color:var(--text3);min-width:80px;">${fDate(w.datum)}</span><span style="flex:1;font-size:13px;">${w.bezeichnung}</span><span class="badge ${sBadge[w.status]}">${sLabel[w.status]}</span></div>`).join(''):'<div class="empty-state"><div class="empty-icon">📅</div><p>Keine anstehenden Wartungen</p></div>';
+  dw.innerHTML=up.length?up.map(w=>`<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);"><span style="font-family:'DM Mono',monospace;font-size:12px;color:var(--text3);min-width:80px;">${fDate(w.datum)}</span><span style="flex:1;font-size:13px;">${_optEsc(w.bezeichnung)}</span><span class="badge ${sBadge[w.status]}">${sLabel[w.status]}</span></div>`).join(''):'<div class="empty-state"><div class="empty-icon">📅</div><p>Keine anstehenden Wartungen</p></div>';
   const dg=document.getElementById('dash-geraete');
-  dg.innerHTML=state.geraete.length?`<div style="display:flex;flex-direction:column;gap:8px;">${state.geraete.slice(0,6).map(g=>`<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--border);"><span>${kIcons[g.kategorie]||'🔧'}</span><span style="flex:1;font-size:13px;font-weight:500;">${g.name}</span>${(()=>{const nw=getNextWartungForGeraet(g.id);return nw?`<span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text3);">${fDate(nw)}</span>`:''})()}<span class="status-dot dot-${g.status==='aktiv'?'green':g.status==='stoerung'?'red':'yellow'}"></span></div>`).join('')}</div>`:'<div class="empty-state"><div class="empty-icon">⚙️</div><p>Noch keine Geräte erfasst</p></div>';
+  dg.innerHTML=state.geraete.length?`<div style="display:flex;flex-direction:column;gap:8px;">${state.geraete.slice(0,6).map(g=>`<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--border);"><span>${kIcons[g.kategorie]||'🔧'}</span><span style="flex:1;font-size:13px;font-weight:500;">${_optEsc(g.name)}</span>${(()=>{const nw=getNextWartungForGeraet(g.id);return nw?`<span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text3);">${fDate(nw)}</span>`:''})()}<span class="status-dot dot-${g.status==='aktiv'?'green':g.status==='stoerung'?'red':'yellow'}"></span></div>`).join('')}</div>`:'<div class="empty-state"><div class="empty-icon">⚙️</div><p>Noch keine Geräte erfasst</p></div>';
   const da=document.getElementById('dash-aktivitaet');
-  da.innerHTML=state.log.length?state.log.slice(0,8).map(l=>`<div class="activity-item"><div class="activity-dot" style="background:${l.color}"></div><div><div class="activity-text">${l.text}</div><div class="activity-time">${fTs(l.createdAt)}${l.user?' · '+l.user:''}</div></div></div>`).join(''):'<div class="empty-state"><div class="empty-icon">📋</div><p>Noch keine Aktivitäten</p></div>';
+  da.innerHTML=state.log.length?state.log.slice(0,8).map(l=>`<div class="activity-item"><div class="activity-dot" style="background:${l.color}"></div><div><div class="activity-text">${_optEsc(l.text)}</div><div class="activity-time">${fTs(l.createdAt)}${l.user?' · '+_optEsc(l.user):''}</div></div></div>`).join(''):'<div class="empty-state"><div class="empty-icon">📋</div><p>Noch keine Aktivitäten</p></div>';
 }
 
 function renderTickets() {
@@ -2340,7 +2340,7 @@ function renderGeraete() {
   data = [...data].sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''), 'de', {sensitivity:'base', numeric:true}));
 
   const grid=document.getElementById('geraete-grid');
-  grid.innerHTML=data.length?data.map(g=>`<div class="device-card"><div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:8px;"><div style="font-size:28px;">${kIcons[g.kategorie]||'🔧'}</div><select onchange="changeGeraetStatus('${g.id}',this.value)" style="border:1px solid var(--border2);border-radius:5px;padding:2px 6px;font-size:11.5px;background:var(--surface);"><option value="aktiv" ${g.status==='aktiv'?'selected':''}>✅ Aktiv</option><option value="stoerung" ${g.status==='stoerung'?'selected':''}>🔴 Störung</option><option value="wartung" ${g.status==='wartung'?'selected':''}>🟡 Wartung</option><option value="ausser_betrieb" ${g.status==='ausser_betrieb'?'selected':''}>⚫ Außer Betrieb</option></select></div><div style="font-weight:600;font-size:14px;margin-bottom:4px;">${g.name}</div><div style="font-size:12px;color:var(--text3);margin-bottom:6px;">${(g.bereichName||g.standort||'–') + (g.raum?' / '+g.raum:'')}</div>${g.hersteller?`<div style="font-size:12px;color:var(--text3);margin-bottom:4px;">🏭 ${g.hersteller}${g.seriennummer?' · SN: '+g.seriennummer:''}</div>`:''}${(()=>{const nw=getNextWartungForGeraet(g.id);return nw?`<div style="font-size:12px;color:${new Date(nw)<new Date()?'var(--red)':'var(--text3)'};margin-bottom:4px;">🔧 Nächste Wartung: ${fDate(nw)}</div>`:''})()}${g.partnerName?`<div style="font-size:12px;color:var(--text3);margin-bottom:4px;">🤝 ${g.partnerName}</div>`:''}${g.notizen?`<div style="font-size:11.5px;color:var(--text3);border-top:1px solid var(--border);padding-top:8px;margin-top:6px;">${g.notizen}</div>`:''}<div style="display:flex;justify-content:flex-end;gap:6px;margin-top:10px;"><button class="btn btn-sm btn-edit" onclick="editItem('geraete','${g.id}')">✏️ Bearbeiten</button><button class="btn btn-secondary btn-sm" onclick="deleteItem('geraete','${g.id}')">🗑️</button></div></div>`).join(''):`<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">⚙️</div><p>Noch keine Geräte erfasst</p></div>`;
+  grid.innerHTML=data.length?data.map(g=>`<div class="device-card"><div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:8px;"><div style="font-size:28px;">${kIcons[g.kategorie]||'🔧'}</div><select onchange="changeGeraetStatus('${g.id}',this.value)" style="border:1px solid var(--border2);border-radius:5px;padding:2px 6px;font-size:11.5px;background:var(--surface);"><option value="aktiv" ${g.status==='aktiv'?'selected':''}>✅ Aktiv</option><option value="stoerung" ${g.status==='stoerung'?'selected':''}>🔴 Störung</option><option value="wartung" ${g.status==='wartung'?'selected':''}>🟡 Wartung</option><option value="ausser_betrieb" ${g.status==='ausser_betrieb'?'selected':''}>⚫ Außer Betrieb</option></select></div><div style="font-weight:600;font-size:14px;margin-bottom:4px;">${_optEsc(g.name)}</div><div style="font-size:12px;color:var(--text3);margin-bottom:6px;">${_optEsc((g.bereichName||g.standort||'–') + (g.raum?' / '+g.raum:''))}</div>${g.hersteller?`<div style="font-size:12px;color:var(--text3);margin-bottom:4px;">🏭 ${_optEsc(g.hersteller)}${g.seriennummer?' · SN: '+_optEsc(g.seriennummer):''}</div>`:''}${(()=>{const nw=getNextWartungForGeraet(g.id);return nw?`<div style="font-size:12px;color:${new Date(nw)<new Date()?'var(--red)':'var(--text3)'};margin-bottom:4px;">🔧 Nächste Wartung: ${fDate(nw)}</div>`:''})()}${g.partnerName?`<div style="font-size:12px;color:var(--text3);margin-bottom:4px;">🤝 ${_optEsc(g.partnerName)}</div>`:''}${g.notizen?`<div style="font-size:11.5px;color:var(--text3);border-top:1px solid var(--border);padding-top:8px;margin-top:6px;">${_optEsc(g.notizen)}</div>`:''}<div style="display:flex;justify-content:flex-end;gap:6px;margin-top:10px;"><button class="btn btn-sm btn-edit" onclick="editItem('geraete','${g.id}')">✏️ Bearbeiten</button><button class="btn btn-secondary btn-sm" onclick="deleteItem('geraete','${g.id}')">🗑️</button></div></div>`).join(''):`<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">⚙️</div><p>Noch keine Geräte erfasst</p></div>`;
 }
 
 function formatUrl(u){
@@ -2567,7 +2567,7 @@ function renderNotfall() {
 
 function renderDokumente() {
   const tb=document.getElementById('dokumente-table');
-  tb.innerHTML=state.dokumente.length?state.dokumente.map(d=>`<tr><td><span style="font-weight:500;">📄 ${d.name}</span></td><td><span class="badge badge-gray">${d.typ}</span></td><td>${d.geraetName||'–'}</td><td style="font-family:'DM Mono',monospace;font-size:12px;">${d.datum?fDate(d.datum):'–'}</td><td style="color:var(--text3);font-size:12.5px;">${d.notiz||'–'}</td><td style="white-space:nowrap;"><button class="btn btn-sm btn-edit" onclick="editItem('dokumente','${d.id}')">✏️</button> <button class="btn btn-secondary btn-sm" onclick="deleteItem('dokumente','${d.id}')">🗑️</button></td></tr>`).join(''):`<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">📄</div><p>Noch keine Dokumente</p></div></td></tr>`;
+  tb.innerHTML=state.dokumente.length?state.dokumente.map(d=>`<tr><td><span style="font-weight:500;">📄 ${_optEsc(d.name)}</span></td><td><span class="badge badge-gray">${_optEsc(d.typ)}</span></td><td>${_optEsc(d.geraetName||'–')}</td><td style="font-family:'DM Mono',monospace;font-size:12px;">${d.datum?fDate(d.datum):'–'}</td><td style="color:var(--text3);font-size:12.5px;">${_optEsc(d.notiz||'–')}</td><td style="white-space:nowrap;"><button class="btn btn-sm btn-edit" onclick="editItem('dokumente','${d.id}')">✏️</button> <button class="btn btn-secondary btn-sm" onclick="deleteItem('dokumente','${d.id}')">🗑️</button></td></tr>`).join(''):`<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">📄</div><p>Noch keine Dokumente</p></div></td></tr>`;
 }
 
 function renderAktivitaet() {
@@ -2575,7 +2575,7 @@ function renderAktivitaet() {
   let data = state.log;
   if(state.logSearch){const q=state.logSearch.toLowerCase();data=data.filter(l=>(l.text||'').toLowerCase().includes(q)||(l.user||'').toLowerCase().includes(q));}
   document.getElementById('log-count').textContent=(state.logSearch?data.length+' von ':'')+state.log.length+' Einträge';
-  el.innerHTML=data.length?data.map(l=>`<div class="activity-item"><div class="activity-dot" style="background:${l.color}"></div><div style="flex:1;"><div class="activity-text">${l.text}</div><div class="activity-time">${fTs(l.createdAt)}${l.user?' · '+l.user:''}</div></div></div>`).join(''):'<div class="empty-state"><div class="empty-icon">📋</div><p>Keine Einträge gefunden</p></div>';
+  el.innerHTML=data.length?data.map(l=>`<div class="activity-item"><div class="activity-dot" style="background:${l.color}"></div><div style="flex:1;"><div class="activity-text">${_optEsc(l.text)}</div><div class="activity-time">${fTs(l.createdAt)}${l.user?' · '+_optEsc(l.user):''}</div></div></div>`).join(''):'<div class="empty-state"><div class="empty-icon">📋</div><p>Keine Einträge gefunden</p></div>';
 }
 
 function updateBadges() {
@@ -2663,10 +2663,10 @@ function renderDokumenteMobile() {
   if(!state.dokumente.length){el.innerHTML=`<div class="empty-state"><div class="empty-icon">📄</div><p>Noch keine Dokumente</p></div>`;return;}
   el.innerHTML=state.dokumente.map(d=>`<div class="mobile-card">
     <div class="mobile-card-header">
-      <div class="mobile-card-title">📄 ${d.name}</div>
-      <span class="badge badge-gray">${d.typ}</span>
+      <div class="mobile-card-title">📄 ${_optEsc(d.name)}</div>
+      <span class="badge badge-gray">${_optEsc(d.typ)}</span>
     </div>
-    ${d.geraetName?`<div style="font-size:12.5px;color:var(--text3);margin-bottom:4px;">⚙️ ${d.geraetName}</div>`:''}
+    ${d.geraetName?`<div style="font-size:12.5px;color:var(--text3);margin-bottom:4px;">⚙️ ${_optEsc(d.geraetName)}</div>`:''}
     ${d.datum?`<div style="font-size:12.5px;color:var(--text3);margin-bottom:4px;">📅 ${fDate(d.datum)}</div>`:''}
     ${d.notiz?`<div style="font-size:12.5px;color:var(--text3);">${d.notiz}</div>`:''}
     <div class="mobile-card-actions">
@@ -3079,7 +3079,7 @@ window.exportData = function(type) {
     if(resultEl) resultEl.innerHTML = `<div style="background:var(--green-light);color:var(--green);padding:10px 12px;border-radius:7px;font-size:13px;">✅ ${rows.length} Einträge erfolgreich exportiert.</div>`;
     window._addLog && window._addLog(`Export ${type}: ${rows.length} Einträge exportiert`, '#0284c7');
   } catch(e) {
-    if(resultEl) resultEl.innerHTML = `<div style="background:var(--red-light);color:var(--red);padding:10px 12px;border-radius:7px;font-size:13px;">❌ Fehler: ${e.message}</div>`;
+    if(resultEl) resultEl.innerHTML = `<div style="background:var(--red-light);color:var(--red);padding:10px 12px;border-radius:7px;font-size:13px;">❌ Fehler: ${_optEsc(e.message)}</div>`;
   }
 };
 
@@ -3176,7 +3176,7 @@ window.handleImport = async function(input, type) {
     resultEl.innerHTML=`<div style="background:var(--green-light);color:var(--green);padding:10px 12px;border-radius:7px;font-size:13px;margin-top:4px;">✅ ${count} Einträge erfolgreich importiert${errors?`<br>⚠️ ${errors} Zeilen übersprungen (fehlende Pflichtfelder)`:''}</div>`;
     input.value='';
   } catch(e) {
-    resultEl.innerHTML=`<div style="background:var(--red-light);color:var(--red);padding:10px 12px;border-radius:7px;font-size:13px;">❌ Fehler: ${e.message}</div>`;
+    resultEl.innerHTML=`<div style="background:var(--red-light);color:var(--red);padding:10px 12px;border-radius:7px;font-size:13px;">❌ Fehler: ${_optEsc(e.message)}</div>`;
   }
 };
 
