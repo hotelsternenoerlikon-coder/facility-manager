@@ -2770,16 +2770,29 @@ function printTickets() {
   const sTxt = {offen:'Offen',in_bearbeitung:'In Bearbeitung',erledigt:'Erledigt'};
   const now = new Date().toLocaleString('de-CH', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
 
-  const rows = data.map(t => `
+  const rows = data.map(t => {
+    const hasZimmer = t.mehrereZimmer && t.zimmerListe && t.zimmerListe.length > 0;
+    const zimmerRow = hasZimmer ? `
+    <tr class="zimmer-row">
+      <td colspan="7">
+        <span class="zimmer-label">🏨 Zimmer:</span>
+        ${t.zimmerListe.map(z => z.erledigt
+          ? `<span class="zimmer-chip zimmer-done"><span class="zimmer-check">✓</span>${esc(z.name)}</span>`
+          : `<span class="zimmer-chip"><span class="zimmer-checkbox"></span>${esc(z.name)}</span>`
+        ).join('')}
+      </td>
+    </tr>` : '';
+    return `
     <tr>
-      <td>${esc(t.betreff)}${t.beschreibung ? `<div class="sub">${esc(t.beschreibung.substring(0,80))}${t.beschreibung.length>80?'...':''}</div>` : ''}</td>
+      <td>${esc(t.betreff)}${hasZimmer ? ` <span class="badge-multi">🏨 Multi-Zimmer</span>` : ''}${t.beschreibung ? `<div class="sub">${esc(t.beschreibung.substring(0,80))}${t.beschreibung.length>80?'...':''}</div>` : ''}</td>
       <td>${esc(t.geraetName)||'–'}</td>
-      <td>${esc(t.bereichName)||'–'}</td>
+      <td>${hasZimmer ? `${t.zimmerListe.filter(z=>z.erledigt).length}/${t.zimmerListe.length} erledigt` : (esc(t.bereichName)||'–')}</td>
       <td class="prio prio-${t.prioritaet}">${pTxt[t.prioritaet]||t.prioritaet||'–'}</td>
       <td class="status status-${t.status}">${sTxt[t.status]||t.status||'–'}</td>
       <td>${esc(t.ersteller||t.gemeldet)||'–'}</td>
       <td>${esc(t.partnerName)||'–'}</td>
-    </tr>`).join('');
+    </tr>${zimmerRow}`;
+  }).join('');
 
   const html = `<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8">
   <title>Tickets – FacilityOS</title>
@@ -2803,6 +2816,13 @@ function printTickets() {
     .status-offen { color: #c0392b; font-weight: 600; }
     .status-in_bearbeitung { color: #b7950b; font-weight: 600; }
     .status-erledigt { color: #1e8449; font-weight: 600; }
+    .badge-multi { font-size: 10px; background: #dbeafe; color: #1d4ed8; border-radius: 4px; padding: 1px 5px; margin-left: 4px; font-weight: 600; }
+    .zimmer-row td { background: #f7f9fc !important; border-top: none; padding: 6px 10px 8px 14px; }
+    .zimmer-label { font-size: 11px; font-weight: 700; color: #444; margin-right: 8px; }
+    .zimmer-chip { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; border: 1px solid #bbb; border-radius: 5px; padding: 3px 8px; margin: 2px 3px; background: #fff; }
+    .zimmer-done { border-color: #1e8449; color: #888; text-decoration: line-through; background: #f0faf4; }
+    .zimmer-checkbox { display: inline-block; width: 12px; height: 12px; border: 1.5px solid #555; border-radius: 2px; flex-shrink: 0; }
+    .zimmer-check { font-size: 12px; color: #1e8449; font-weight: 700; line-height: 1; }
     .empty { text-align: center; color: #888; padding: 24px; font-size: 13px; }
     .footer { margin-top: 16px; font-size: 10px; color: #aaa; text-align: right; }
     @media print {
