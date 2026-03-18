@@ -105,6 +105,8 @@
   .kpi-yellow { border-left: 3px solid var(--yellow); }
 
   .table-wrap { overflow-x: auto; }
+  th[onclick]:hover { background: var(--hover, rgba(0,0,0,0.05)); }
+  th[onclick] span { font-size: 10px; opacity: 0.6; margin-left: 2px; }
   table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
   th { text-align: left; padding: 10px 14px; font-size: 11.5px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; border-bottom: 1px solid var(--border); white-space: nowrap; }
   td { padding: 11px 14px; border-bottom: 1px solid var(--border); vertical-align: middle; }
@@ -183,6 +185,9 @@
   .cal-day.today { border-color: var(--accent); }
   .cal-day-num { font-size: 12px; font-weight: 500; margin-bottom: 4px; }
   .cal-event { font-size: 10.5px; padding: 2px 5px; border-radius: 3px; margin-bottom: 2px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .cal-event[style*="cursor:pointer"]:hover { filter: brightness(0.92); }
+  #jahres-table tbody tr:hover td { filter: brightness(0.97); }
+  #jahres-table th:hover { background: #1d4ed8 !important; color:#fff !important; }
 
   .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
   .dot-green { background: var(--green); }
@@ -440,6 +445,7 @@
         <button class="nav-item" onclick="showPage('tickets')"><span class="nav-icon">🎫</span> Tickets & Störungen <span class="nav-badge" id="ticket-count-badge" style="display:none">0</span></button>
         <button class="nav-item" onclick="showPage('wartung')"><span class="nav-icon">🔧</span> Wartungsaufträge</button>
         <button class="nav-item" onclick="showPage('kalender')"><span class="nav-icon">📅</span> Wartungskalender</button>
+        <button class="nav-item" onclick="showPage('termine')"><span class="nav-icon">🗓️</span> Termine</button>
       </div>
       <div class="nav-section">
         <div class="nav-label">Bestand</div>
@@ -500,16 +506,20 @@
     <div class="page page-hidden" id="page-tickets">
       <div class="section-header mb-24">
         <div class="tabs">
-          <button class="tab active" onclick="filterTickets('alle',this)">Alle</button>
+          <button class="tab" onclick="filterTickets('alle',this)">Alle</button>
+          <button class="tab active" onclick="filterTickets('aktiv',this)">Aktiv</button>
           <button class="tab" onclick="filterTickets('offen',this)">Offen</button>
           <button class="tab" onclick="filterTickets('in_bearbeitung',this)">In Bearbeitung</button>
           <button class="tab" onclick="filterTickets('erledigt',this)">Erledigt</button>
         </div>
-        <button class="btn btn-primary" onclick="openModal('modal-ticket')">+ Neues Ticket</button>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <button class="btn btn-secondary" onclick="printTickets()" title="Aktuelle Ansicht drucken">🖨️ Drucken</button>
+          <button class="btn btn-primary" onclick="openModal('modal-ticket')">+ Neues Ticket</button>
+        </div>
       </div>
       <div class="card">
         <div class="card-header"><span class="card-title">Tickets & Störungsmeldungen</span><div class="search-wrap"><span class="search-icon">🔍</span><input class="search-input" placeholder="Suchen..." oninput="state.ticketSearch=this.value;renderTickets();renderTicketsMobile()"></div></div>
-        <div class="table-wrap"><table><thead><tr><th>Betreff</th><th>Gerät</th><th>Bereich</th><th>Priorität</th><th>Status</th><th>Erstellt von</th><th>Zugewiesen</th><th></th></tr></thead><tbody id="tickets-table"></tbody></table></div>
+        <div class="table-wrap"><table><thead><tr id="tickets-thead"><th onclick="sortTable('ticket','betreff')" style="cursor:pointer;user-select:none;">Betreff <span id="sort-ticket-betreff"></span></th><th onclick="sortTable('ticket','geraetName')" style="cursor:pointer;user-select:none;">Gerät <span id="sort-ticket-geraetName"></span></th><th onclick="sortTable('ticket','bereichName')" style="cursor:pointer;user-select:none;">Bereich <span id="sort-ticket-bereichName"></span></th><th onclick="sortTable('ticket','prioritaet')" style="cursor:pointer;user-select:none;">Priorität <span id="sort-ticket-prioritaet"></span></th><th onclick="sortTable('ticket','status')" style="cursor:pointer;user-select:none;">Status <span id="sort-ticket-status"></span></th><th onclick="sortTable('ticket','ersteller')" style="cursor:pointer;user-select:none;">Erstellt von <span id="sort-ticket-ersteller"></span></th><th onclick="sortTable('ticket','partnerName')" style="cursor:pointer;user-select:none;">Zugewiesen <span id="sort-ticket-partnerName"></span></th><th>Termin</th><th></th></tr></thead><tbody id="tickets-table"></tbody></table></div>
         <div class="mobile-card-list" id="tickets-mobile"></div>
       </div>
     </div>
@@ -518,17 +528,21 @@
     <div class="page page-hidden" id="page-wartung">
       <div class="section-header mb-24">
         <div class="tabs">
-          <button class="tab active" onclick="filterWartung('alle',this)">Alle</button>
+          <button class="tab" onclick="filterWartung('alle',this)">Alle</button>
+          <button class="tab active" onclick="filterWartung('zukunft',this)">Zukünftig</button>
           <button class="tab" onclick="filterWartung('geplant',this)">Geplant</button>
           <button class="tab" onclick="filterWartung('faellig',this)">Fällig</button>
           <button class="tab" onclick="filterWartung('abgeschlossen',this)">Abgeschlossen</button>
           <button class="tab" onclick="filterWartung('storniert',this)">Storniert</button>
         </div>
-        <button class="btn btn-primary" onclick="openModal('modal-wartung')">+ Neuer Wartungsauftrag</button>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <button class="btn btn-secondary" onclick="printWartungen()" title="Aktuelle Ansicht drucken">🖨️ Drucken</button>
+          <button class="btn btn-primary" onclick="openModal('modal-wartung')">+ Neuer Wartungsauftrag</button>
+        </div>
       </div>
       <div class="card">
         <div class="card-header"><span class="card-title">Wartungsaufträge & Serviceaufträge</span><div class="search-wrap"><span class="search-icon">🔍</span><input class="search-input" placeholder="Suchen..." oninput="state.wartungSearch=this.value;renderWartungen();renderWartungenMobile()"></div></div>
-        <div class="table-wrap"><table><thead><tr><th>Bezeichnung</th><th>Gerät</th><th>Typ</th><th>Fällig am</th><th>Zuständig</th><th>Status</th><th></th></tr></thead><tbody id="wartung-table"></tbody></table></div>
+        <div class="table-wrap"><table><thead><tr><th onclick="sortTable('wartung','bezeichnung')" style="cursor:pointer;user-select:none;">Bezeichnung <span id="sort-wartung-bezeichnung"></span></th><th onclick="sortTable('wartung','geraetName')" style="cursor:pointer;user-select:none;">Gerät <span id="sort-wartung-geraetName"></span></th><th onclick="sortTable('wartung','typ')" style="cursor:pointer;user-select:none;">Typ <span id="sort-wartung-typ"></span></th><th onclick="sortTable('wartung','datum')" style="cursor:pointer;user-select:none;">Fällig am <span id="sort-wartung-datum">▲</span></th><th onclick="sortTable('wartung','partnerName')" style="cursor:pointer;user-select:none;">Zuständig <span id="sort-wartung-partnerName"></span></th><th onclick="sortTable('wartung','status')" style="cursor:pointer;user-select:none;">Status <span id="sort-wartung-status"></span></th><th>Termin</th><th></th></tr></thead><tbody id="wartung-table"></tbody></table></div>
         <div class="mobile-card-list" id="wartung-mobile"></div>
       </div>
     </div>
@@ -536,30 +550,61 @@
     <!-- KALENDER -->
     <div class="page page-hidden" id="page-kalender">
       <div class="section-header mb-24">
-        <div style="display:flex;align-items:center;gap:8px;">
-          <button class="btn btn-secondary btn-sm" onclick="changeMonth(-1)">←</button>
-          <select id="cal-month-select" onchange="state.calMonth=parseInt(this.value);renderCalendar()" style="border:1px solid var(--border2);border-radius:7px;padding:6px 10px;font-size:13.5px;background:var(--surface);font-family:'DM Sans',sans-serif;cursor:pointer;">
-            <option value="0">Januar</option><option value="1">Februar</option><option value="2">März</option>
-            <option value="3">April</option><option value="4">Mai</option><option value="5">Juni</option>
-            <option value="6">Juli</option><option value="7">August</option><option value="8">September</option>
-            <option value="9">Oktober</option><option value="10">November</option><option value="11">Dezember</option>
-          </select>
-          <select id="cal-year-select" onchange="state.calYear=parseInt(this.value);renderCalendar()" style="border:1px solid var(--border2);border-radius:7px;padding:6px 10px;font-size:13.5px;background:var(--surface);font-family:'DM Sans',sans-serif;cursor:pointer;"></select>
-          <button class="btn btn-secondary btn-sm" onclick="changeMonth(1)">→</button>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <div style="display:flex;border:1px solid var(--border2);border-radius:8px;overflow:hidden;">
+            <button id="cal-view-monat" onclick="setCalView('monat')" style="padding:6px 14px;font-size:13px;font-weight:500;background:var(--accent);color:#fff;border:none;cursor:pointer;">Monat</button>
+            <button id="cal-view-jahr" onclick="setCalView('jahr')" style="padding:6px 14px;font-size:13px;font-weight:500;background:var(--surface);color:var(--text2);border:none;cursor:pointer;border-left:1px solid var(--border2);">Jahr</button>
+          </div>
+          <div id="cal-nav-monat" style="display:flex;align-items:center;gap:8px;">
+            <button class="btn btn-secondary btn-sm" onclick="changeMonth(-1)">←</button>
+            <select id="cal-month-select" onchange="state.calMonth=parseInt(this.value);renderCalendar()" style="border:1px solid var(--border2);border-radius:7px;padding:6px 10px;font-size:13.5px;background:var(--surface);font-family:'DM Sans',sans-serif;cursor:pointer;">
+              <option value="0">Januar</option><option value="1">Februar</option><option value="2">März</option>
+              <option value="3">April</option><option value="4">Mai</option><option value="5">Juni</option>
+              <option value="6">Juli</option><option value="7">August</option><option value="8">September</option>
+              <option value="9">Oktober</option><option value="10">November</option><option value="11">Dezember</option>
+            </select>
+            <select id="cal-year-select" onchange="state.calYear=parseInt(this.value);renderCalendar()" style="border:1px solid var(--border2);border-radius:7px;padding:6px 10px;font-size:13.5px;background:var(--surface);font-family:'DM Sans',sans-serif;cursor:pointer;"></select>
+            <button class="btn btn-secondary btn-sm" onclick="changeMonth(1)">→</button>
+          </div>
+          <div id="cal-nav-jahr" style="display:none;align-items:center;gap:8px;">
+            <button class="btn btn-secondary btn-sm" onclick="changeJahreskalYear(-1)">←</button>
+            <select id="cal-jahres-year-select" onchange="state.calJahresYear=parseInt(this.value);renderJahreskalender()" style="border:1px solid var(--border2);border-radius:7px;padding:6px 10px;font-size:13.5px;background:var(--surface);font-family:'DM Sans',sans-serif;cursor:pointer;"></select>
+            <button class="btn btn-secondary btn-sm" onclick="changeJahreskalYear(1)">→</button>
+            <span id="cal-jahres-range" style="font-size:13px;color:var(--text3);"></span>
+          </div>
         </div>
         <button class="btn btn-primary" onclick="openModal('modal-wartung')">+ Wartung planen</button>
       </div>
-      <div class="card"><div class="card-body">
-        <div class="cal-grid" id="cal-header"></div>
-        <div class="cal-grid" id="cal-body" style="margin-top:4px;"></div>
-        <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:14px;padding-top:12px;border-top:1px solid var(--border);font-size:12px;color:var(--text3);">
-          <span><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:var(--accent-light);margin-right:5px;"></span>Geplant</span>
-          <span><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:var(--orange-light);margin-right:5px;"></span>Fällig</span>
-          <span><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:var(--green-light);margin-right:5px;"></span>Abgeschlossen</span>
-          <span><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:#f3f0ff;border:1px dashed #c4b5fd;margin-right:5px;"></span>Rolling-Vorschau (automatisch geplant)</span>
-        </div>
-      </div></div>
-      <div class="card" style="margin-top:16px;"><div class="card-header"><span class="card-title">Ereignisse dieses Monats</span></div><div class="table-wrap"><table><thead><tr><th>Datum</th><th>Bezeichnung</th><th>Gerät</th><th>Typ</th><th>Status</th></tr></thead><tbody id="cal-events-list"></tbody></table></div></div>
+
+      <!-- MONATSKALENDER -->
+      <div id="cal-monat-view">
+        <div class="card"><div class="card-body">
+          <div class="cal-grid" id="cal-header"></div>
+          <div class="cal-grid" id="cal-body" style="margin-top:4px;"></div>
+          <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:14px;padding-top:12px;border-top:1px solid var(--border);font-size:12px;color:var(--text3);">
+            <span><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:var(--accent-light);margin-right:5px;"></span>Geplant</span>
+            <span><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:var(--orange-light);margin-right:5px;"></span>Fällig</span>
+            <span><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:var(--green-light);margin-right:5px;"></span>Abgeschlossen</span>
+            <span><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:#f3f0ff;border:1px dashed #c4b5fd;margin-right:5px;"></span>Rolling-Vorschau (automatisch geplant)</span>
+          </div>
+        </div></div>
+        <div class="card" style="margin-top:16px;"><div class="card-header"><span class="card-title">Ereignisse dieses Monats</span></div><div class="table-wrap"><table><thead><tr><th>Datum</th><th>Bezeichnung</th><th>Gerät</th><th>Typ</th><th>Status</th><th></th></tr></thead><tbody id="cal-events-list"></tbody></table></div></div>
+      </div>
+
+      <!-- JAHRESKALENDER -->
+      <div id="cal-jahr-view" style="display:none;">
+        <div class="card"><div class="card-body" style="padding:0;">
+          <div style="overflow-x:auto;">
+            <table id="jahres-table" style="width:100%;border-collapse:collapse;min-width:900px;"></table>
+          </div>
+          <div style="display:flex;gap:16px;flex-wrap:wrap;margin:14px 16px 6px;padding-top:12px;border-top:1px solid var(--border);font-size:12px;color:var(--text3);">
+            <span><span style="display:inline-block;width:22px;height:14px;border-radius:3px;background:var(--accent-light);border:1px solid #93c5fd;margin-right:5px;vertical-align:middle;"></span>Geplant</span>
+            <span><span style="display:inline-block;width:22px;height:14px;border-radius:3px;background:var(--orange-light);border:1px solid #fdba74;margin-right:5px;vertical-align:middle;"></span>Fällig</span>
+            <span><span style="display:inline-block;width:22px;height:14px;border-radius:3px;background:var(--green-light);border:1px solid #86efac;margin-right:5px;vertical-align:middle;"></span>Abgeschlossen</span>
+            <span><span style="display:inline-block;width:22px;height:14px;border-radius:3px;background:#f3f0ff;border:1px dashed #c4b5fd;margin-right:5px;vertical-align:middle;"></span>Rolling-Vorschau</span>
+          </div>
+        </div></div>
+      </div>
     </div>
 
     <!-- GERÄTE -->
@@ -736,6 +781,7 @@
       <div style="display:flex;flex-direction:column;gap:10px;">
         <button class="mobile-mehr-item" onclick="showPage('wartung')">🔧<span>Wartungsaufträge</span><span style="margin-left:auto;color:var(--text3);">›</span></button>
         <button class="mobile-mehr-item" onclick="showPage('kalender')">📅<span>Wartungskalender</span><span style="margin-left:auto;color:var(--text3);">›</span></button>
+        <button class="mobile-mehr-item" onclick="showPage('termine')">🗓️<span>Termine</span><span style="margin-left:auto;color:var(--text3);">›</span></button>
         <button class="mobile-mehr-item" onclick="showPage('bereiche')">🏨<span>Hotelbereiche</span><span style="margin-left:auto;color:var(--text3);">›</span></button>
         <button class="mobile-mehr-item" onclick="showPage('dokumente')">📄<span>Dokumente</span><span style="margin-left:auto;color:var(--text3);">›</span></button>
         <button class="mobile-mehr-item" onclick="showPage('partner')">🏭<span>Partnerfirmen</span><span style="margin-left:auto;color:var(--text3);">›</span></button>
@@ -746,6 +792,41 @@
         <div style="margin-top:8px;">
           <button onclick="fbSignOutMobile()" style="width:100%;padding:14px;border-radius:10px;border:1px solid var(--red);background:var(--red-light);color:var(--red);font-size:14px;font-weight:500;cursor:pointer;">⏏️ Abmelden</button>
         </div>
+      </div>
+    </div>
+    <!-- TERMINE -->
+    <div class="page page-hidden" id="page-termine">
+      <div class="section-header mb-24">
+        <div class="tabs">
+          <button class="tab active" onclick="filterTermine('alle',this)">Alle</button>
+          <button class="tab" onclick="filterTermine('zukunft',this)">Bevorstehend</button>
+          <button class="tab" onclick="filterTermine('heute',this)">Heute</button>
+          <button class="tab" onclick="filterTermine('vergangen',this)">Vergangen</button>
+        </div>
+        <button class="btn btn-primary" onclick="openModal('modal-termin')">+ Neuer Termin</button>
+        <button class="btn btn-secondary" onclick="downloadAllTermineICS()" title="Alle Termine als ICS exportieren">📥 Alle als ICS</button>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">🗓️ Terminübersicht</span>
+          <div class="search-wrap"><span class="search-icon">🔍</span><input class="search-input" placeholder="Suchen..." oninput="window.state.terminSearch=this.value;renderTermine();"></div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Titel</th>
+                <th>Datum & Zeit</th>
+                <th>Typ</th>
+                <th>Verknüpfung</th>
+                <th>Erstellt von</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="termine-table"></tbody>
+          </table>
+        </div>
+        <div class="mobile-card-list" id="termine-mobile"></div>
       </div>
     </div>
     <!-- EXPORT -->
@@ -843,6 +924,74 @@
 </div>
 
 <!-- MODALS -->
+<div class="modal-overlay hidden" id="modal-termin">
+  <div class="modal">
+    <div class="modal-header"><span class="modal-title">Neuer Termin</span><button class="modal-close" onclick="closeModal('modal-termin')">×</button></div>
+    <div class="modal-body">
+      <div class="grid-2">
+        <div class="form-group"><label class="form-label">Titel *</label><input class="form-input" id="te-titel" placeholder="z.B. Aufzug-Inspektion, Besprechung Haustechnik"></div>
+        <div class="form-group"><label class="form-label">Typ</label>
+          <select class="form-select" id="te-typ">
+            <option value="termin">📅 Termin</option>
+            <option value="wartung">🔧 Wartung / Service</option>
+            <option value="inspektion">🔍 Inspektion / Prüfung</option>
+            <option value="meeting">👥 Besprechung</option>
+            <option value="lieferung">📦 Lieferung</option>
+            <option value="sonstiges">📌 Sonstiges</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="form-group"><label class="form-label">Datum *</label><input class="form-input" type="date" id="te-datum"></div>
+        <div class="form-group"><label class="form-label">Uhrzeit</label>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <input class="form-input" type="time" id="te-zeit-von" placeholder="Von" style="flex:1;">
+            <span style="color:var(--text3);font-size:13px;">bis</span>
+            <input class="form-input" type="time" id="te-zeit-bis" placeholder="Bis" style="flex:1;">
+          </div>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label">Verknüpft mit Ticket</label>
+          <select class="form-select" id="te-ticket"><option value="">– kein Ticket –</option></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Verknüpft mit Wartungsauftrag</label>
+          <select class="form-select" id="te-wartung"><option value="">– kein Wartungsauftrag –</option></select>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="form-group"><label class="form-label">Partnerfirma</label><select class="form-select" id="te-partner"><option value="">– auswählen –</option></select></div>
+        <div class="form-group"><label class="form-label">Erinnerung</label>
+          <select class="form-select" id="te-erinnerung">
+            <option value="">Keine</option>
+            <option value="0">Am Tag des Termins</option>
+            <option value="1440">1 Tag vorher</option>
+            <option value="2880">2 Tage vorher</option>
+            <option value="10080">1 Woche vorher</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group"><label class="form-label">Notizen / Beschreibung</label><textarea class="form-textarea" id="te-notizen" placeholder="Weitere Informationen zum Termin..."></textarea></div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('modal-termin')">Abbrechen</button><button class="btn btn-primary" id="btn-save-termin" onclick="saveTermin()">Termin speichern</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="modal-termin-detail">
+  <div class="modal">
+    <div class="modal-header"><span class="modal-title" id="termin-detail-title">Termin</span><button class="modal-close" onclick="closeModal('modal-termin-detail')">×</button></div>
+    <div class="modal-body" id="termin-detail-body"></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-termin-detail')">Schließen</button>
+      <button class="btn btn-secondary" id="btn-termin-edit" onclick="editTerminFromDetail()">✏️ Bearbeiten</button>
+      <button class="btn btn-secondary" style="color:var(--red);border-color:var(--red);" id="btn-termin-delete" onclick="deleteTerminFromDetail()">🗑️ Löschen</button>
+      <button class="btn btn-primary" id="btn-termin-ics" onclick="downloadICSFromDetail()">📥 ICS</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay hidden" id="modal-ticket">
   <div class="modal">
     <div class="modal-header"><span class="modal-title">Neues Ticket / Störungsmeldung</span><button class="modal-close" onclick="closeModal('modal-ticket')">×</button></div>
@@ -850,12 +999,30 @@
       <div class="grid-2"><div class="form-group"><label class="form-label">Betreff *</label><input class="form-input" id="t-betreff" placeholder="Kurze Beschreibung"></div><div class="form-group"><label class="form-label">Priorität *</label><select class="form-select" id="t-prioritaet"><option value="kritisch">🔴 Kritisch</option><option value="hoch">🟠 Hoch</option><option value="mittel" selected>🟡 Mittel</option><option value="niedrig">🟢 Niedrig</option></select></div></div>
       <div class="grid-2">
         <div class="form-group"><label class="form-label">Gerät / Anlage</label><select class="form-select" id="t-geraet" onchange="onTicketGeraetChange(this.value)"><option value="">– auswählen –</option></select></div>
-        <div class="form-group"><label class="form-label">Hotelbereich</label><select class="form-select" id="t-bereich"><option value="">– auswählen –</option></select></div>
+        <div class="form-group" id="t-bereich-group"><label class="form-label">Hotelbereich</label><select class="form-select" id="t-bereich"><option value="">– auswählen –</option></select></div>
+      </div>
+      <!-- Mehrere Zimmer Toggle -->
+      <div class="form-group" style="margin-bottom:8px;">
+        <label class="checkbox" style="cursor:pointer;display:inline-flex;align-items:center;gap:8px;font-size:13.5px;">
+          <input type="checkbox" id="t-mehrere-zimmer" onchange="toggleMehrereZimmer(this.checked)">
+          <span>🏨 Mehrere Zimmer betroffen</span>
+        </label>
+      </div>
+      <!-- Zimmer-Auswahl Panel (versteckt bis Toggle aktiv) -->
+      <div id="t-zimmer-panel" style="display:none;margin-bottom:12px;border:1px solid var(--border2);border-radius:10px;padding:14px;background:var(--surface2);">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
+          <span style="font-size:13px;font-weight:600;color:var(--text1);">Zimmer auswählen</span>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="zimmerAlleAuswaehlen(true)">✅ Alle</button>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="zimmerAlleAuswaehlen(false)">☐ Keine</button>
+          </div>
+        </div>
+        <div id="t-zimmer-etagen" style="display:flex;flex-direction:column;gap:12px;max-height:280px;overflow-y:auto;padding-right:4px;"></div>
       </div>
       <div class="grid-2"><div class="form-group"><label class="form-label">Zugewiesen an</label><select class="form-select" id="t-partner"><option value="">– auswählen –</option></select></div><div class="form-group"><label class="form-label">Gemeldet von</label><input class="form-input" id="t-gemeldet" placeholder="Name / Abteilung"></div></div>
       <div class="form-group"><label class="form-label">Beschreibung</label><textarea class="form-textarea" id="t-beschreibung" placeholder="Detaillierte Beschreibung..."></textarea></div>
     </div>
-    <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('modal-ticket')">Abbrechen</button><button class="btn btn-primary" id="btn-save-ticket">Ticket erstellen</button></div>
+    <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('modal-ticket')">Abbrechen</button><button class="btn btn-secondary" id="btn-ticket-termin" onclick="openTerminFromTicket()" style="display:none;">🗓️ Termin erstellen</button><button class="btn btn-primary" id="btn-save-ticket">Ticket erstellen</button></div>
   </div>
 </div>
 
@@ -869,7 +1036,7 @@
       <div class="form-group" style="margin-top:-6px;"><label class="checkbox"><input type="checkbox" id="w-autoTicket"> <span>Ticket automatisch erstellen (bei Fälligkeit wird beim Öffnen der App ein Ticket erstellt)</span></label></div>
       <div class="form-group"><label class="form-label">Notizen</label><textarea class="form-textarea" id="w-notizen"></textarea></div>
     </div>
-    <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('modal-wartung')">Abbrechen</button><button class="btn btn-primary" id="btn-save-wartung">Auftrag erstellen</button></div>
+    <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('modal-wartung')">Abbrechen</button><button class="btn btn-secondary" id="btn-wartung-termin" onclick="openTerminFromWartung()" style="display:none;">🗓️ Termin erstellen</button><button class="btn btn-primary" id="btn-save-wartung">Auftrag erstellen</button></div>
   </div>
 </div>
 
@@ -1224,6 +1391,8 @@ window.setUserRole = async (emailKey, role) => {
 
 // Expose Firebase functions for import
 window._addDoc = (colName, data) => addDoc(collection(db, colName), data);
+window._updateDoc = (colName, id, data) => updateDoc(doc(db, colName, id), data);
+window._deleteDoc = (colName, id) => deleteDoc(doc(db, colName, id));
 window._serverTimestamp = () => serverTimestamp();
 window._addLog = addLog;
 
@@ -1293,12 +1462,12 @@ async function generateTicketsFromDueWartungen() {
   }
 }
 
-function checkLoaded() { loadedCount++; if (loadedCount >= 8) { document.getElementById('loading-overlay').classList.add('hidden'); if(!_wartungTicketGenDone){ _wartungTicketGenDone=true; generateTicketsFromDueWartungen(); } } }
+function checkLoaded() { loadedCount++; if (loadedCount >= 9) { document.getElementById('loading-overlay').classList.add('hidden'); if(!_wartungTicketGenDone){ _wartungTicketGenDone=true; generateTicketsFromDueWartungen(); } } }
 
 // Ensure state exists before listeners render
 (function ensureState(){
   window.state = window.state || {};
-  const __stateDefaults = { tickets:[], wartungen:[], geraete:[], partner:[], notfaelle:[], dokumente:[], bereiche:[], log:[], ticketFilter:'alle', wartungFilter:'alle', geraeteFilter:'alle', partnerFilter:'alle', bereicheFilter:'alle', calMonth:new Date().getMonth(), calYear:new Date().getFullYear(), ticketSearch:'', wartungSearch:'', geraeteSearch:'', bereicheSearch:'', partnerSearch:'', notfallSearch:'', logSearch:'' };
+  const __stateDefaults = { tickets:[], wartungen:[], geraete:[], partner:[], notfaelle:[], dokumente:[], bereiche:[], log:[], termine:[], ticketFilter:'aktiv', wartungFilter:'zukunft', geraeteFilter:'alle', partnerFilter:'alle', bereicheFilter:'alle', calMonth:new Date().getMonth(), calYear:new Date().getFullYear(), ticketSearch:'', wartungSearch:'', ticketSort:{col:null,dir:1}, wartungSort:{col:null,dir:1}, geraeteSearch:'', bereicheSearch:'', partnerSearch:'', notfallSearch:'', logSearch:'', terminFilter:'alle', terminSearch:'', calView:'monat', calJahresYear:new Date().getFullYear() };
   for (const k in __stateDefaults) { if (window.state[k] === undefined) window.state[k] = __stateDefaults[k]; }
 })();
 
@@ -1307,13 +1476,14 @@ function startListeners() {
   document.getElementById('loading-overlay').classList.remove('hidden');
 
   onSnapshot(col('tickets'), s => { window.state.tickets = s.docs.map(d=>({id:d.id,...d.data()})); renderAll(); checkLoaded(); }, ()=>checkLoaded());
-  onSnapshot(col('wartungen'), s => { window.state.wartungen = s.docs.map(d=>({id:d.id,...d.data()})); renderAll(); if(!document.getElementById('page-kalender').classList.contains('page-hidden')) renderCalendar(); checkLoaded(); }, ()=>checkLoaded());
+  onSnapshot(col('wartungen'), s => { window.state.wartungen = s.docs.map(d=>({id:d.id,...d.data()})); renderAll(); if(!document.getElementById('page-kalender').classList.contains('page-hidden')){ if(state.calView==='jahr') renderJahreskalender(); else renderCalendar(); } checkLoaded(); }, ()=>checkLoaded());
   onSnapshot(col('geraete'), s => { window.state.geraete = s.docs.map(d=>({id:d.id,...d.data()})); renderAll(); checkLoaded(); }, ()=>checkLoaded());
   onSnapshot(col('partner'), s => { window.state.partner = s.docs.map(d=>({id:d.id,...d.data()})); renderAll(); checkLoaded(); }, ()=>checkLoaded());
   onSnapshot(col('notfaelle'), s => { window.state.notfaelle = s.docs.map(d=>({id:d.id,...d.data()})); renderAll(); checkLoaded(); }, ()=>checkLoaded());
   onSnapshot(col('dokumente'), s => { window.state.dokumente = s.docs.map(d=>({id:d.id,...d.data()})); renderAll(); checkLoaded(); }, ()=>checkLoaded());
   onSnapshot(col('bereiche'), s => { window.state.bereiche = s.docs.map(d=>({id:d.id,...d.data()})); renderAll(); checkLoaded(); }, ()=>checkLoaded());
   onSnapshot(col('log'), s => { window.state.log = s.docs.map(d=>({id:d.id,...d.data()})); renderAll(); checkLoaded(); }, ()=>checkLoaded());
+  onSnapshot(col('termine'), s => { window.state.termine = s.docs.map(d=>({id:d.id,...d.data()})); renderAll(); checkLoaded(); }, ()=>checkLoaded());
 
   document.getElementById('sync-dot').style.background = 'var(--green)';
   document.getElementById('sync-label').textContent = 'Live-Sync aktiv';
@@ -1324,18 +1494,118 @@ async function addLog(text, color='#2563eb') {
   await addDoc(collection(db,'log'), { text, color, user: currentUser?.displayName||currentUser?.email||'', createdAt: serverTimestamp() });
 }
 
+// ---- Multi-Zimmer Funktionen ----
+window.toggleMehrereZimmer = function(active) {
+  const panel = document.getElementById('t-zimmer-panel');
+  const bereichGroup = document.getElementById('t-bereich-group');
+  panel.style.display = active ? 'block' : 'none';
+  bereichGroup.style.display = active ? 'none' : 'block';
+  if (active) renderZimmerPanel();
+};
+
+window.renderZimmerPanel = function() {
+  const zimmer = (window.state.bereiche || [])
+    .filter(b => b.kategorie === 'zimmer')
+    .sort((a, b) => {
+      const na = parseInt(a.zimmernummer || a.name) || 0;
+      const nb = parseInt(b.zimmernummer || b.name) || 0;
+      return na - nb;
+    });
+  if (!zimmer.length) {
+    document.getElementById('t-zimmer-etagen').innerHTML = '<p style="font-size:13px;color:var(--text3);">Keine Zimmer in Hotelbereiche erfasst.</p>';
+    return;
+  }
+  const etagen = {};
+  zimmer.forEach(z => {
+    const nr = (z.zimmernummer || z.name || '').toString().trim();
+    const firstDigit = nr[0];
+    const etage = /[0-9]/.test(firstDigit) ? firstDigit : '0';
+    if (!etagen[etage]) etagen[etage] = [];
+    etagen[etage].push(z);
+  });
+  const etagenKeys = Object.keys(etagen).sort();
+  document.getElementById('t-zimmer-etagen').innerHTML = etagenKeys.map(etage => {
+    const label = etage === '0' ? 'Erdgeschoss / Andere' : `Etage ${etage}`;
+    const rooms = etagen[etage];
+    return `<div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+        <label style="font-size:12.5px;font-weight:600;color:var(--text2);cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
+          <input type="checkbox" class="etage-cb" data-etage="${etage}" onchange="zimmerEtageAuswaehlen('${etage}',this.checked)" style="width:15px;height:15px;cursor:pointer;">
+          🏢 ${label}
+        </label>
+        <span style="font-size:11px;color:var(--text3);">(${rooms.length} Zimmer)</span>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;padding-left:22px;">
+        ${rooms.map(z => `<label style="cursor:pointer;display:inline-flex;align-items:center;gap:5px;font-size:12.5px;background:var(--surface);border:1px solid var(--border2);border-radius:6px;padding:4px 9px;white-space:nowrap;">
+          <input type="checkbox" class="zimmer-cb" data-id="${z.id}" data-name="${esc(z.name)}" data-etage="${etage}" onchange="updateEtageCheckbox('${etage}')" style="cursor:pointer;">
+          ${esc(z.zimmernummer || z.name)}
+        </label>`).join('')}
+      </div>
+    </div>`;
+  }).join('');
+};
+
+window.zimmerAlleAuswaehlen = function(checked) {
+  document.querySelectorAll('#t-zimmer-etagen .zimmer-cb').forEach(cb => cb.checked = checked);
+  document.querySelectorAll('#t-zimmer-etagen .etage-cb').forEach(cb => cb.checked = checked);
+};
+
+window.zimmerEtageAuswaehlen = function(etage, checked) {
+  document.querySelectorAll(`.zimmer-cb[data-etage="${etage}"]`).forEach(cb => cb.checked = checked);
+};
+
+window.updateEtageCheckbox = function(etage) {
+  const all = document.querySelectorAll(`.zimmer-cb[data-etage="${etage}"]`);
+  const checked = document.querySelectorAll(`.zimmer-cb[data-etage="${etage}"]:checked`);
+  const etageCb = document.querySelector(`.etage-cb[data-etage="${etage}"]`);
+  if (etageCb) etageCb.checked = all.length > 0 && all.length === checked.length;
+};
+
+function getSelectedZimmer() {
+  const cbs = document.querySelectorAll('#t-zimmer-etagen .zimmer-cb:checked');
+  // When editing, preserve existing erledigt flags for rooms that were already in the ticket
+  const existingZimmer = (window._editId && window._editType === 'tickets')
+    ? (window.state.tickets.find(t => t.id === window._editId)?.zimmerListe || [])
+    : [];
+  return Array.from(cbs).map(cb => {
+    const existing = existingZimmer.find(z => z.bereichId === cb.dataset.id);
+    return { bereichId: cb.dataset.id, name: cb.dataset.name, erledigt: existing ? !!existing.erledigt : false };
+  });
+}
+
+function resetZimmerPanel() {
+  const cb = document.getElementById('t-mehrere-zimmer');
+  if (cb) cb.checked = false;
+  const panel = document.getElementById('t-zimmer-panel');
+  if (panel) panel.style.display = 'none';
+  const bg = document.getElementById('t-bereich-group');
+  if (bg) bg.style.display = 'block';
+  const et = document.getElementById('t-zimmer-etagen');
+  if (et) et.innerHTML = '';
+}
+
 // SAVE buttons wired here (module scope)
 document.getElementById('btn-save-ticket').onclick = async () => {
   const betreff = document.getElementById('t-betreff').value.trim();
   if (!betreff) { alert('Bitte einen Betreff eingeben.'); return; }
+  const mehrereZimmer = document.getElementById('t-mehrere-zimmer').checked;
   const gId = document.getElementById('t-geraet').value;
   const pId = document.getElementById('t-partner').value;
-  const bId = document.getElementById('t-bereich').value;
+  let bId = '', zimmerListe = [];
+  if (mehrereZimmer) {
+    zimmerListe = getSelectedZimmer();
+    if (!zimmerListe.length) { alert('Bitte mindestens ein Zimmer auswählen.'); return; }
+  } else {
+    bId = document.getElementById('t-bereich').value;
+  }
   const data = {
     betreff, prioritaet: document.getElementById('t-prioritaet').value,
     geraetId: gId, geraetName: window.state.geraete.find(g=>g.id===gId)?.name||'',
     partnerId: pId, partnerName: window.state.partner.find(p=>p.id===pId)?.name||'',
-    bereichId: bId, bereichName: window.state.bereiche.find(b=>b.id===bId)?.name||'',
+    bereichId: mehrereZimmer ? '' : bId,
+    bereichName: mehrereZimmer ? `${zimmerListe.length} Zimmer` : (window.state.bereiche.find(b=>b.id===bId)?.name||''),
+    mehrereZimmer: mehrereZimmer,
+    zimmerListe: mehrereZimmer ? zimmerListe : [],
     gemeldet: document.getElementById('t-gemeldet').value,
     beschreibung: document.getElementById('t-beschreibung').value,
   };
@@ -1366,8 +1636,27 @@ document.getElementById('btn-save-wartung').onclick = async () => {
     autoTicket: document.getElementById('w-autoTicket').checked,
   };
   if(window._editId && window._editType==='wartungen'){
-    await updateDoc(doc(db,'wartungen',window._editId), {...base, datum, status: new Date(datum)<new Date()?'faellig':'geplant'});
-    await addLog(`Wartung "${bez}" bearbeitet`, '#d97706');
+    const existing = window.state.wartungen.find(w=>w.id===window._editId);
+    const oldIntervall = existing?.intervall||'einmalig';
+    const oldSeriesId = existing?.seriesId||null;
+    let seriesId = oldSeriesId;
+
+    if(intervall === 'einmalig') {
+      // Wurde auf Einmalig gesetzt → Serie aufheben
+      seriesId = null;
+    } else if(intervall !== oldIntervall || !oldSeriesId) {
+      // Intervall geändert ODER war vorher einmalig → neue Serie starten
+      seriesId = bez.replace(/\s+/g,'_') + '_' + Date.now();
+    }
+    // sonst: gleiches Intervall + seriesId bleibt
+
+    await updateDoc(doc(db,'wartungen',window._editId), {
+      ...base, datum,
+      status: new Date(datum)<new Date()?'faellig':'geplant',
+      seriesId: seriesId || null
+    });
+    const recurText = intervall !== 'einmalig' ? `, ${intervall} wiederkehrend (rolling)` : '';
+    await addLog(`Wartung "${bez}" bearbeitet${recurText}`, '#d97706');
   } else {
     // Rolling system: only create ONE entry per series. Next occurrence is auto-created on completion.
     const seriesId = intervall !== 'einmalig' ? (bez.replace(/\s+/g,'_') + '_' + Date.now()) : null;
@@ -1485,6 +1774,32 @@ window.updateTicketStatus = async (id, status) => {
   await updateDoc(doc(db,'tickets',id), {status});
   const t = window.state.tickets.find(t=>t.id===id);
   await addLog(`Ticket "${t?.betreff||id}" → ${status} (${currentUser?.displayName||''})`, '#2563eb');
+};
+
+window.toggleZimmerErledigt = async (ticketId, bereichId, erledigt) => {
+  const ticket = window.state.tickets.find(t => t.id === ticketId);
+  if (!ticket || !ticket.zimmerListe) return;
+  const updated = ticket.zimmerListe.map(z =>
+    z.bereichId === bereichId ? {...z, erledigt} : z
+  );
+  const alleErledigt = updated.every(z => z.erledigt);
+  const updates = { zimmerListe: updated };
+  if (alleErledigt) updates.status = 'erledigt';
+  // Remember which detail panels are open before the re-render
+  window._openZimmerDetails = new Set(
+    [...document.querySelectorAll('[id^="zimmer-detail-"]')]
+      .filter(el => el.style.display !== 'none')
+      .map(el => el.id.replace('zimmer-detail-', ''))
+  );
+  window._openZimmerDetailsMobile = new Set(
+    [...document.querySelectorAll('[id^="zimmer-mobile-"]')]
+      .filter(el => el.style.display !== 'none')
+      .map(el => el.id.replace('zimmer-mobile-', ''))
+  );
+  await updateDoc(doc(db,'tickets',ticketId), updates);
+  if (alleErledigt) {
+    await addLog(`Ticket "${ticket.betreff}" → erledigt (alle Zimmer abgehakt, ${currentUser?.displayName||''})`, '#16a34a');
+  }
 };
 window.updateWartungStatus = async (id, status) => {
   await updateDoc(doc(db,'wartungen',id), {status});
@@ -1609,12 +1924,26 @@ window.editItem = (type, id) => {
     document.getElementById('t-betreff').value=item.betreff||'';
     document.getElementById('t-prioritaet').value=item.prioritaet||'mittel';
     document.getElementById('t-geraet').value=item.geraetId||'';
-    document.getElementById('t-bereich').value=item.bereichId||'';
     document.getElementById('t-partner').value=item.partnerId||'';
     document.getElementById('t-gemeldet').value=item.gemeldetVon||item.gemeldet||'';
     document.getElementById('t-beschreibung').value=item.beschreibung||'';
+    if(item.mehrereZimmer && item.zimmerListe && item.zimmerListe.length) {
+      document.getElementById('t-mehrere-zimmer').checked = true;
+      toggleMehrereZimmer(true);
+      // After render, check saved zimmer
+      setTimeout(() => {
+        (item.zimmerListe || []).forEach(z => {
+          const cb = document.querySelector(`#t-zimmer-etagen .zimmer-cb[data-id="${z.bereichId}"]`);
+          if(cb) { cb.checked = true; updateEtageCheckbox(cb.dataset.etage); }
+        });
+      }, 50);
+    } else {
+      document.getElementById('t-bereich').value=item.bereichId||'';
+    }
     document.getElementById('modal-ticket').querySelector('.modal-title').textContent='Ticket bearbeiten';
     document.getElementById('btn-save-ticket').textContent='Änderungen speichern';
+    document.getElementById('btn-ticket-termin').style.display='inline-flex';
+    document.getElementById('btn-ticket-termin').dataset.ticketId=item.id;
     document.getElementById('modal-ticket').classList.remove('hidden');
   } else if(type==='wartungen'){
     document.getElementById('w-bezeichnung').value=item.bezeichnung||'';
@@ -1627,6 +1956,8 @@ window.editItem = (type, id) => {
     document.getElementById('w-notizen').value=item.notizen||'';
     document.getElementById('modal-wartung').querySelector('.modal-title').textContent='Wartungsauftrag bearbeiten';
     document.getElementById('btn-save-wartung').textContent='Änderungen speichern';
+    document.getElementById('btn-wartung-termin').style.display='inline-flex';
+    document.getElementById('btn-wartung-termin').dataset.wartungId=item.id;
     document.getElementById('modal-wartung').classList.remove('hidden');
   } else if(type==='geraete'){
     document.getElementById('g-name').value=item.name||'';
@@ -1694,7 +2025,7 @@ window.editItem = (type, id) => {
 
 <script>
 window.state = window.state || {};
-  const __stateDefaults = { tickets:[], wartungen:[], geraete:[], partner:[], notfaelle:[], dokumente:[], bereiche:[], log:[], ticketFilter:'alle', wartungFilter:'alle', geraeteFilter:'alle', partnerFilter:'alle', bereicheFilter:'alle', calMonth:new Date().getMonth(), calYear:new Date().getFullYear(), ticketSearch:'', wartungSearch:'', geraeteSearch:'', bereicheSearch:'', partnerSearch:'', notfallSearch:'', logSearch:'' };
+  const __stateDefaults = { tickets:[], wartungen:[], geraete:[], partner:[], notfaelle:[], dokumente:[], bereiche:[], log:[], termine:[], ticketFilter:'aktiv', wartungFilter:'zukunft', geraeteFilter:'alle', partnerFilter:'alle', bereicheFilter:'alle', calMonth:new Date().getMonth(), calYear:new Date().getFullYear(), ticketSearch:'', wartungSearch:'', ticketSort:{col:null,dir:1}, wartungSort:{col:null,dir:1}, geraeteSearch:'', bereicheSearch:'', partnerSearch:'', notfallSearch:'', logSearch:'', terminFilter:'alle', terminSearch:'', calView:'monat', calJahresYear:new Date().getFullYear() };
   for (const k in __stateDefaults) { if (window.state[k] === undefined) window.state[k] = __stateDefaults[k]; }
 
 // Force responsive visibility (prevents table + mobile cards showing at the same time)
@@ -1712,7 +2043,7 @@ applyResponsiveVisibility();
 
 
 
-const pageLabels = {dashboard:'Dashboard',tickets:'Tickets & Störungen',wartung:'Wartungsaufträge',kalender:'Wartungskalender',geraete:'Geräte & Anlagen',bereiche:'Hotelbereiche',dokumente:'Dokumente',partner:'Partnerfirmen',notfall:'Notfallkontakte',aktivitaet:'Aktivitätslog',benutzer:'Benutzerverwaltung',import:'Daten importieren',export:'Daten exportieren',mehr:'Mehr'};
+const pageLabels = {dashboard:'Dashboard',tickets:'Tickets & Störungen',wartung:'Wartungsaufträge',kalender:'Wartungskalender',termine:'Termine',geraete:'Geräte & Anlagen',bereiche:'Hotelbereiche',dokumente:'Dokumente',partner:'Partnerfirmen',notfall:'Notfallkontakte',aktivitaet:'Aktivitätslog',benutzer:'Benutzerverwaltung',import:'Daten importieren',export:'Daten exportieren',mehr:'Mehr'};
 
 // Pages reachable directly from bottom nav (no back button needed)
 const mainPages = new Set(['dashboard','tickets','geraete','notfall','mehr']);
@@ -1730,6 +2061,7 @@ window.goBack = () => {
 const fabActions = {
   tickets: () => openModal('modal-ticket'),
   wartung: () => openModal('modal-wartung'),
+  termine: () => openModal('modal-termin'),
   geraete: () => openModal('modal-geraet'),
   bereiche: () => openModal('modal-bereich'),
   partner: () => openModal('modal-partner'),
@@ -1781,11 +2113,11 @@ function showPage(name, navBtn, isBack) {
   const fab = document.getElementById('fab-btn');
   if(fab) fab.style.display = fabActions[name] ? 'flex' : 'none';
 
-  if(name==='kalender') renderCalendar();
+  if(name==='kalender'){ if(state.calView==='jahr') renderJahreskalender(); else renderCalendar(); }
   if(name==='aktivitaet') renderAktivitaet();
 }
 
-function openModal(id) { populateSelects(); document.getElementById(id).classList.remove('hidden'); }
+function openModal(id) { populateSelects(); document.getElementById(id).classList.remove('hidden'); if(id==='modal-ticket' && !window._editId) resetZimmerPanel(); }
 function closeModal(id) {
   document.getElementById(id).classList.add('hidden');
   document.querySelectorAll(`#${id} input,#${id} textarea`).forEach(e=>{ if(e.type==='checkbox') e.checked=false; else e.value=''; });
@@ -1793,11 +2125,13 @@ function closeModal(id) {
   window._editId=null; window._editType=null;
   hideEntityTicketLogs();
   // Reset titles and button labels
-  const titleMap={'modal-ticket':'Neues Ticket / Störungsmeldung','modal-wartung':'Wartungsauftrag erfassen','modal-geraet':'Gerät / Anlage hinzufügen','modal-partner':'Partnerfirma hinzufügen','modal-notfall':'Notfallkontakt hinzufügen','modal-dokument':'Dokument erfassen','modal-bereich':'Hotelbereich hinzufügen'};
-  const btnMap={'modal-ticket':'btn-save-ticket','modal-wartung':'btn-save-wartung','modal-geraet':'btn-save-geraet','modal-partner':'btn-save-partner','modal-notfall':'btn-save-notfall','modal-dokument':'btn-save-dokument','modal-bereich':'btn-save-bereich'};
-  const saveLabelMap={'modal-ticket':'Ticket erstellen','modal-wartung':'Auftrag erstellen','modal-geraet':'Gerät speichern','modal-partner':'Firma speichern','modal-notfall':'Kontakt speichern','modal-dokument':'Speichern','modal-bereich':'Bereich speichern'};
+  const titleMap={'modal-ticket':'Neues Ticket / Störungsmeldung','modal-wartung':'Wartungsauftrag erfassen','modal-geraet':'Gerät / Anlage hinzufügen','modal-partner':'Partnerfirma hinzufügen','modal-notfall':'Notfallkontakt hinzufügen','modal-dokument':'Dokument erfassen','modal-bereich':'Hotelbereich hinzufügen','modal-termin':'Neuer Termin'};
+  const btnMap={'modal-ticket':'btn-save-ticket','modal-wartung':'btn-save-wartung','modal-geraet':'btn-save-geraet','modal-partner':'btn-save-partner','modal-notfall':'btn-save-notfall','modal-dokument':'btn-save-dokument','modal-bereich':'btn-save-bereich','modal-termin':'btn-save-termin'};
+  const saveLabelMap={'modal-ticket':'Ticket erstellen','modal-wartung':'Auftrag erstellen','modal-geraet':'Gerät speichern','modal-partner':'Firma speichern','modal-notfall':'Kontakt speichern','modal-dokument':'Speichern','modal-bereich':'Bereich speichern','modal-termin':'Termin speichern'};
   if(titleMap[id]) document.querySelector(`#${id} .modal-title`).textContent=titleMap[id];
   if(btnMap[id]) document.getElementById(btnMap[id]).textContent=saveLabelMap[id];
+  if(id==='modal-ticket') { resetZimmerPanel(); document.getElementById('btn-ticket-termin').style.display='none'; }
+  if(id==='modal-wartung') document.getElementById('btn-wartung-termin').style.display='none';
 }
 
 function _lc(a,b){
@@ -1849,10 +2183,21 @@ function populateSelects() {
   const b = bereicheSorted.map(b=>`<option value="${b.id}">${_optEsc(b.name||'')}</option>`).join('');
 
   ['t-geraet','w-geraet','d-geraet'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML='<option value="">– auswählen –</option>'+g;});
-  ['t-partner','w-partner'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML='<option value="">– auswählen –</option>'+p;});
+  ['t-partner','w-partner','te-partner'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML='<option value="">– auswählen –</option>'+p;});
   const gp=document.getElementById('g-partner');if(gp)gp.innerHTML='<option value="">– auswählen –</option>'+p;
   const tb=document.getElementById('t-bereich');if(tb)tb.innerHTML='<option value="">– auswählen –</option>'+b;
   const gb=document.getElementById('g-bereich');if(gb)gb.innerHTML='<option value="">– auswählen –</option>'+b;
+  // Populate ticket/wartung selects in Termin modal
+  const teTicket=document.getElementById('te-ticket');
+  if(teTicket){
+    const openTickets=[...state.tickets].filter(t=>t.status!=='erledigt').sort((a,b)=>_lc(a.betreff,b.betreff));
+    teTicket.innerHTML='<option value="">– kein Ticket –</option>'+openTickets.map(t=>`<option value="${t.id}">${_optEsc(t.betreff||'')}</option>`).join('');
+  }
+  const teWartung=document.getElementById('te-wartung');
+  if(teWartung){
+    const futureWartungen=[...state.wartungen].filter(w=>w.status!=='abgeschlossen'&&w.status!=='storniert').sort((a,b)=>_lc(a.bezeichnung,b.bezeichnung));
+    teWartung.innerHTML='<option value="">– kein Wartungsauftrag –</option>'+futureWartungen.map(w=>`<option value="${w.id}">${_optEsc(w.bezeichnung||'')}</option>`).join('');
+  }
 }
 
 // Auto-fill Bereich when Gerät is selected in ticket modal
@@ -1910,7 +2255,7 @@ const bLabel={zimmer:'Zimmer',seminar:'Seminarraum',restaurant:'Restaurant/Bar',
 function fDate(d){if(!d)return'–';try{return new Date(d+'T00:00:00').toLocaleDateString('de-DE');}catch(e){return d;}}
 function fTs(ts){if(!ts)return'–';try{const d=ts.toDate?ts.toDate():new Date(ts);return d.toLocaleDateString('de-DE')+' '+d.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});}catch(e){return'–';}}
 
-function renderAll() { renderDashboard();renderTickets();renderTicketsMobile();renderWartungen();renderWartungenMobile();renderGeraete();renderPartner();renderNotfall();renderDokumente();renderDokumenteMobile();renderBereiche();updateBadges();updateExportCounts(); }
+function renderAll() { renderDashboard();renderTickets();renderTicketsMobile();renderWartungen();renderWartungenMobile();renderGeraete();renderPartner();renderNotfall();renderDokumente();renderDokumenteMobile();renderBereiche();updateBadges();updateExportCounts();renderTermine(); }
 
 function renderDashboard() {
   const offene=state.tickets.filter(t=>t.status!=='erledigt');
@@ -1925,31 +2270,98 @@ function renderDashboard() {
   document.getElementById('kpi-wartungen-faellig').textContent=faellig.length;
   document.getElementById('kpi-partner').textContent=state.partner.length;
   const dt=document.getElementById('dash-tickets'),ct=state.tickets.filter(t=>t.status!=='erledigt'&&(t.prioritaet==='kritisch'||t.prioritaet==='hoch')).slice(0,5);
-  dt.innerHTML=ct.length?ct.map(t=>`<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);"><span class="badge ${pBadge[t.prioritaet]}">${pLabel[t.prioritaet]}</span><span style="flex:1;font-size:13px;">${t.betreff}</span><span class="badge ${sBadge[t.status]}">${sLabel[t.status]}</span></div>`).join(''):'<div class="empty-state"><div class="empty-icon">✅</div><p>Keine kritischen Tickets</p></div>';
+  dt.innerHTML=ct.length?ct.map(t=>{
+    const hasZimmer = t.mehrereZimmer && t.zimmerListe && t.zimmerListe.length > 0;
+    const zdone = hasZimmer ? t.zimmerListe.filter(z=>z.erledigt).length : 0;
+    const ztotal = hasZimmer ? t.zimmerListe.length : 0;
+    return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);">
+      <span class="badge ${pBadge[t.prioritaet]}">${pLabel[t.prioritaet]}</span>
+      <span style="flex:1;font-size:13px;">${t.betreff}</span>
+      ${hasZimmer?`<span style="font-size:11.5px;color:${zdone===ztotal?'var(--green)':'var(--text3)'};">🏨 ${zdone}/${ztotal}</span>`:''}
+      <span class="badge ${sBadge[t.status]}">${sLabel[t.status]}</span>
+    </div>`;
+  }).join(''):'<div class="empty-state"><div class="empty-icon">✅</div><p>Keine kritischen Tickets</p></div>';
   const dw=document.getElementById('dash-wartungen'),up=[...state.wartungen].filter(w=>w.status!=='abgeschlossen').sort((a,b)=>new Date(a.datum)-new Date(b.datum)).slice(0,5);
-  dw.innerHTML=up.length?up.map(w=>`<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);"><span style="font-family:'DM Mono',monospace;font-size:12px;color:var(--text3);min-width:80px;">${fDate(w.datum)}</span><span style="flex:1;font-size:13px;">${w.bezeichnung}</span><span class="badge ${sBadge[w.status]}">${sLabel[w.status]}</span></div>`).join(''):'<div class="empty-state"><div class="empty-icon">📅</div><p>Keine anstehenden Wartungen</p></div>';
+  dw.innerHTML=up.length?up.map(w=>`<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);"><span style="font-family:'DM Mono',monospace;font-size:12px;color:var(--text3);min-width:80px;">${fDate(w.datum)}</span><span style="flex:1;font-size:13px;">${_optEsc(w.bezeichnung)}</span><span class="badge ${sBadge[w.status]}">${sLabel[w.status]}</span></div>`).join(''):'<div class="empty-state"><div class="empty-icon">📅</div><p>Keine anstehenden Wartungen</p></div>';
   const dg=document.getElementById('dash-geraete');
-  dg.innerHTML=state.geraete.length?`<div style="display:flex;flex-direction:column;gap:8px;">${state.geraete.slice(0,6).map(g=>`<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--border);"><span>${kIcons[g.kategorie]||'🔧'}</span><span style="flex:1;font-size:13px;font-weight:500;">${g.name}</span>${(()=>{const nw=getNextWartungForGeraet(g.id);return nw?`<span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text3);">${fDate(nw)}</span>`:''})()}<span class="status-dot dot-${g.status==='aktiv'?'green':g.status==='stoerung'?'red':'yellow'}"></span></div>`).join('')}</div>`:'<div class="empty-state"><div class="empty-icon">⚙️</div><p>Noch keine Geräte erfasst</p></div>';
+  dg.innerHTML=state.geraete.length?`<div style="display:flex;flex-direction:column;gap:8px;">${state.geraete.slice(0,6).map(g=>`<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--border);"><span>${kIcons[g.kategorie]||'🔧'}</span><span style="flex:1;font-size:13px;font-weight:500;">${_optEsc(g.name)}</span>${(()=>{const nw=getNextWartungForGeraet(g.id);return nw?`<span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text3);">${fDate(nw)}</span>`:''})()}<span class="status-dot dot-${g.status==='aktiv'?'green':g.status==='stoerung'?'red':'yellow'}"></span></div>`).join('')}</div>`:'<div class="empty-state"><div class="empty-icon">⚙️</div><p>Noch keine Geräte erfasst</p></div>';
   const da=document.getElementById('dash-aktivitaet');
-  da.innerHTML=state.log.length?state.log.slice(0,8).map(l=>`<div class="activity-item"><div class="activity-dot" style="background:${l.color}"></div><div><div class="activity-text">${l.text}</div><div class="activity-time">${fTs(l.createdAt)}${l.user?' · '+l.user:''}</div></div></div>`).join(''):'<div class="empty-state"><div class="empty-icon">📋</div><p>Noch keine Aktivitäten</p></div>';
+  da.innerHTML=state.log.length?state.log.slice(0,8).map(l=>`<div class="activity-item"><div class="activity-dot" style="background:${l.color}"></div><div><div class="activity-text">${_optEsc(l.text)}</div><div class="activity-time">${fTs(l.createdAt)}${l.user?' · '+_optEsc(l.user):''}</div></div></div>`).join(''):'<div class="empty-state"><div class="empty-icon">📋</div><p>Noch keine Aktivitäten</p></div>';
 }
 
 function renderTickets() {
   let data=state.tickets;
-  if(state.ticketFilter!=='alle') data=data.filter(t=>t.status===state.ticketFilter);
-  if(state.ticketSearch) data=data.filter(t=>t.betreff.toLowerCase().includes(state.ticketSearch.toLowerCase()));
+  if(state.ticketFilter==='aktiv') data=data.filter(t=>t.status!=='erledigt');
+  else if(state.ticketFilter!=='alle') data=data.filter(t=>t.status===state.ticketFilter);
+  if(state.ticketSearch){const q=state.ticketSearch.toLowerCase();data=data.filter(t=>(t.betreff||'').toLowerCase().includes(q)||(t.bereichName||'').toLowerCase().includes(q)||(t.ersteller||'').toLowerCase().includes(q)||(t.gemeldet||'').toLowerCase().includes(q));}
+  const ts=state.ticketSort;
+  if(ts&&ts.col){const col=ts.col,dir=ts.dir;const pOrd={kritisch:0,hoch:1,mittel:2,niedrig:3};const sOrd={offen:0,in_bearbeitung:1,erledigt:2};data=[...data].sort((a,b)=>{let av=a[col]||'',bv=b[col]||'';if(col==='prioritaet'){av=pOrd[a.prioritaet]??9;bv=pOrd[b.prioritaet]??9;return(av-bv)*dir;}if(col==='status'){av=sOrd[a.status]??9;bv=sOrd[b.status]??9;return(av-bv)*dir;}return av.toString().localeCompare(bv.toString())*dir;});}
+  // update sort indicators
+  ['betreff','geraetName','bereichName','prioritaet','status','ersteller','partnerName'].forEach(c=>{const el=document.getElementById('sort-ticket-'+c);if(el)el.textContent=ts&&ts.col===c?(ts.dir===1?'▲':'▼'):'';});
   const tb=document.getElementById('tickets-table');
-  tb.innerHTML=data.length?data.map(t=>`<tr><td><span style="font-weight:500;">${t.betreff}</span>${t.autoGenerated?` <span class="badge badge-violet">🤖 Automatisch aus Wartung</span>`:''}${t.beschreibung?`<div style="font-size:12px;color:var(--text3);">${t.beschreibung.substring(0,60)}${t.beschreibung.length>60?'...':''}</div>`:''}</td><td>${t.geraetName||'–'}</td><td>${t.bereichName?`<span class="badge badge-blue">${t.bereichName}</span>`:'–'}</td><td><span class="badge ${pBadge[t.prioritaet]}">${pLabel[t.prioritaet]}</span></td><td><select onchange="updateTicketStatus('${t.id}',this.value)" style="border:1px solid var(--border2);border-radius:5px;padding:3px 8px;font-size:12px;background:var(--surface);"><option value="offen" ${t.status==='offen'?'selected':''}>Offen</option><option value="in_bearbeitung" ${t.status==='in_bearbeitung'?'selected':''}>In Bearbeitung</option><option value="erledigt" ${t.status==='erledigt'?'selected':''}>Erledigt</option></select></td><td style="font-size:12px;color:var(--text3);">${t.ersteller||t.gemeldet||'–'}</td><td>${t.partnerName||'–'}</td><td style="white-space:nowrap;"><button class="btn btn-sm btn-edit" onclick="editItem('tickets','${t.id}')">✏️</button> <button class="btn btn-secondary btn-sm" onclick="deleteItem('tickets','${t.id}')">🗑️</button></td></tr>`).join(''):`<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">🎫</div><p>Keine Tickets gefunden</p></div></td></tr>`;
+  tb.innerHTML=data.length?data.map(t=>{
+    const hasZimmer = t.mehrereZimmer && t.zimmerListe && t.zimmerListe.length > 0;
+    const zdone = hasZimmer ? t.zimmerListe.filter(z=>z.erledigt).length : 0;
+    const ztotal = hasZimmer ? t.zimmerListe.length : 0;
+    const zimmerProgress = hasZimmer ? `<span onclick="toggleZimmerDetail('${t.id}')" style="cursor:pointer;display:inline-flex;align-items:center;gap:5px;background:var(--surface2);border:1px solid var(--border2);border-radius:5px;padding:2px 7px;font-size:11.5px;color:${zdone===ztotal?'var(--green)':'var(--text2)'};" title="Zimmer anzeigen">🏨 ${zdone}/${ztotal} <span style="font-size:10px;">▼</span></span>` : '';
+    const zimmerRows = hasZimmer ? `<tr id="zimmer-detail-${t.id}" style="display:none;"><td colspan="9" style="padding:0 12px 10px 12px;background:var(--surface2);"><div style="display:flex;flex-wrap:wrap;gap:6px;padding:10px 0 4px;">${t.zimmerListe.map(z=>`<label style="display:inline-flex;align-items:center;gap:5px;font-size:12.5px;background:var(--surface);border:1px solid ${z.erledigt?'var(--green)':'var(--border2)'};border-radius:6px;padding:4px 9px;cursor:pointer;text-decoration:${z.erledigt?'line-through':'none'};color:${z.erledigt?'var(--text3)':'var(--text1)'};" title="${z.erledigt?'Erledigt – klicken zum Rückgängig':'Klicken zum Abhaken'}"><input type="checkbox" ${z.erledigt?'checked':''} onchange="toggleZimmerErledigt('${t.id}','${z.bereichId}',this.checked)" style="cursor:pointer;">${esc(z.name)}</label>`).join('')}</div></td></tr>` : '';
+    // Termin verknüpft mit diesem Ticket
+    const linkedTermin = (state.termine||[]).filter(te=>te.ticketId===t.id).sort((a,b)=>(a.datum||'').localeCompare(b.datum||''));
+    const today0=new Date(); today0.setHours(0,0,0,0);
+    const terminCell = `<div style="display:flex;flex-direction:column;gap:3px;">${linkedTermin.map(te=>{
+      const d=te.datum?new Date(te.datum+'T00:00:00'):null;
+      const ds=d?d.toLocaleDateString('de-CH',{day:'2-digit',month:'2-digit',year:'numeric'}):'–';
+      const isPast=d&&d<today0; const isToday=d&&d.getTime()===today0.getTime();
+      const col=isToday?'var(--blue)':isPast?'var(--red)':'var(--green)';
+      return `<span style="display:inline-flex;align-items:center;gap:3px;"><span onclick="showTerminDetail('${te.id}')" style="cursor:pointer;color:${col};font-size:12px;font-family:'DM Mono',monospace;white-space:nowrap;" title="${_optEsc(te.titel||'')}">🗓️ ${ds}</span><span onclick="deleteTermin('${te.id}')" style="cursor:pointer;color:var(--text3);font-size:11px;line-height:1;padding:1px 3px;border-radius:3px;" title="Termin löschen" onmouseover="this.style.color='var(--red)'" onmouseout="this.style.color='var(--text3)'">✕</span></span>`;
+    }).join('')}<button onclick="openTerminQuick('ticket','${t.id}','${(t.betreff||'').replace(/'/g,'\\x27')}')" class="btn btn-secondary btn-sm" style="font-size:11px;padding:2px 7px;margin-top:${linkedTermin.length?'3':'0'}px;">+ Termin</button></div>`;
+    return `<tr><td><span style="font-weight:500;">${t.betreff}</span>${t.autoGenerated?` <span class="badge badge-violet">🤖 Automatisch aus Wartung</span>`:''}${hasZimmer?` <span class="badge badge-blue">🏨 Multi-Zimmer</span>`:''}${t.beschreibung?`<div style="font-size:12px;color:var(--text3);">${t.beschreibung.substring(0,60)}${t.beschreibung.length>60?'...':''}</div>`:''}</td><td>${t.geraetName||'–'}</td><td>${hasZimmer?zimmerProgress:(t.bereichName?`<span class="badge badge-blue">${t.bereichName}</span>`:'–')}</td><td><span class="badge ${pBadge[t.prioritaet]}">${pLabel[t.prioritaet]}</span></td><td><select onchange="updateTicketStatus('${t.id}',this.value)" style="border:1px solid var(--border2);border-radius:5px;padding:3px 8px;font-size:12px;background:var(--surface);"><option value="offen" ${t.status==='offen'?'selected':''}>Offen</option><option value="in_bearbeitung" ${t.status==='in_bearbeitung'?'selected':''}>In Bearbeitung</option><option value="erledigt" ${t.status==='erledigt'?'selected':''}>Erledigt</option></select></td><td style="font-size:12px;color:var(--text3);">${t.ersteller||t.gemeldet||'–'}</td><td>${t.partnerName||'–'}</td><td>${terminCell}</td><td style="white-space:nowrap;"><button class="btn btn-sm btn-edit" onclick="editItem('tickets','${t.id}')">✏️</button> <button class="btn btn-secondary btn-sm" onclick="deleteItem('tickets','${t.id}')">🗑️</button></td></tr>${zimmerRows}`;
+  }).join(''):`<tr><td colspan="9"><div class="empty-state"><div class="empty-icon">🎫</div><p>Keine Tickets gefunden</p></div></td></tr>`;
+  // Restore any zimmer detail panels that were open before re-render
+  if (window._openZimmerDetails && window._openZimmerDetails.size > 0) {
+    window._openZimmerDetails.forEach(id => {
+      const row = document.getElementById('zimmer-detail-' + id);
+      if (row) row.style.display = 'table-row';
+    });
+  }
 }
+
+window.toggleZimmerDetail = function(ticketId) {
+  const row = document.getElementById('zimmer-detail-' + ticketId);
+  if (!row) return;
+  row.style.display = row.style.display === 'none' ? 'table-row' : 'none';
+};
+
+window.toggleZimmerDetailMobile = function(ticketId) {
+  const el = document.getElementById('zimmer-mobile-' + ticketId);
+  if (!el) return;
+  el.style.display = el.style.display === 'none' ? 'flex' : 'none';
+};
 
 function renderWartungen() {
   let data=[...state.wartungen];
-  if(state.wartungFilter==='faellig') data=data.filter(w=>w.status==='faellig'||(new Date(w.datum)<new Date()&&w.status!=='abgeschlossen'&&w.status!=='storniert'));
+  if(state.wartungFilter==='zukunft') data=data.filter(w=>w.status!=='abgeschlossen'&&w.status!=='storniert');
+  else if(state.wartungFilter==='faellig') data=data.filter(w=>w.status==='faellig'||(new Date(w.datum)<new Date()&&w.status!=='abgeschlossen'&&w.status!=='storniert'));
   else if(state.wartungFilter!=='alle') data=data.filter(w=>w.status===state.wartungFilter);
   if(state.wartungSearch){const q=state.wartungSearch.toLowerCase();data=data.filter(w=>(w.bezeichnung||'').toLowerCase().includes(q)||(w.geraetName||'').toLowerCase().includes(q)||(w.partnerName||'').toLowerCase().includes(q)||(w.typ||'').toLowerCase().includes(q));}
-  data.sort((a,b)=>new Date(a.datum)-new Date(b.datum));
+  const ws=state.wartungSort;
+  if(ws&&ws.col){const col=ws.col,dir=ws.dir;const sOrd={geplant:0,faellig:1,abgeschlossen:2,storniert:3};data=[...data].sort((a,b)=>{let av=a[col]||'',bv=b[col]||'';if(col==='datum'){return(new Date(av)-new Date(bv))*dir;}if(col==='status'){av=sOrd[a.status]??9;bv=sOrd[b.status]??9;return(av-bv)*dir;}return av.toString().localeCompare(bv.toString())*dir;});}
+  else data.sort((a,b)=>new Date(a.datum)-new Date(b.datum));
+  // update sort indicators
+  ['bezeichnung','geraetName','typ','datum','partnerName','status'].forEach(c=>{const el=document.getElementById('sort-wartung-'+c);if(el)el.textContent=ws&&ws.col===c?(ws.dir===1?'▲':'▼'):(c==='datum'&&(!ws||!ws.col)?'▲':'');});
   const tb=document.getElementById('wartung-table');
-  tb.innerHTML=data.length?data.map(w=>`<tr><td><span style="font-weight:500;">${w.bezeichnung}</span>${w.seriesId?`<div style="font-size:10.5px;color:var(--text3);">🔁 ${w.intervall} · rolling</div>`:''}</td><td>${w.geraetName||'–'}</td><td><span class="badge badge-gray">${w.typ}</span></td><td style="font-family:'DM Mono',monospace;font-size:12px;${new Date(w.datum)<new Date()&&w.status!=='abgeschlossen'&&w.status!=='storniert'?'color:var(--red);font-weight:600;':''}">${fDate(w.datum)}</td><td>${w.partnerName||'–'}</td><td><select onchange="updateWartungStatus('${w.id}',this.value)" style="border:1px solid var(--border2);border-radius:5px;padding:3px 8px;font-size:12px;background:var(--surface);"><option value="geplant" ${w.status==='geplant'?'selected':''}>Geplant</option><option value="faellig" ${w.status==='faellig'?'selected':''}>Fällig</option><option value="abgeschlossen" ${w.status==='abgeschlossen'?'selected':''}>Abgeschlossen</option><option value="storniert" ${w.status==='storniert'?'selected':''}>Storniert</option></select></td><td style="white-space:nowrap;"><button class="btn btn-sm btn-edit" onclick="editItem('wartungen','${w.id}')">✏️</button> <button class="btn btn-secondary btn-sm" onclick="deleteItem('wartungen','${w.id}')">🗑️</button></td></tr>`).join(''):`<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">🔧</div><p>Keine Wartungsaufträge</p></div></td></tr>`;
+  tb.innerHTML=data.length?data.map(w=>{
+    const linkedTermin = (state.termine||[]).filter(te=>te.wartungId===w.id).sort((a,b)=>(a.datum||'').localeCompare(b.datum||''));
+    const today0w=new Date(); today0w.setHours(0,0,0,0);
+    const terminCell = `<div style="display:flex;flex-direction:column;gap:3px;">${linkedTermin.map(te=>{
+      const d=te.datum?new Date(te.datum+'T00:00:00'):null;
+      const ds=d?d.toLocaleDateString('de-CH',{day:'2-digit',month:'2-digit',year:'numeric'}):'–';
+      const isPast=d&&d<today0w; const isToday=d&&d.getTime()===today0w.getTime();
+      const col=isToday?'var(--blue)':isPast?'var(--red)':'var(--green)';
+      return `<span style="display:inline-flex;align-items:center;gap:3px;"><span onclick="showTerminDetail('${te.id}')" style="cursor:pointer;color:${col};font-size:12px;font-family:'DM Mono',monospace;white-space:nowrap;" title="${_optEsc(te.titel||'')}">🗓️ ${ds}</span><span onclick="deleteTermin('${te.id}')" style="cursor:pointer;color:var(--text3);font-size:11px;line-height:1;padding:1px 3px;border-radius:3px;" title="Termin löschen" onmouseover="this.style.color='var(--red)'" onmouseout="this.style.color='var(--text3)'">✕</span></span>`;
+    }).join('')}<button onclick="openTerminQuick('wartung','${w.id}','${(w.bezeichnung||'').replace(/'/g,'\\x27')}','${w.datum||''}')" class="btn btn-secondary btn-sm" style="font-size:11px;padding:2px 7px;margin-top:${linkedTermin.length?'3':'0'}px;">+ Termin</button></div>`;
+    return `<tr><td><span style="font-weight:500;">${w.bezeichnung}</span>${w.seriesId?`<div style="font-size:10.5px;color:var(--text3);">🔁 ${w.intervall} · rolling</div>`:''}</td><td>${w.geraetName||'–'}</td><td><span class="badge badge-gray">${w.typ}</span></td><td style="font-family:'DM Mono',monospace;font-size:12px;${new Date(w.datum)<new Date()&&w.status!=='abgeschlossen'&&w.status!=='storniert'?'color:var(--red);font-weight:600;':''}">${fDate(w.datum)}</td><td>${w.partnerName||'–'}</td><td><select onchange="updateWartungStatus('${w.id}',this.value)" style="border:1px solid var(--border2);border-radius:5px;padding:3px 8px;font-size:12px;background:var(--surface);"><option value="geplant" ${w.status==='geplant'?'selected':''}>Geplant</option><option value="faellig" ${w.status==='faellig'?'selected':''}>Fällig</option><option value="abgeschlossen" ${w.status==='abgeschlossen'?'selected':''}>Abgeschlossen</option><option value="storniert" ${w.status==='storniert'?'selected':''}>Storniert</option></select></td><td>${terminCell}</td><td style="white-space:nowrap;"><button class="btn btn-sm btn-edit" onclick="editItem('wartungen','${w.id}')">✏️</button> <button class="btn btn-secondary btn-sm" onclick="deleteItem('wartungen','${w.id}')">🗑️</button></td></tr>`;
+  }).join(''):`<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">🔧</div><p>Keine Wartungsaufträge</p></div></td></tr>`;
 }
 
 // Berechnet das nächste offene Wartungsdatum für ein Gerät aus den Wartungsaufträgen
@@ -1973,7 +2385,7 @@ function renderGeraete() {
   data = [...data].sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''), 'de', {sensitivity:'base', numeric:true}));
 
   const grid=document.getElementById('geraete-grid');
-  grid.innerHTML=data.length?data.map(g=>`<div class="device-card"><div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:8px;"><div style="font-size:28px;">${kIcons[g.kategorie]||'🔧'}</div><select onchange="changeGeraetStatus('${g.id}',this.value)" style="border:1px solid var(--border2);border-radius:5px;padding:2px 6px;font-size:11.5px;background:var(--surface);"><option value="aktiv" ${g.status==='aktiv'?'selected':''}>✅ Aktiv</option><option value="stoerung" ${g.status==='stoerung'?'selected':''}>🔴 Störung</option><option value="wartung" ${g.status==='wartung'?'selected':''}>🟡 Wartung</option><option value="ausser_betrieb" ${g.status==='ausser_betrieb'?'selected':''}>⚫ Außer Betrieb</option></select></div><div style="font-weight:600;font-size:14px;margin-bottom:4px;">${g.name}</div><div style="font-size:12px;color:var(--text3);margin-bottom:6px;">${(g.bereichName||g.standort||'–') + (g.raum?' / '+g.raum:'')}</div>${g.hersteller?`<div style="font-size:12px;color:var(--text3);margin-bottom:4px;">🏭 ${g.hersteller}${g.seriennummer?' · SN: '+g.seriennummer:''}</div>`:''}${(()=>{const nw=getNextWartungForGeraet(g.id);return nw?`<div style="font-size:12px;color:${new Date(nw)<new Date()?'var(--red)':'var(--text3)'};margin-bottom:4px;">🔧 Nächste Wartung: ${fDate(nw)}</div>`:''})()}${g.partnerName?`<div style="font-size:12px;color:var(--text3);margin-bottom:4px;">🤝 ${g.partnerName}</div>`:''}${g.notizen?`<div style="font-size:11.5px;color:var(--text3);border-top:1px solid var(--border);padding-top:8px;margin-top:6px;">${g.notizen}</div>`:''}<div style="display:flex;justify-content:flex-end;gap:6px;margin-top:10px;"><button class="btn btn-sm btn-edit" onclick="editItem('geraete','${g.id}')">✏️ Bearbeiten</button><button class="btn btn-secondary btn-sm" onclick="deleteItem('geraete','${g.id}')">🗑️</button></div></div>`).join(''):`<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">⚙️</div><p>Noch keine Geräte erfasst</p></div>`;
+  grid.innerHTML=data.length?data.map(g=>`<div class="device-card"><div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:8px;"><div style="font-size:28px;">${kIcons[g.kategorie]||'🔧'}</div><select onchange="changeGeraetStatus('${g.id}',this.value)" style="border:1px solid var(--border2);border-radius:5px;padding:2px 6px;font-size:11.5px;background:var(--surface);"><option value="aktiv" ${g.status==='aktiv'?'selected':''}>✅ Aktiv</option><option value="stoerung" ${g.status==='stoerung'?'selected':''}>🔴 Störung</option><option value="wartung" ${g.status==='wartung'?'selected':''}>🟡 Wartung</option><option value="ausser_betrieb" ${g.status==='ausser_betrieb'?'selected':''}>⚫ Außer Betrieb</option></select></div><div style="font-weight:600;font-size:14px;margin-bottom:4px;">${_optEsc(g.name)}</div><div style="font-size:12px;color:var(--text3);margin-bottom:6px;">${_optEsc((g.bereichName||g.standort||'–') + (g.raum?' / '+g.raum:''))}</div>${g.hersteller?`<div style="font-size:12px;color:var(--text3);margin-bottom:4px;">🏭 ${_optEsc(g.hersteller)}${g.seriennummer?' · SN: '+_optEsc(g.seriennummer):''}</div>`:''}${(()=>{const nw=getNextWartungForGeraet(g.id);return nw?`<div style="font-size:12px;color:${new Date(nw)<new Date()?'var(--red)':'var(--text3)'};margin-bottom:4px;">🔧 Nächste Wartung: ${fDate(nw)}</div>`:''})()}${g.partnerName?`<div style="font-size:12px;color:var(--text3);margin-bottom:4px;">🤝 ${_optEsc(g.partnerName)}</div>`:''}${g.notizen?`<div style="font-size:11.5px;color:var(--text3);border-top:1px solid var(--border);padding-top:8px;margin-top:6px;">${_optEsc(g.notizen)}</div>`:''}<div style="display:flex;justify-content:flex-end;gap:6px;margin-top:10px;"><button class="btn btn-sm btn-edit" onclick="editItem('geraete','${g.id}')">✏️ Bearbeiten</button><button class="btn btn-secondary btn-sm" onclick="deleteItem('geraete','${g.id}')">🗑️</button></div></div>`).join(''):`<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">⚙️</div><p>Noch keine Geräte erfasst</p></div>`;
 }
 
 function formatUrl(u){
@@ -2200,7 +2612,7 @@ function renderNotfall() {
 
 function renderDokumente() {
   const tb=document.getElementById('dokumente-table');
-  tb.innerHTML=state.dokumente.length?state.dokumente.map(d=>`<tr><td><span style="font-weight:500;">📄 ${d.name}</span></td><td><span class="badge badge-gray">${d.typ}</span></td><td>${d.geraetName||'–'}</td><td style="font-family:'DM Mono',monospace;font-size:12px;">${d.datum?fDate(d.datum):'–'}</td><td style="color:var(--text3);font-size:12.5px;">${d.notiz||'–'}</td><td style="white-space:nowrap;"><button class="btn btn-sm btn-edit" onclick="editItem('dokumente','${d.id}')">✏️</button> <button class="btn btn-secondary btn-sm" onclick="deleteItem('dokumente','${d.id}')">🗑️</button></td></tr>`).join(''):`<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">📄</div><p>Noch keine Dokumente</p></div></td></tr>`;
+  tb.innerHTML=state.dokumente.length?state.dokumente.map(d=>`<tr><td><span style="font-weight:500;">📄 ${_optEsc(d.name)}</span></td><td><span class="badge badge-gray">${_optEsc(d.typ)}</span></td><td>${_optEsc(d.geraetName||'–')}</td><td style="font-family:'DM Mono',monospace;font-size:12px;">${d.datum?fDate(d.datum):'–'}</td><td style="color:var(--text3);font-size:12.5px;">${_optEsc(d.notiz||'–')}</td><td style="white-space:nowrap;"><button class="btn btn-sm btn-edit" onclick="editItem('dokumente','${d.id}')">✏️</button> <button class="btn btn-secondary btn-sm" onclick="deleteItem('dokumente','${d.id}')">🗑️</button></td></tr>`).join(''):`<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">📄</div><p>Noch keine Dokumente</p></div></td></tr>`;
 }
 
 function renderAktivitaet() {
@@ -2208,7 +2620,7 @@ function renderAktivitaet() {
   let data = state.log;
   if(state.logSearch){const q=state.logSearch.toLowerCase();data=data.filter(l=>(l.text||'').toLowerCase().includes(q)||(l.user||'').toLowerCase().includes(q));}
   document.getElementById('log-count').textContent=(state.logSearch?data.length+' von ':'')+state.log.length+' Einträge';
-  el.innerHTML=data.length?data.map(l=>`<div class="activity-item"><div class="activity-dot" style="background:${l.color}"></div><div style="flex:1;"><div class="activity-text">${l.text}</div><div class="activity-time">${fTs(l.createdAt)}${l.user?' · '+l.user:''}</div></div></div>`).join(''):'<div class="empty-state"><div class="empty-icon">📋</div><p>Keine Einträge gefunden</p></div>';
+  el.innerHTML=data.length?data.map(l=>`<div class="activity-item"><div class="activity-dot" style="background:${l.color}"></div><div style="flex:1;"><div class="activity-text">${_optEsc(l.text)}</div><div class="activity-time">${fTs(l.createdAt)}${l.user?' · '+_optEsc(l.user):''}</div></div></div>`).join(''):'<div class="empty-state"><div class="empty-icon">📋</div><p>Keine Einträge gefunden</p></div>';
 }
 
 function updateBadges() {
@@ -2221,20 +2633,28 @@ function updateBadges() {
 function renderTicketsMobile() {
   const el = document.getElementById('tickets-mobile'); if(!el) return;
   let data = state.tickets;
-  if(state.ticketFilter!=='alle') data=data.filter(t=>t.status===state.ticketFilter);
-  if(state.ticketSearch) data=data.filter(t=>t.betreff.toLowerCase().includes(state.ticketSearch.toLowerCase()));
+  if(state.ticketFilter==='aktiv') data=data.filter(t=>t.status!=='erledigt');
+  else if(state.ticketFilter!=='alle') data=data.filter(t=>t.status===state.ticketFilter);
+  if(state.ticketSearch){const q=state.ticketSearch.toLowerCase();data=data.filter(t=>(t.betreff||'').toLowerCase().includes(q)||(t.bereichName||'').toLowerCase().includes(q)||(t.ersteller||'').toLowerCase().includes(q)||(t.gemeldet||'').toLowerCase().includes(q));}
   if(!data.length){el.innerHTML=`<div class="empty-state"><div class="empty-icon">🎫</div><p>Keine Tickets gefunden</p></div>`;return;}
-  el.innerHTML=data.map(t=>`<div class="mobile-card">
+  el.innerHTML=data.map(t=>{
+    const hasZimmer = t.mehrereZimmer && t.zimmerListe && t.zimmerListe.length > 0;
+    const zdone = hasZimmer ? t.zimmerListe.filter(z=>z.erledigt).length : 0;
+    const ztotal = hasZimmer ? t.zimmerListe.length : 0;
+    return `<div class="mobile-card">
     <div class="mobile-card-header">
-      <div class="mobile-card-title">${t.betreff}</div>
+      <div class="mobile-card-title">${t.betreff}${hasZimmer?' <span style="font-size:11px;">🏨</span>':''}</div>
       <span class="badge ${pBadge[t.prioritaet]}">${pLabel[t.prioritaet]}</span>
     </div>
     <div class="mobile-card-meta">
       <span class="badge ${sBadge[t.status]}">${sLabel[t.status]}</span>
       ${t.autoGenerated?`<span class="badge badge-violet">🤖 Automatisch aus Wartung</span>`:''}
+      ${hasZimmer?`<span class="badge badge-blue" style="cursor:pointer;" onclick="toggleZimmerDetailMobile('${t.id}')">🏨 ${zdone}/${ztotal} Zimmer ▾</span>`:''}
+      ${!hasZimmer&&t.bereichName?`<span class="badge badge-blue">${t.bereichName}</span>`:''}
       ${t.geraetName?`<span class="badge badge-gray">⚙️ ${t.geraetName}</span>`:''}
       ${t.partnerName?`<span class="badge badge-gray">🏭 ${t.partnerName}</span>`:''}
     </div>
+    ${hasZimmer?`<div id="zimmer-mobile-${t.id}" style="display:none;flex-wrap:wrap;gap:5px;margin-bottom:8px;">${t.zimmerListe.map(z=>`<label style="display:inline-flex;align-items:center;gap:4px;font-size:12px;background:var(--surface);border:1px solid ${z.erledigt?'var(--green)':'var(--border2)'};border-radius:6px;padding:4px 8px;cursor:pointer;text-decoration:${z.erledigt?'line-through':'none'};color:${z.erledigt?'var(--text3)':'var(--text1)'};" ><input type="checkbox" ${z.erledigt?'checked':''} onchange="toggleZimmerErledigt('${t.id}','${z.bereichId}',this.checked)" style="cursor:pointer;">${esc(z.name)}</label>`).join('')}</div>`:''}
     ${t.beschreibung?`<div style="font-size:12.5px;color:var(--text3);margin-bottom:6px;">${t.beschreibung.substring(0,80)}${t.beschreibung.length>80?'...':''}</div>`:''}
     <div style="font-size:11.5px;color:var(--text3);">📅 ${fTs(t.createdAt)}${t.ersteller?' · '+t.ersteller:''}</div>
     <div class="mobile-card-actions">
@@ -2246,13 +2666,22 @@ function renderTicketsMobile() {
       <button class="btn btn-sm btn-edit" onclick="editItem('tickets','${t.id}')">✏️</button>
       <button class="btn btn-secondary btn-sm" onclick="deleteItem('tickets','${t.id}')">🗑️</button>
     </div>
-  </div>`).join('');
+  </div>`;
+  }).join('');
+  // Restore any zimmer mobile panels that were open before re-render
+  if (window._openZimmerDetailsMobile && window._openZimmerDetailsMobile.size > 0) {
+    window._openZimmerDetailsMobile.forEach(id => {
+      const el2 = document.getElementById('zimmer-mobile-' + id);
+      if (el2) el2.style.display = 'flex';
+    });
+  }
 }
 
 function renderWartungenMobile() {
   const el = document.getElementById('wartung-mobile'); if(!el) return;
   let data=[...state.wartungen];
-  if(state.wartungFilter==='faellig') data=data.filter(w=>w.status==='faellig'||(new Date(w.datum)<new Date()&&w.status!=='abgeschlossen'&&w.status!=='storniert'));
+  if(state.wartungFilter==='zukunft') data=data.filter(w=>w.status!=='abgeschlossen'&&w.status!=='storniert');
+  else if(state.wartungFilter==='faellig') data=data.filter(w=>w.status==='faellig'||(new Date(w.datum)<new Date()&&w.status!=='abgeschlossen'&&w.status!=='storniert'));
   else if(state.wartungFilter!=='alle') data=data.filter(w=>w.status===state.wartungFilter);
   if(state.wartungSearch){const q=state.wartungSearch.toLowerCase();data=data.filter(w=>(w.bezeichnung||'').toLowerCase().includes(q)||(w.geraetName||'').toLowerCase().includes(q)||(w.partnerName||'').toLowerCase().includes(q));}
   data.sort((a,b)=>new Date(a.datum)-new Date(b.datum));
@@ -2286,10 +2715,10 @@ function renderDokumenteMobile() {
   if(!state.dokumente.length){el.innerHTML=`<div class="empty-state"><div class="empty-icon">📄</div><p>Noch keine Dokumente</p></div>`;return;}
   el.innerHTML=state.dokumente.map(d=>`<div class="mobile-card">
     <div class="mobile-card-header">
-      <div class="mobile-card-title">📄 ${d.name}</div>
-      <span class="badge badge-gray">${d.typ}</span>
+      <div class="mobile-card-title">📄 ${_optEsc(d.name)}</div>
+      <span class="badge badge-gray">${_optEsc(d.typ)}</span>
     </div>
-    ${d.geraetName?`<div style="font-size:12.5px;color:var(--text3);margin-bottom:4px;">⚙️ ${d.geraetName}</div>`:''}
+    ${d.geraetName?`<div style="font-size:12.5px;color:var(--text3);margin-bottom:4px;">⚙️ ${_optEsc(d.geraetName)}</div>`:''}
     ${d.datum?`<div style="font-size:12.5px;color:var(--text3);margin-bottom:4px;">📅 ${fDate(d.datum)}</div>`:''}
     ${d.notiz?`<div style="font-size:12.5px;color:var(--text3);">${d.notiz}</div>`:''}
     <div class="mobile-card-actions">
@@ -2340,6 +2769,216 @@ function renderBereiche() {
   </div>`).join(''):`<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">🏨</div><p>Noch keine Bereiche erfasst</p></div>`;
 }
 
+function printTickets() {
+  // Dieselbe Filterlogik wie renderTickets()
+  let data = state.tickets;
+  if (state.ticketFilter === 'aktiv') data = data.filter(t => t.status !== 'erledigt');
+  else if (state.ticketFilter !== 'alle') data = data.filter(t => t.status === state.ticketFilter);
+  if (state.ticketSearch) {
+    const q = state.ticketSearch.toLowerCase();
+    data = data.filter(t =>
+      (t.betreff||'').toLowerCase().includes(q) ||
+      (t.bereichName||'').toLowerCase().includes(q) ||
+      (t.ersteller||'').toLowerCase().includes(q) ||
+      (t.gemeldet||'').toLowerCase().includes(q)
+    );
+  }
+  const ts = state.ticketSort;
+  if (ts && ts.col) {
+    const col = ts.col, dir = ts.dir;
+    const pOrd = {kritisch:0,hoch:1,mittel:2,niedrig:3};
+    const sOrd = {offen:0,in_bearbeitung:1,erledigt:2};
+    data = [...data].sort((a,b) => {
+      let av = a[col]||'', bv = b[col]||'';
+      if (col === 'prioritaet') { av = pOrd[a.prioritaet]??9; bv = pOrd[b.prioritaet]??9; return (av-bv)*dir; }
+      if (col === 'status') { av = sOrd[a.status]??9; bv = sOrd[b.status]??9; return (av-bv)*dir; }
+      return av.toString().localeCompare(bv.toString())*dir;
+    });
+  }
+
+  const filterLabels = {alle:'Alle',aktiv:'Aktiv',offen:'Offen',in_bearbeitung:'In Bearbeitung',erledigt:'Erledigt'};
+  const filterLabel = filterLabels[state.ticketFilter] || state.ticketFilter;
+  const pTxt = {kritisch:'Kritisch',hoch:'Hoch',mittel:'Mittel',niedrig:'Niedrig'};
+  const sTxt = {offen:'Offen',in_bearbeitung:'In Bearbeitung',erledigt:'Erledigt'};
+  const now = new Date().toLocaleString('de-CH', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+
+  const rows = data.map(t => {
+    const hasZimmer = t.mehrereZimmer && t.zimmerListe && t.zimmerListe.length > 0;
+    const zimmerRow = hasZimmer ? `
+    <tr class="zimmer-row">
+      <td colspan="7">
+        <span class="zimmer-label">🏨 Zimmer:</span>
+        ${t.zimmerListe.map(z => z.erledigt
+          ? `<span class="zimmer-chip zimmer-done"><span class="zimmer-check">✓</span>${esc(z.name)}</span>`
+          : `<span class="zimmer-chip"><span class="zimmer-checkbox"></span>${esc(z.name)}</span>`
+        ).join('')}
+      </td>
+    </tr>` : '';
+    return `
+    <tr>
+      <td>${esc(t.betreff)}${hasZimmer ? ` <span class="badge-multi">🏨 Multi-Zimmer</span>` : ''}${t.beschreibung ? `<div class="sub">${esc(t.beschreibung.substring(0,80))}${t.beschreibung.length>80?'...':''}</div>` : ''}</td>
+      <td>${esc(t.geraetName)||'–'}</td>
+      <td>${hasZimmer ? `${t.zimmerListe.filter(z=>z.erledigt).length}/${t.zimmerListe.length} erledigt` : (esc(t.bereichName)||'–')}</td>
+      <td class="prio prio-${t.prioritaet}">${pTxt[t.prioritaet]||t.prioritaet||'–'}</td>
+      <td class="status status-${t.status}">${sTxt[t.status]||t.status||'–'}</td>
+      <td>${esc(t.ersteller||t.gemeldet)||'–'}</td>
+      <td>${esc(t.partnerName)||'–'}</td>
+    </tr>${zimmerRow}`;
+  }).join('');
+
+  const html = `<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8">
+  <title>Tickets – FacilityOS</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Arial, Helvetica, sans-serif; font-size: 12px; color: #111; background: #fff; padding: 20px; }
+    .print-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 18px; border-bottom: 2px solid #111; padding-bottom: 12px; }
+    .print-header h1 { font-size: 20px; font-weight: 700; }
+    .print-header .meta { font-size: 11px; color: #555; margin-top: 4px; }
+    .print-header .right { text-align: right; font-size: 11px; color: #555; }
+    table { width: 100%; border-collapse: collapse; margin-top: 4px; }
+    th { background: #f0f0f0; font-weight: 700; text-align: left; padding: 7px 8px; border: 1px solid #ccc; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
+    td { padding: 6px 8px; border: 1px solid #ddd; vertical-align: top; }
+    tr:nth-child(even) td { background: #fafafa; }
+    .sub { font-size: 10px; color: #777; margin-top: 2px; }
+    .prio { font-weight: 600; }
+    .prio-kritisch { color: #c0392b; }
+    .prio-hoch { color: #d35400; }
+    .prio-mittel { color: #b7950b; }
+    .prio-niedrig { color: #1e8449; }
+    .status-offen { color: #c0392b; font-weight: 600; }
+    .status-in_bearbeitung { color: #b7950b; font-weight: 600; }
+    .status-erledigt { color: #1e8449; font-weight: 600; }
+    .badge-multi { font-size: 10px; background: #dbeafe; color: #1d4ed8; border-radius: 4px; padding: 1px 5px; margin-left: 4px; font-weight: 600; }
+    .zimmer-row td { background: #f7f9fc !important; border-top: none; padding: 6px 10px 8px 14px; }
+    .zimmer-label { font-size: 11px; font-weight: 700; color: #444; margin-right: 8px; }
+    .zimmer-chip { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; border: 1px solid #bbb; border-radius: 5px; padding: 3px 8px; margin: 2px 3px; background: #fff; }
+    .zimmer-done { border-color: #1e8449; color: #888; text-decoration: line-through; background: #f0faf4; }
+    .zimmer-checkbox { display: inline-block; width: 12px; height: 12px; border: 1.5px solid #555; border-radius: 2px; flex-shrink: 0; }
+    .zimmer-check { font-size: 12px; color: #1e8449; font-weight: 700; line-height: 1; }
+    .empty { text-align: center; color: #888; padding: 24px; font-size: 13px; }
+    .footer { margin-top: 16px; font-size: 10px; color: #aaa; text-align: right; }
+    @media print {
+      body { padding: 10px; }
+      @page { margin: 15mm; }
+    }
+  </style>
+  </head><body>
+  <div class="print-header">
+    <div>
+      <h1>🏢 FacilityOS – Tickets & Störungen</h1>
+      <div class="meta">Filter: <strong>${filterLabel}</strong>${state.ticketSearch ? ` · Suche: „${esc(state.ticketSearch)}"` : ''} · <strong>${data.length}</strong> Einträge</div>
+    </div>
+    <div class="right">Hotel Sternen Oerlikon<br>Druckdatum: ${now}</div>
+  </div>
+  <table>
+    <thead><tr>
+      <th>Betreff</th><th>Gerät</th><th>Bereich</th><th>Priorität</th><th>Status</th><th>Erstellt von</th><th>Zugewiesen</th>
+    </tr></thead>
+    <tbody>${rows.length ? rows : '<tr><td colspan="7" class="empty">Keine Tickets gefunden</td></tr>'}</tbody>
+  </table>
+  <div class="footer">FacilityOS · Hotel Sternen Oerlikon · Erstellt am ${now}</div>
+  <script>window.onload=function(){window.print();}<\/script>
+  </body></html>`;
+
+  const w = window.open('', '_blank');
+  if (w) { w.document.write(html); w.document.close(); }
+}
+
+function printWartungen() {
+  // Dieselbe Filterlogik wie renderWartungen()
+  let data = [...state.wartungen];
+  if (state.wartungFilter === 'zukunft') data = data.filter(w => w.status !== 'abgeschlossen' && w.status !== 'storniert');
+  else if (state.wartungFilter === 'faellig') data = data.filter(w => w.status === 'faellig' || (new Date(w.datum) < new Date() && w.status !== 'abgeschlossen' && w.status !== 'storniert'));
+  else if (state.wartungFilter !== 'alle') data = data.filter(w => w.status === state.wartungFilter);
+  if (state.wartungSearch) {
+    const q = state.wartungSearch.toLowerCase();
+    data = data.filter(w =>
+      (w.bezeichnung||'').toLowerCase().includes(q) ||
+      (w.geraetName||'').toLowerCase().includes(q) ||
+      (w.partnerName||'').toLowerCase().includes(q) ||
+      (w.typ||'').toLowerCase().includes(q)
+    );
+  }
+  const ws = state.wartungSort;
+  if (ws && ws.col) {
+    const col = ws.col, dir = ws.dir;
+    const sOrd = {geplant:0,faellig:1,abgeschlossen:2,storniert:3};
+    data = [...data].sort((a,b) => {
+      let av = a[col]||'', bv = b[col]||'';
+      if (col === 'datum') return (new Date(av) - new Date(bv)) * dir;
+      if (col === 'status') { av = sOrd[a.status]??9; bv = sOrd[b.status]??9; return (av-bv)*dir; }
+      return av.toString().localeCompare(bv.toString()) * dir;
+    });
+  } else {
+    data.sort((a,b) => new Date(a.datum) - new Date(b.datum));
+  }
+
+  const filterLabels = {alle:'Alle',zukunft:'Zukünftig',geplant:'Geplant',faellig:'Fällig',abgeschlossen:'Abgeschlossen',storniert:'Storniert'};
+  const filterLabel = filterLabels[state.wartungFilter] || state.wartungFilter;
+  const sTxt = {geplant:'Geplant',faellig:'Fällig',abgeschlossen:'Abgeschlossen',storniert:'Storniert'};
+  const now = new Date().toLocaleString('de-CH', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+  const today = new Date(); today.setHours(0,0,0,0);
+
+  const rows = data.map(w => {
+    const isFaellig = new Date(w.datum) < today && w.status !== 'abgeschlossen' && w.status !== 'storniert';
+    return `<tr>
+      <td>${esc(w.bezeichnung)}${w.seriesId ? `<div class="sub">🔁 ${esc(w.intervall)} · Serie</div>` : ''}</td>
+      <td>${esc(w.geraetName)||'–'}</td>
+      <td>${esc(w.typ)||'–'}</td>
+      <td class="${isFaellig ? 'datum-faellig' : ''}">${w.datum ? new Date(w.datum+'T00:00:00').toLocaleDateString('de-DE') : '–'}</td>
+      <td>${esc(w.partnerName)||'–'}</td>
+      <td class="status status-w-${w.status}">${sTxt[w.status]||w.status||'–'}</td>
+    </tr>`;
+  }).join('');
+
+  const html = `<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8">
+  <title>Wartungsaufträge – FacilityOS</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Arial, Helvetica, sans-serif; font-size: 12px; color: #111; background: #fff; padding: 20px; }
+    .print-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 18px; border-bottom: 2px solid #111; padding-bottom: 12px; }
+    .print-header h1 { font-size: 20px; font-weight: 700; }
+    .print-header .meta { font-size: 11px; color: #555; margin-top: 4px; }
+    .print-header .right { text-align: right; font-size: 11px; color: #555; }
+    table { width: 100%; border-collapse: collapse; margin-top: 4px; }
+    th { background: #f0f0f0; font-weight: 700; text-align: left; padding: 7px 8px; border: 1px solid #ccc; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
+    td { padding: 6px 8px; border: 1px solid #ddd; vertical-align: top; }
+    tr:nth-child(even) td { background: #fafafa; }
+    .sub { font-size: 10px; color: #777; margin-top: 2px; }
+    .datum-faellig { color: #c0392b; font-weight: 700; }
+    .status-w-geplant { color: #2471a3; font-weight: 600; }
+    .status-w-faellig { color: #c0392b; font-weight: 700; }
+    .status-w-abgeschlossen { color: #1e8449; font-weight: 600; }
+    .status-w-storniert { color: #888; }
+    .empty { text-align: center; color: #888; padding: 24px; font-size: 13px; }
+    .footer { margin-top: 16px; font-size: 10px; color: #aaa; text-align: right; }
+    @media print {
+      body { padding: 10px; }
+      @page { margin: 15mm; }
+    }
+  </style>
+  </head><body>
+  <div class="print-header">
+    <div>
+      <h1>🏢 FacilityOS – Wartungsaufträge</h1>
+      <div class="meta">Filter: <strong>${filterLabel}</strong>${state.wartungSearch ? ` · Suche: „${esc(state.wartungSearch)}"` : ''} · <strong>${data.length}</strong> Einträge</div>
+    </div>
+    <div class="right">Hotel Sternen Oerlikon<br>Druckdatum: ${now}</div>
+  </div>
+  <table>
+    <thead><tr>
+      <th>Bezeichnung</th><th>Gerät</th><th>Typ</th><th>Fällig am</th><th>Zuständig</th><th>Status</th>
+    </tr></thead>
+    <tbody>${rows.length ? rows : '<tr><td colspan="6" class="empty">Keine Wartungsaufträge gefunden</td></tr>'}</tbody>
+  </table>
+  <div class="footer">FacilityOS · Hotel Sternen Oerlikon · Erstellt am ${now}</div>
+  <script>window.onload=function(){window.print();}<\/script>
+  </body></html>`;
+
+  const w = window.open('', '_blank');
+  if (w) { w.document.write(html); w.document.close(); }
+}
+
 function filterTickets(f,btn){
   state.ticketFilter=f;
   if(btn){
@@ -2354,6 +2993,18 @@ function filterBereiche(f,btn){state.bereicheFilter=f;btn.closest('.tabs').query
 function filterWartung(f,btn){state.wartungFilter=f;btn.closest('.tabs').querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));btn.classList.add('active');renderWartungen();renderWartungenMobile();}
 function filterGeraete(f,btn){state.geraeteFilter=f;btn.closest('.tabs').querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));btn.classList.add('active');renderGeraete();}
 function filterPartner(f,btn){state.partnerFilter=f;btn.closest('.tabs').querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));btn.classList.add('active');renderPartner();}
+
+function sortTable(type, col) {
+  if(type==='ticket'){
+    const ts=state.ticketSort;
+    if(ts.col===col) ts.dir*=-1; else {ts.col=col;ts.dir=1;}
+    renderTickets();renderTicketsMobile();
+  } else if(type==='wartung'){
+    const ws=state.wartungSort;
+    if(ws.col===col) ws.dir*=-1; else {ws.col=col;ws.dir=1;}
+    renderWartungen();renderWartungenMobile();
+  }
+}
 
 // ---- VIRTUAL OCCURRENCES for rolling series ----
 function getVirtualOccurrences(year, month) {
@@ -2415,6 +3066,29 @@ function getVirtualOccurrences(year, month) {
   return virtual;
 }
 
+function setCalView(v){
+  state.calView=v;
+  const monatBtn=document.getElementById('cal-view-monat');
+  const jahrBtn=document.getElementById('cal-view-jahr');
+  const monatView=document.getElementById('cal-monat-view');
+  const jahrView=document.getElementById('cal-jahr-view');
+  const navMonat=document.getElementById('cal-nav-monat');
+  const navJahr=document.getElementById('cal-nav-jahr');
+  if(v==='monat'){
+    monatBtn.style.background='var(--accent)'; monatBtn.style.color='#fff';
+    jahrBtn.style.background='var(--surface)'; jahrBtn.style.color='var(--text2)';
+    monatView.style.display=''; jahrView.style.display='none';
+    navMonat.style.display='flex'; navJahr.style.display='none';
+    renderCalendar();
+  } else {
+    jahrBtn.style.background='var(--accent)'; jahrBtn.style.color='#fff';
+    monatBtn.style.background='var(--surface)'; monatBtn.style.color='var(--text2)';
+    monatView.style.display='none'; jahrView.style.display='';
+    navMonat.style.display='none'; navJahr.style.display='flex';
+    renderJahreskalender();
+  }
+}
+
 function renderCalendar() {
   const year=state.calYear,month=state.calMonth;
   // Populate year dropdown
@@ -2433,11 +3107,8 @@ function renderCalendar() {
   const first=new Date(year,month,1),last=new Date(year,month+1,0),today=new Date();
   let sdow=first.getDay();if(sdow===0)sdow=7;
 
-  // Real entries for this month
   const realEvents=state.wartungen.filter(w=>{const d=new Date(w.datum);return d.getMonth()===month&&d.getFullYear()===year;});
-  // Virtual (projected) entries for rolling series
   const virtualEvents = getVirtualOccurrences(year, month);
-  // Merge: real takes priority (suppress virtual if real date already covered by same seriesId)
   const realDatesPerSeries = {};
   for(const w of realEvents) { if(w.seriesId) { realDatesPerSeries[w.seriesId+w.datum]=true; } }
   const filteredVirtual = virtualEvents.filter(v => !realDatesPerSeries[v.seriesId+v.datum]);
@@ -2452,19 +3123,139 @@ function renderCalendar() {
     const isToday=c.curr&&c.date.getDate()===today.getDate()&&c.date.getMonth()===today.getMonth()&&c.date.getFullYear()===today.getFullYear();
     const de=allEvents.filter(w=>new Date(w.datum).getDate()===c.date.getDate());
     return `<div class="cal-day ${!c.curr?'other-month':''} ${isToday?'today':''}"><div class="cal-day-num" style="${isToday?'color:var(--accent);font-weight:700;':''}">${c.date.getDate()}</div>${de.map(e=>e.virtual
-      ? `<div class="cal-event" style="background:#f3f0ff;color:#7c3aed;border:1px dashed #c4b5fd;opacity:0.85;" title="Geplant (rolling) – wird automatisch erstellt">🔁 ${e.bezeichnung}</div>`
-      : `<div class="cal-event ${e.status==='abgeschlossen'?'badge-green':e.status==='faellig'?'badge-orange':'badge-blue'}">${e.bezeichnung}</div>`
+      ? `<div class="cal-event" style="background:#f3f0ff;color:#7c3aed;border:1px dashed #c4b5fd;opacity:0.85;cursor:default;" title="Geplant (rolling) – wird automatisch erstellt">🔁 ${e.bezeichnung}</div>`
+      : `<div class="cal-event ${e.status==='abgeschlossen'?'badge-green':e.status==='faellig'?'badge-orange':'badge-blue'}" style="cursor:pointer;" onclick="openWartungDetail('${e.id}')" title="${e.bezeichnung} – klicken für Details">${e.bezeichnung}</div>`
     ).join('')}</div>`;
   }).join('');
 
   const mev=[...allEvents].sort((a,b)=>new Date(a.datum)-new Date(b.datum));
   document.getElementById('cal-events-list').innerHTML=mev.length?mev.map(w=>w.virtual
-    ? `<tr style="opacity:0.75;"><td style="font-family:'DM Mono',monospace;font-size:12px;">${fDate(w.datum)}</td><td><span style="color:#7c3aed;">🔁 ${w.bezeichnung}</span></td><td>${w.geraetName||'–'}</td><td><span class="badge badge-gray">${w.typ||'–'}</span></td><td><span class="badge badge-violet">Rolling-Vorschau</span></td></tr>`
-    : `<tr><td style="font-family:'DM Mono',monospace;font-size:12px;">${fDate(w.datum)}</td><td>${w.bezeichnung}</td><td>${w.geraetName||'–'}</td><td><span class="badge badge-gray">${w.typ}</span></td><td><span class="badge ${sBadge[w.status]}">${sLabel[w.status]}</span></td></tr>`
-  ).join(''):`<tr><td colspan="5"><div class="empty-state" style="padding:24px;"><p>Keine Wartungen in diesem Monat</p></div></td></tr>`;
+    ? `<tr style="opacity:0.75;"><td style="font-family:'DM Mono',monospace;font-size:12px;">${fDate(w.datum)}</td><td><span style="color:#7c3aed;">🔁 ${w.bezeichnung}</span></td><td>${w.geraetName||'–'}</td><td><span class="badge badge-gray">${w.typ||'–'}</span></td><td><span class="badge badge-violet">Rolling-Vorschau</span></td><td></td></tr>`
+    : `<tr style="cursor:pointer;" onclick="openWartungDetail('${w.id}')" title="Klicken für Details"><td style="font-family:'DM Mono',monospace;font-size:12px;">${fDate(w.datum)}</td><td style="font-weight:500;">${w.bezeichnung}</td><td>${w.geraetName||'–'}</td><td><span class="badge badge-gray">${w.typ}</span></td><td><span class="badge ${sBadge[w.status]}">${sLabel[w.status]}</span></td><td style="color:var(--text3);font-size:18px;line-height:1;">›</td></tr>`
+  ).join(''):`<tr><td colspan="6"><div class="empty-state" style="padding:24px;"><p>Keine Wartungen in diesem Monat</p></div></td></tr>`;
+}
+
+function openWartungDetail(id) {
+  const w = (state.wartungen||[]).find(x=>x.id===id);
+  if(!w) return;
+  editItem('wartungen', id);
 }
 
 function changeMonth(dir){state.calMonth+=dir;if(state.calMonth>11){state.calMonth=0;state.calYear++;}if(state.calMonth<0){state.calMonth=11;state.calYear--;}renderCalendar();}
+function changeJahreskalYear(dir){state.calJahresYear+=dir;renderJahreskalender();}
+
+// ---- JAHRESKALENDER ----
+const MONATSNAMEN=['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
+const MONATSNAMEN_LANG=['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
+
+function renderJahreskalender() {
+  const startYear = state.calJahresYear || new Date().getFullYear();
+  // Populate year dropdown for Jahreskalender
+  const ySel=document.getElementById('cal-jahres-year-select');
+  if(ySel){
+    const curY=new Date().getFullYear();
+    if(!ySel.options.length||parseInt(ySel.options[0].value)!==curY-3){
+      ySel.innerHTML='';
+      for(let y=curY-3;y<=curY+10;y++) ySel.innerHTML+=`<option value="${y}">${y}</option>`;
+    }
+    ySel.value=startYear;
+  }
+  // Show range label: startYear – startYear+1 (rolling 12 months)
+  const rangeEl=document.getElementById('cal-jahres-range');
+  if(rangeEl) rangeEl.textContent=`${startYear} – ${startYear+1}`;
+
+  // Collect all wartungen across the 12 months
+  const today=new Date(); today.setHours(0,0,0,0);
+  // We show from Jan startYear to Dec startYear+1 (24 months) — but only 12 visible starting now-ish
+  // Actually: show Jan startYear to Dec (startYear+1), user can navigate
+  // Gather real + virtual for both years
+  const allReal = state.wartungen.filter(w=>{
+    const d=new Date(w.datum);
+    return (d.getFullYear()===startYear || d.getFullYear()===startYear+1);
+  });
+  const virtualAll = [];
+  for(let y=startYear;y<=startYear+1;y++){
+    for(let m=0;m<12;m++) virtualAll.push(...getVirtualOccurrences(y,m));
+  }
+  const realDatesPerSeries={};
+  for(const w of allReal){ if(w.seriesId) realDatesPerSeries[w.seriesId+w.datum]=true; }
+  const filteredVirtual=virtualAll.filter(v=>!realDatesPerSeries[v.seriesId+v.datum]);
+  const allEvents=[...allReal,...filteredVirtual];
+
+  // Group by bezeichnung (Zeile) and build unique list
+  const rowMap={}; // key: bezeichnung+geraetName -> {label, geraetName, partnerName, entries:[]}
+  for(const w of allEvents){
+    const key=(w.bezeichnung||'')+'||'+(w.geraetName||'');
+    if(!rowMap[key]) rowMap[key]={bezeichnung:w.bezeichnung||'',geraetName:w.geraetName||'',partnerName:w.partnerName||'',typ:w.typ||'',entries:[]};
+    rowMap[key].entries.push(w);
+  }
+  const rows=Object.values(rowMap).sort((a,b)=>a.bezeichnung.localeCompare(b.bezeichnung,'de',{sensitivity:'base'}));
+
+  // Build months array: Jan startYear .. Dec startYear+1 (24 months, or just 12?)
+  // Show all 24 months (2 years) matching Excel template style
+  const months=[];
+  for(let m=0;m<12;m++) months.push({year:startYear,month:m});
+  for(let m=0;m<12;m++) months.push({year:startYear+1,month:m});
+
+  // Build table
+  const table=document.getElementById('jahres-table');
+  if(!table) return;
+
+  // Header row 1: year groups
+  let thead=`<thead>
+    <tr>
+      <th rowspan="2" style="min-width:200px;max-width:260px;text-align:left;padding:10px 12px;background:var(--text);color:#fff;font-size:13px;font-weight:600;position:sticky;left:0;z-index:2;border-bottom:2px solid rgba(255,255,255,0.15);">Bezeichnung</th>
+      <th rowspan="2" style="min-width:100px;text-align:left;padding:10px 8px;background:var(--text);color:rgba(255,255,255,0.6);font-size:11px;font-weight:500;border-left:1px solid rgba(255,255,255,0.1);border-bottom:2px solid rgba(255,255,255,0.15);">Gerät / Firma</th>
+      <th colspan="12" style="text-align:center;padding:8px;background:#1e3a5f;color:#93c5fd;font-size:13px;font-weight:700;border-left:2px solid rgba(255,255,255,0.2);">${startYear}</th>
+      <th colspan="12" style="text-align:center;padding:8px;background:#1a3a2a;color:#86efac;font-size:13px;font-weight:700;border-left:2px solid rgba(255,255,255,0.2);">${startYear+1}</th>
+    </tr>
+    <tr>`;
+  for(const {year,month} of months){
+    const isCurrentMonth=today.getFullYear()===year&&today.getMonth()===month;
+    thead+=`<th onclick="goToMonth(${year},${month})" style="min-width:52px;text-align:center;padding:6px 4px;font-size:11px;font-weight:600;cursor:pointer;border-left:1px solid rgba(255,255,255,0.1);background:${isCurrentMonth?'#2563eb':'rgba(0,0,0,0.2)'};color:${isCurrentMonth?'#fff':'rgba(255,255,255,0.7)'};transition:background 0.15s;" title="${MONATSNAMEN_LANG[month]} ${year}">${MONATSNAMEN[month]}</th>`;
+  }
+  thead+=`</tr></thead>`;
+
+  // Body
+  let tbody='<tbody>';
+  if(!rows.length){
+    tbody+=`<tr><td colspan="${2+months.length}" style="text-align:center;padding:32px;color:var(--text3);">Keine Wartungsaufträge in diesem Zeitraum</td></tr>`;
+  }
+  for(let ri=0;ri<rows.length;ri++){
+    const row=rows[ri];
+    const zebra=ri%2===0?'var(--surface)':'var(--surface2)';
+    tbody+=`<tr style="background:${zebra};">
+      <td style="padding:8px 12px;font-size:13px;font-weight:500;color:var(--text1);position:sticky;left:0;z-index:1;background:${zebra};border-bottom:1px solid var(--border);min-width:200px;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${_optEsc(row.bezeichnung)}">${_optEsc(row.bezeichnung)}</td>
+      <td style="padding:8px 8px;font-size:11.5px;color:var(--text3);border-left:1px solid var(--border);border-bottom:1px solid var(--border);vertical-align:middle;">${_optEsc(row.geraetName||row.partnerName||'–')}</td>`;
+    for(const {year,month} of months){
+      const entriesForCell=row.entries.filter(e=>{const d=new Date(e.datum);return d.getFullYear()===year&&d.getMonth()===month;});
+      const isCurrentMonth=today.getFullYear()===year&&today.getMonth()===month;
+      const borderLeft=month===0?'border-left:2px solid var(--border2);':'border-left:1px solid var(--border);';
+      if(!entriesForCell.length){
+        tbody+=`<td style="text-align:center;padding:4px;border-bottom:1px solid var(--border);${borderLeft}background:${isCurrentMonth?'rgba(37,99,235,0.04)':''};" onclick="goToMonth(${year},${month})" title="Keine Wartung – klicken für ${MONATSNAMEN_LANG[month]} ${year}" style="cursor:pointer;"></td>`;
+      } else {
+        // Show dot/badge for each entry
+        const dots=entriesForCell.map(e=>{
+          if(e.virtual) return `<span title="Rolling-Vorschau: ${e.bezeichnung}" style="display:inline-block;width:20px;height:16px;border-radius:3px;background:#f3f0ff;border:1px dashed #c4b5fd;line-height:16px;font-size:9px;text-align:center;cursor:default;">🔁</span>`;
+          const bg=e.status==='abgeschlossen'?'var(--green-light)':e.status==='faellig'?'var(--orange-light)':'var(--accent-light)';
+          const border=e.status==='abgeschlossen'?'#86efac':e.status==='faellig'?'#fdba74':'#93c5fd';
+          const symbol=e.status==='abgeschlossen'?'✓':e.status==='faellig'?'!':'●';
+          const col=e.status==='abgeschlossen'?'#16a34a':e.status==='faellig'?'#ea580c':'#2563eb';
+          return `<span onclick="event.stopPropagation();openWartungDetail('${e.id}')" title="${_optEsc(e.bezeichnung)} – ${sLabel[e.status]||e.status} (${fDate(e.datum)})" style="display:inline-block;width:24px;height:18px;border-radius:3px;background:${bg};border:1px solid ${border};line-height:18px;font-size:10px;font-weight:700;text-align:center;cursor:pointer;color:${col};margin:1px;">${symbol}</span>`;
+        }).join('');
+        tbody+=`<td style="text-align:center;padding:3px 2px;border-bottom:1px solid var(--border);${borderLeft}background:${isCurrentMonth?'rgba(37,99,235,0.04)':''};">${dots}</td>`;
+      }
+    }
+    tbody+=`</tr>`;
+  }
+  tbody+='</tbody>';
+  table.innerHTML=thead+tbody;
+}
+
+window.goToMonth = function(year, month){
+  state.calYear=year; state.calMonth=month;
+  setCalView('monat');
+};
 
 setInterval(()=>{document.getElementById('clock').textContent=new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit',second:'2-digit'});},1000);
 
@@ -2550,7 +3341,7 @@ window.exportData = function(type) {
     if(resultEl) resultEl.innerHTML = `<div style="background:var(--green-light);color:var(--green);padding:10px 12px;border-radius:7px;font-size:13px;">✅ ${rows.length} Einträge erfolgreich exportiert.</div>`;
     window._addLog && window._addLog(`Export ${type}: ${rows.length} Einträge exportiert`, '#0284c7');
   } catch(e) {
-    if(resultEl) resultEl.innerHTML = `<div style="background:var(--red-light);color:var(--red);padding:10px 12px;border-radius:7px;font-size:13px;">❌ Fehler: ${e.message}</div>`;
+    if(resultEl) resultEl.innerHTML = `<div style="background:var(--red-light);color:var(--red);padding:10px 12px;border-radius:7px;font-size:13px;">❌ Fehler: ${_optEsc(e.message)}</div>`;
   }
 };
 
@@ -2647,8 +3438,302 @@ window.handleImport = async function(input, type) {
     resultEl.innerHTML=`<div style="background:var(--green-light);color:var(--green);padding:10px 12px;border-radius:7px;font-size:13px;margin-top:4px;">✅ ${count} Einträge erfolgreich importiert${errors?`<br>⚠️ ${errors} Zeilen übersprungen (fehlende Pflichtfelder)`:''}</div>`;
     input.value='';
   } catch(e) {
-    resultEl.innerHTML=`<div style="background:var(--red-light);color:var(--red);padding:10px 12px;border-radius:7px;font-size:13px;">❌ Fehler: ${e.message}</div>`;
+    resultEl.innerHTML=`<div style="background:var(--red-light);color:var(--red);padding:10px 12px;border-radius:7px;font-size:13px;">❌ Fehler: ${_optEsc(e.message)}</div>`;
   }
+};
+
+// ============================================================
+// TERMINE – Funktionen
+// ============================================================
+
+function terminTypIcon(typ){
+  const icons={termin:'📅',wartung:'🔧',inspektion:'🔍',meeting:'👥',lieferung:'📦',sonstiges:'📌'};
+  return icons[typ]||'📅';
+}
+function terminTypLabel(typ){
+  const labels={termin:'Termin',wartung:'Wartung / Service',inspektion:'Inspektion / Prüfung',meeting:'Besprechung',lieferung:'Lieferung',sonstiges:'Sonstiges'};
+  return labels[typ]||typ;
+}
+
+window.filterTermine = function(f, btn){
+  window.state.terminFilter=f;
+  document.querySelectorAll('#page-termine .tab').forEach(t=>t.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  renderTermine();
+};
+
+function renderTermine(){
+  const tbody=document.getElementById('termine-table');
+  const mlist=document.getElementById('termine-mobile');
+  if(!tbody) return;
+  const today=new Date(); today.setHours(0,0,0,0);
+  const search=(window.state.terminSearch||'').toLowerCase();
+  const filter=window.state.terminFilter||'alle';
+  let items=[...(window.state.termine||[])];
+  items.sort((a,b)=>(a.datum||'').localeCompare(b.datum||''));
+  items=items.filter(t=>{
+    if(search && !(t.titel||'').toLowerCase().includes(search) && !(t.notizen||'').toLowerCase().includes(search)) return false;
+    const d=t.datum?new Date(t.datum):null;
+    if(d) d.setHours(0,0,0,0);
+    if(filter==='zukunft') return d && d>=today;
+    if(filter==='heute') return d && d.getTime()===today.getTime();
+    if(filter==='vergangen') return d && d<today;
+    return true;
+  });
+  if(!items.length){
+    tbody.innerHTML=`<tr><td colspan="6" style="text-align:center;color:var(--text3);padding:32px;">Keine Termine gefunden</td></tr>`;
+    if(mlist) mlist.innerHTML=`<div class="empty-state"><div class="empty-icon">🗓️</div><p>Keine Termine</p></div>`;
+    return;
+  }
+  tbody.innerHTML=items.map(t=>{
+    const d=t.datum?new Date(t.datum+'T00:00:00'):null;
+    const dateStr=d?d.toLocaleDateString('de-CH',{day:'2-digit',month:'2-digit',year:'numeric'}):'–';
+    const zeitStr=t.zeitVon?(t.zeitVon+(t.zeitBis?' – '+t.zeitBis:'')):'Ganztägig';
+    const isPast=d&&d<today;
+    const isToday=d&&d.getTime()===today.getTime();
+    const dateBadge=isToday?`<span style="background:#2563eb22;color:#2563eb;font-size:10px;padding:2px 6px;border-radius:8px;margin-left:4px;">Heute</span>`:
+      isPast?`<span style="background:var(--red-light);color:var(--red);font-size:10px;padding:2px 6px;border-radius:8px;margin-left:4px;">Vergangen</span>`:'';
+    const ticketRef=t.ticketId?(window.state.tickets||[]).find(tk=>tk.id===t.ticketId):null;
+    const wartungRef=t.wartungId?(window.state.wartungen||[]).find(w=>w.id===t.wartungId):null;
+    let verknLink='–';
+    if(ticketRef) verknLink=`<span style="cursor:pointer;color:var(--blue);text-decoration:underline;" onclick="showPage('tickets')"># ${_optEsc(ticketRef.betreff||'Ticket')}</span>`;
+    else if(wartungRef) verknLink=`<span style="cursor:pointer;color:var(--blue);text-decoration:underline;" onclick="showPage('wartung')">🔧 ${_optEsc(wartungRef.bezeichnung||'Wartung')}</span>`;
+    return `<tr>
+      <td><span style="font-weight:500;">${terminTypIcon(t.typ)} ${_optEsc(t.titel||'')}</span></td>
+      <td>${dateStr} ${dateBadge}<br><span style="font-size:12px;color:var(--text3);">${zeitStr}</span></td>
+      <td><span style="font-size:12px;">${terminTypLabel(t.typ)}</span></td>
+      <td>${verknLink}</td>
+      <td style="font-size:12px;color:var(--text3);">${_optEsc(t.ersteller||'')}</td>
+      <td style="white-space:nowrap;">
+        <button class="icon-btn" title="ICS herunterladen" onclick="downloadICS('${t.id}')">📥</button>
+        <button class="icon-btn" title="Details" onclick="showTerminDetail('${t.id}')">👁️</button>
+        <button class="icon-btn" title="Bearbeiten" onclick="editTermin('${t.id}')">✏️</button>
+        <button class="icon-btn icon-btn-danger" title="Löschen" onclick="deleteTermin('${t.id}')">🗑️</button>
+      </td>
+    </tr>`;
+  }).join('');
+  if(mlist) mlist.innerHTML=items.map(t=>{
+    const d=t.datum?new Date(t.datum+'T00:00:00'):null;
+    const dateStr=d?d.toLocaleDateString('de-CH',{day:'2-digit',month:'2-digit',year:'numeric'}):'–';
+    const zeitStr=t.zeitVon?(t.zeitVon+(t.zeitBis?' – '+t.zeitBis:'')):'Ganztägig';
+    return `<div class="mobile-card" onclick="showTerminDetail('${t.id}')">
+      <div class="mobile-card-title">${terminTypIcon(t.typ)} ${_optEsc(t.titel||'')}</div>
+      <div class="mobile-card-meta">${dateStr} · ${zeitStr}</div>
+      <div class="mobile-card-meta">${terminTypLabel(t.typ)}</div>
+      <div class="mobile-card-actions">
+        <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();downloadICS('${t.id}')">📥 ICS</button>
+        <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();editTermin('${t.id}')">✏️</button>
+        <button class="btn btn-secondary btn-sm" style="color:var(--red);" onclick="event.stopPropagation();deleteTermin('${t.id}')">🗑️</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+window.saveTermin = async function(){
+  const titel=(document.getElementById('te-titel').value||'').trim();
+  if(!titel){ alert('Bitte Titel eingeben.'); return; }
+  const datum=document.getElementById('te-datum').value;
+  if(!datum){ alert('Bitte Datum auswählen.'); return; }
+  const ticketEl=document.getElementById('te-ticket');
+  const wartungEl=document.getElementById('te-wartung');
+  const ticketId=ticketEl?ticketEl.value:'';
+  const wartungId=wartungEl?wartungEl.value:'';
+  const ticketRef=ticketId?(window.state.tickets||[]).find(t=>t.id===ticketId):null;
+  const wartungRef=wartungId?(window.state.wartungen||[]).find(w=>w.id===wartungId):null;
+  const partnerId=document.getElementById('te-partner').value||'';
+  const partnerRef=partnerId?(window.state.partner||[]).find(p=>p.id===partnerId):null;
+  const data={
+    titel, typ:document.getElementById('te-typ').value||'termin',
+    datum, zeitVon:document.getElementById('te-zeit-von').value||'',
+    zeitBis:document.getElementById('te-zeit-bis').value||'',
+    ticketId, ticketTitel:ticketRef?ticketRef.betreff:'',
+    wartungId, wartungTitel:wartungRef?wartungRef.bezeichnung:'',
+    partnerId, partnerName:partnerRef?partnerRef.name:'',
+    erinnerung:document.getElementById('te-erinnerung').value||'',
+    notizen:document.getElementById('te-notizen').value||'',
+    ersteller:window._currentUser?.displayName||window._currentUser?.email||'',
+    createdAt:window._serverTimestamp()
+  };
+  try {
+    if(window._editId && window._editType==='termine'){
+      await window._updateDoc('termine', window._editId, data);
+      await window._addLog(`Termin bearbeitet: "${titel}"`, '#7c3aed');
+    } else {
+      await window._addDoc('termine', data);
+      await window._addLog(`Termin erstellt: "${titel}"`, '#2563eb');
+    }
+    closeModal('modal-termin');
+  } catch(e){ alert('Fehler beim Speichern: '+e.message); }
+};
+
+window.editTermin = function(id){
+  const t=(window.state.termine||[]).find(x=>x.id===id);
+  if(!t) return;
+  populateSelects();
+  window._editId=id; window._editType='termine';
+  document.getElementById('te-titel').value=t.titel||'';
+  document.getElementById('te-typ').value=t.typ||'termin';
+  document.getElementById('te-datum').value=t.datum||'';
+  document.getElementById('te-zeit-von').value=t.zeitVon||'';
+  document.getElementById('te-zeit-bis').value=t.zeitBis||'';
+  setTimeout(()=>{
+    const tk=document.getElementById('te-ticket'); if(tk) tk.value=t.ticketId||'';
+    const w=document.getElementById('te-wartung'); if(w) w.value=t.wartungId||'';
+    const p=document.getElementById('te-partner'); if(p) p.value=t.partnerId||'';
+  },50);
+  document.getElementById('te-erinnerung').value=t.erinnerung||'';
+  document.getElementById('te-notizen').value=t.notizen||'';
+  document.getElementById('modal-termin').querySelector('.modal-title').textContent='Termin bearbeiten';
+  document.getElementById('btn-save-termin').textContent='Änderungen speichern';
+  document.getElementById('modal-termin').classList.remove('hidden');
+};
+
+window.deleteTermin = async function(id){
+  const t=(window.state.termine||[]).find(x=>x.id===id);
+  if(!t) return;
+  if(!confirm(`Termin "${t.titel}" (${t.datum||'kein Datum'}) wirklich löschen?`)) return;
+  await window._deleteDoc('termine', id);
+  await window._addLog(`Termin gelöscht: "${t.titel}"`, '#dc2626');
+};
+
+window.showTerminDetail = function(id){
+  const t=(window.state.termine||[]).find(x=>x.id===id);
+  if(!t) return;
+  window._terminDetailId=id;
+  const d=t.datum?new Date(t.datum+'T00:00:00'):null;
+  const dateStr=d?d.toLocaleDateString('de-CH',{weekday:'long',day:'2-digit',month:'long',year:'numeric'}):'–';
+  const zeitStr=t.zeitVon?(t.zeitVon+(t.zeitBis?' – '+t.zeitBis:'')):'Ganztägig';
+  const ticketRef=t.ticketId?(window.state.tickets||[]).find(tk=>tk.id===t.ticketId):null;
+  const wartungRef=t.wartungId?(window.state.wartungen||[]).find(w=>w.id===t.wartungId):null;
+  document.getElementById('termin-detail-title').textContent=`${terminTypIcon(t.typ)} ${t.titel}`;
+  document.getElementById('termin-detail-body').innerHTML=`
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+      <div><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">Datum</div><div style="font-weight:500;">${dateStr}</div></div>
+      <div><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">Uhrzeit</div><div style="font-weight:500;">${zeitStr}</div></div>
+      <div><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">Typ</div><div>${terminTypLabel(t.typ)}</div></div>
+      <div><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">Erstellt von</div><div>${_optEsc(t.ersteller||'–')}</div></div>
+      ${t.partnerName?`<div><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">Partnerfirma</div><div>${_optEsc(t.partnerName)}</div></div>`:''}
+      ${ticketRef?`<div><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">Ticket</div><div style="color:var(--blue);cursor:pointer;" onclick="closeModal('modal-termin-detail');showPage('tickets')"># ${_optEsc(ticketRef.betreff)}</div></div>`:''}
+      ${wartungRef?`<div><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">Wartungsauftrag</div><div style="color:var(--blue);cursor:pointer;" onclick="closeModal('modal-termin-detail');showPage('wartung')">🔧 ${_optEsc(wartungRef.bezeichnung)}</div></div>`:''}
+    </div>
+    ${t.notizen?`<div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:13.5px;color:var(--text1);white-space:pre-wrap;">${_optEsc(t.notizen)}</div>`:''}
+  `;
+  document.getElementById('modal-termin-detail').classList.remove('hidden');
+};
+
+window.editTerminFromDetail = function(){ const id=window._terminDetailId; closeModal('modal-termin-detail'); if(id) editTermin(id); };
+window.downloadICSFromDetail = function(){ const id=window._terminDetailId; if(id) downloadICS(id); };
+window.deleteTerminFromDetail = async function(){
+  const id=window._terminDetailId;
+  const t=(window.state.termine||[]).find(x=>x.id===id);
+  if(!t) return;
+  if(!confirm(`Termin "${t.titel}" wirklich löschen?`)) return;
+  closeModal('modal-termin-detail');
+  await window._deleteDoc('termine', id);
+  await window._addLog(`Termin gelöscht: "${t.titel}"`, '#dc2626');
+};
+
+window.downloadICS = function(id){
+  const t=(window.state.termine||[]).find(x=>x.id===id);
+  if(!t) return;
+  const ics=buildICS(t);
+  const blob=new Blob([ics],{type:'text/calendar;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download=(t.titel||'Termin').replace(/[^a-z0-9äöü\s\-]/gi,'_')+'.ics';
+  a.click(); URL.revokeObjectURL(url);
+};
+
+window.downloadAllTermineICS = function(){
+  const items=window.state.termine||[];
+  if(!items.length){ alert('Keine Termine vorhanden.'); return; }
+  const lines=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//FacilityOS Hotel Sternen Oerlikon//DE','CALSCALE:GREGORIAN','METHOD:PUBLISH'];
+  items.forEach(t=>{ const ev=buildICSEvent(t); if(ev) lines.push(...ev); });
+  lines.push('END:VCALENDAR');
+  const blob=new Blob([lines.join('\r\n')],{type:'text/calendar;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download='FacilityOS_Termine.ics'; a.click(); URL.revokeObjectURL(url);
+};
+
+function buildICS(t){
+  const lines=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//FacilityOS Hotel Sternen Oerlikon//DE','CALSCALE:GREGORIAN','METHOD:PUBLISH'];
+  const ev=buildICSEvent(t); if(ev) lines.push(...ev);
+  lines.push('END:VCALENDAR');
+  return lines.join('\r\n');
+}
+
+function buildICSEvent(t){
+  if(!t.datum) return null;
+  const uid=`termin-${t.id||Date.now()}@facilityos.hotel-sternen-oerlikon`;
+  const now=new Date(); const dtstamp=now.toISOString().replace(/[-:]/g,'').slice(0,15)+'Z';
+  let dtstart, dtend;
+  if(t.zeitVon){
+    dtstart=`${t.datum.replace(/-/g,'')}T${t.zeitVon.replace(':','')}00`;
+    const endTime=t.zeitBis||t.zeitVon;
+    dtend=`${t.datum.replace(/-/g,'')}T${endTime.replace(':','')}00`;
+    if(dtend<=dtstart){ const ed=new Date(t.datum+'T'+endTime); ed.setHours(ed.getHours()+1); dtend=`${t.datum.replace(/-/g,'')}T${String(ed.getHours()).padStart(2,'0')}${String(ed.getMinutes()).padStart(2,'0')}00`; }
+  } else {
+    dtstart=t.datum.replace(/-/g,'');
+    const nd=new Date(t.datum+'T00:00:00'); nd.setDate(nd.getDate()+1);
+    dtend=nd.toISOString().slice(0,10).replace(/-/g,'');
+  }
+  const desc=[terminTypLabel(t.typ),t.partnerName?'Firma: '+t.partnerName:'',t.ticketTitel?'Ticket: '+t.ticketTitel:'',t.wartungTitel?'Wartungsauftrag: '+t.wartungTitel:'',t.notizen||''].filter(Boolean).join('\\n');
+  const esc=s=>String(s||'').replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\n/g,'\\n');
+  const lines=['BEGIN:VEVENT','UID:'+uid,'DTSTAMP:'+dtstamp];
+  if(t.zeitVon){ lines.push('DTSTART:'+dtstart,'DTEND:'+dtend); } else { lines.push('DTSTART;VALUE=DATE:'+dtstart,'DTEND;VALUE=DATE:'+dtend); }
+  lines.push('SUMMARY:'+esc(t.titel||'Termin'));
+  if(desc) lines.push('DESCRIPTION:'+esc(desc));
+  if(t.erinnerung!==undefined&&t.erinnerung!==''){
+    const mins=parseInt(t.erinnerung)||0;
+    lines.push('BEGIN:VALARM','TRIGGER:-PT'+mins+'M','ACTION:DISPLAY','DESCRIPTION:Erinnerung: '+esc(t.titel||''),'END:VALARM');
+  }
+  lines.push('END:VEVENT');
+  return lines;
+}
+
+// Quick-open Termin modal from ticket/wartung row (inline "+ Termin" button)
+window.openTerminQuick = function(type, id, titel, datum){
+  populateSelects();
+  window._editId=null; window._editType=null;
+  document.getElementById('te-titel').value=titel||'';
+  document.getElementById('te-datum').value=datum||'';
+  document.getElementById('te-typ').value=type==='wartung'?'wartung':'termin';
+  setTimeout(()=>{
+    if(type==='ticket'){ const el=document.getElementById('te-ticket'); if(el) el.value=id; }
+    if(type==='wartung'){ const el=document.getElementById('te-wartung'); if(el) el.value=id;
+      const w=(window.state.wartungen||[]).find(x=>x.id===id);
+      if(w?.partnerId){ const pe=document.getElementById('te-partner'); if(pe) pe.value=w.partnerId; }
+    }
+  },50);
+  document.getElementById('modal-termin').querySelector('.modal-title').textContent='Neuer Termin';
+  document.getElementById('btn-save-termin').textContent='Termin speichern';
+  document.getElementById('modal-termin').classList.remove('hidden');
+};
+
+window.openTerminFromTicket = function(){
+  const btn=document.getElementById('btn-ticket-termin');
+  const ticketId=btn?.dataset?.ticketId||window._editId||'';
+  const ticket=ticketId?(window.state.tickets||[]).find(t=>t.id===ticketId):null;
+  closeModal('modal-ticket');
+  populateSelects();
+  if(ticket){ document.getElementById('te-titel').value=ticket.betreff||''; document.getElementById('te-typ').value='termin'; setTimeout(()=>{ const el=document.getElementById('te-ticket'); if(el) el.value=ticketId; },50); }
+  document.getElementById('modal-termin').querySelector('.modal-title').textContent='Neuer Termin';
+  document.getElementById('btn-save-termin').textContent='Termin speichern';
+  document.getElementById('modal-termin').classList.remove('hidden');
+};
+
+window.openTerminFromWartung = function(){
+  const btn=document.getElementById('btn-wartung-termin');
+  const wartungId=btn?.dataset?.wartungId||window._editId||'';
+  const wartung=wartungId?(window.state.wartungen||[]).find(w=>w.id===wartungId):null;
+  closeModal('modal-wartung');
+  populateSelects();
+  if(wartung){ document.getElementById('te-titel').value=wartung.bezeichnung||''; document.getElementById('te-typ').value='wartung'; document.getElementById('te-datum').value=wartung.datum||''; setTimeout(()=>{ const el=document.getElementById('te-wartung'); if(el) el.value=wartungId; const pe=document.getElementById('te-partner'); if(pe&&wartung.partnerId) pe.value=wartung.partnerId; },50); }
+  document.getElementById('modal-termin').querySelector('.modal-title').textContent='Neuer Termin';
+  document.getElementById('btn-save-termin').textContent='Termin speichern';
+  document.getElementById('modal-termin').classList.remove('hidden');
 };
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script></body>
