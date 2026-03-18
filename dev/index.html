@@ -1501,6 +1501,10 @@ window.toggleMehrereZimmer = function(active) {
   panel.style.display = active ? 'block' : 'none';
   bereichGroup.style.display = active ? 'none' : 'block';
   if (active) renderZimmerPanel();
+  else {
+    const et = document.getElementById('t-zimmer-etagen');
+    if (et) et.innerHTML = '';
+  }
 };
 
 window.renderZimmerPanel = function() {
@@ -1938,6 +1942,7 @@ window.editItem = (type, id) => {
         });
       }, 50);
     } else {
+      resetZimmerPanel();
       document.getElementById('t-bereich').value=item.bereichId||'';
     }
     document.getElementById('modal-ticket').querySelector('.modal-title').textContent='Ticket bearbeiten';
@@ -2117,7 +2122,7 @@ function showPage(name, navBtn, isBack) {
   if(name==='aktivitaet') renderAktivitaet();
 }
 
-function openModal(id) { populateSelects(); document.getElementById(id).classList.remove('hidden'); if(id==='modal-ticket' && !window._editId) resetZimmerPanel(); }
+function openModal(id) { if(id==='modal-ticket') resetZimmerPanel(); populateSelects(); document.getElementById(id).classList.remove('hidden'); }
 function closeModal(id) {
   document.getElementById(id).classList.add('hidden');
   document.querySelectorAll(`#${id} input,#${id} textarea`).forEach(e=>{ if(e.type==='checkbox') e.checked=false; else e.value=''; });
