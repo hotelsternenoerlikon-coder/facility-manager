@@ -1141,7 +1141,7 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
 import { getFirestore, collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, getDoc, setDoc, serverTimestamp, query, orderBy } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
-import { getAuth, GoogleAuthProvider, OAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, onAuthStateChanged, signOut as fbSignOut } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
+import { getAuth, GoogleAuthProvider, OAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, onAuthStateChanged, signOut as fbSignOut, browserSessionPersistence, setPersistence } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDcfrW2Q7Q61oqZFCo9D-CcLKpQYhiIkwM",
@@ -1155,6 +1155,11 @@ const firebaseConfig = {
 const fbApp = initializeApp(firebaseConfig);
 const db = getFirestore(fbApp);
 const auth = getAuth(fbApp);
+
+// Verwende Session-Persistence (SessionStorage statt IndexedDB) →
+// unabhängig von Edge Tracking Prevention
+setPersistence(auth, browserSessionPersistence).catch(() => {});
+
 const provider = new GoogleAuthProvider();
 const msProvider = new OAuthProvider('microsoft.com');
 msProvider.setCustomParameters({ tenant: 'common' });
@@ -1246,14 +1251,14 @@ async function sendAccessRequestEmail(user) {
 }
 
 onAuthStateChanged(auth, async user => {
-  // Hide all screens first
-  document.getElementById('login-screen').classList.add('hidden');
+  // Screenwechsel vorbereiten
   document.getElementById('pending-screen').classList.remove('visible');
   document.getElementById('rejected-screen').classList.remove('visible');
 
   if (user) {
     currentUser = user;
     window._currentUser = user;
+    document.getElementById('login-screen').classList.add('hidden');
     document.getElementById('loading-overlay').classList.remove('hidden');
 
     const access = await checkUserAccess(user);
@@ -1291,6 +1296,8 @@ onAuthStateChanged(auth, async user => {
     currentUser = null;
     window._currentUser = null;
     document.getElementById('loading-overlay').classList.add('hidden');
+    // Login-Screen anzeigen (nicht nur verstecken)
+    document.getElementById('login-screen').classList.remove('hidden');
   }
 });
 
@@ -1480,7 +1487,7 @@ async function generateTicketsFromDueWartungen() {
   }
 }
 
-function checkLoaded() { loadedCount++; if (loadedCount >= 9) { document.getElementById('loading-overlay').classList.add('hidden'); if(!_wartungTicketGenDone){ _wartungTicketGenDone=true; generateTicketsFromDueWartungen(); } } }
+function checkLoaded() { loadedCount++; if (loadedCount >= 9) { if(window._connectionTimeout) clearTimeout(window._connectionTimeout); document.getElementById('loading-overlay').classList.add('hidden'); if(!_wartungTicketGenDone){ _wartungTicketGenDone=true; generateTicketsFromDueWartungen(); } } }
 
 // Ensure state exists before listeners render
 (function ensureState(){
@@ -1492,6 +1499,17 @@ function checkLoaded() { loadedCount++; if (loadedCount >= 9) { document.getElem
 function startListeners() {
   loadedCount = 0;
   document.getElementById('loading-overlay').classList.remove('hidden');
+
+  // Timeout: falls Firestore nach 12s nicht antwortet → Hinweis anzeigen
+  window._connectionTimeout = setTimeout(() => {
+    if (loadedCount < 9) {
+      document.getElementById('loading-overlay').classList.add('hidden');
+      document.getElementById('sync-dot').style.background = 'var(--red)';
+      document.getElementById('sync-label').textContent = 'Verbindungsfehler';
+      const sdm = document.getElementById('sync-dot-mobile'); if(sdm) sdm.style.background='var(--red)';
+      alert('⚠️ Firestore konnte nicht erreicht werden.\n\nMögliche Ursachen:\n• Edge Tracking Prevention blockiert Firebase\n• Keine Internetverbindung\n\nLösung: In Edge unter "Einstellungen → Datenschutz" die Tracking Prevention auf "Einfach" stellen oder die App-URL als Ausnahme hinzufügen.');
+    }
+  }, 12000);
 
   onSnapshot(col('tickets'), s => { window.state.tickets = s.docs.map(d=>({id:d.id,...d.data()})); renderAll(); checkLoaded(); }, ()=>checkLoaded());
   onSnapshot(col('wartungen'), s => { window.state.wartungen = s.docs.map(d=>({id:d.id,...d.data()})); renderAll(); if(!document.getElementById('page-kalender').classList.contains('page-hidden')){ if(state.calView==='jahr') renderJahreskalender(); else renderCalendar(); } checkLoaded(); }, ()=>checkLoaded());
