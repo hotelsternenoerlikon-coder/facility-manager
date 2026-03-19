@@ -2132,7 +2132,8 @@ window.handleFab = () => { const fn = fabActions[window._currentPage]; if(fn) fn
 // fbSignOutMobile wird im Modul-Script definiert
 
 function showPage(name, navBtn, isBack) {
-  window._currentPage = name;
+  // Admin-Seite nur für Admins zugänglich
+  if (name === 'benutzer' && !window._isAdmin) return;
 
   // Track history
   if(!isBack) {
@@ -2344,7 +2345,7 @@ function renderDashboard() {
   const dg=document.getElementById('dash-geraete');
   dg.innerHTML=state.geraete.length?`<div style="display:flex;flex-direction:column;gap:8px;">${state.geraete.slice(0,6).map(g=>`<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--border);"><span>${kIcons[g.kategorie]||'🔧'}</span><span style="flex:1;font-size:13px;font-weight:500;">${_optEsc(g.name)}</span>${(()=>{const nw=getNextWartungForGeraet(g.id);return nw?`<span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text3);">${fDate(nw)}</span>`:''})()}<span class="status-dot dot-${g.status==='aktiv'?'green':g.status==='stoerung'?'red':'yellow'}"></span></div>`).join('')}</div>`:'<div class="empty-state"><div class="empty-icon">⚙️</div><p>Noch keine Geräte erfasst</p></div>';
   const da=document.getElementById('dash-aktivitaet');
-  da.innerHTML=state.log.length?state.log.slice(0,8).map(l=>`<div class="activity-item"><div class="activity-dot" style="background:${l.color}"></div><div><div class="activity-text">${_optEsc(l.text)}</div><div class="activity-time">${fTs(l.createdAt)}${l.user?' · '+_optEsc(l.user):''}</div></div></div>`).join(''):'<div class="empty-state"><div class="empty-icon">📋</div><p>Noch keine Aktivitäten</p></div>';
+  da.innerHTML=state.log.length?state.log.slice(0,8).map(l=>`<div class="activity-item"><div class="activity-dot" style="background:${safeColor(l.color)}"></div><div><div class="activity-text">${_optEsc(l.text)}</div><div class="activity-time">${fTs(l.createdAt)}${l.user?' · '+_optEsc(l.user):''}</div></div></div>`).join(''):'<div class="empty-state"><div class="empty-icon">📋</div><p>Noch keine Aktivitäten</p></div>';
 }
 
 function renderTickets() {
@@ -2673,12 +2674,17 @@ function renderDokumente() {
   tb.innerHTML=state.dokumente.length?state.dokumente.map(d=>`<tr><td><span style="font-weight:500;">📄 ${_optEsc(d.name)}</span></td><td><span class="badge badge-gray">${_optEsc(d.typ)}</span></td><td>${_optEsc(d.geraetName||'–')}</td><td style="font-family:'DM Mono',monospace;font-size:12px;">${d.datum?fDate(d.datum):'–'}</td><td style="color:var(--text3);font-size:12.5px;">${_optEsc(d.notiz||'–')}</td><td style="white-space:nowrap;"><button class="btn btn-sm btn-edit" onclick="editItem('dokumente','${d.id}')">✏️</button> <button class="btn btn-secondary btn-sm" onclick="deleteItem('dokumente','${d.id}')">🗑️</button></td></tr>`).join(''):`<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">📄</div><p>Noch keine Dokumente</p></div></td></tr>`;
 }
 
+// Validiert Farben aus der DB gegen CSS-Injection
+function safeColor(c) {
+  return /^#[0-9a-fA-F]{3,8}$/.test(c) ? c : '#6b7280';
+}
+
 function renderAktivitaet() {
   const el=document.getElementById('aktivitaet-full');
   let data = state.log;
   if(state.logSearch){const q=state.logSearch.toLowerCase();data=data.filter(l=>(l.text||'').toLowerCase().includes(q)||(l.user||'').toLowerCase().includes(q));}
   document.getElementById('log-count').textContent=(state.logSearch?data.length+' von ':'')+state.log.length+' Einträge';
-  el.innerHTML=data.length?data.map(l=>`<div class="activity-item"><div class="activity-dot" style="background:${l.color}"></div><div style="flex:1;"><div class="activity-text">${_optEsc(l.text)}</div><div class="activity-time">${fTs(l.createdAt)}${l.user?' · '+_optEsc(l.user):''}</div></div></div>`).join(''):'<div class="empty-state"><div class="empty-icon">📋</div><p>Keine Einträge gefunden</p></div>';
+  el.innerHTML=data.length?data.map(l=>`<div class="activity-item"><div class="activity-dot" style="background:${safeColor(l.color)}"></div><div style="flex:1;"><div class="activity-text">${_optEsc(l.text)}</div><div class="activity-time">${fTs(l.createdAt)}${l.user?' · '+_optEsc(l.user):''}</div></div></div>`).join(''):'<div class="empty-state"><div class="empty-icon">📋</div><p>Keine Einträge gefunden</p></div>';
 }
 
 function updateBadges() {
