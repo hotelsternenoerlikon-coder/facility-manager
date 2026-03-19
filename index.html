@@ -81,9 +81,6 @@
   .btn-sm { padding: 5px 12px; font-size: 12.5px; }
   .btn-edit { background: var(--accent-light); border: 1px solid #bfdbfe; color: var(--accent); }
   .btn-edit:hover { background: #bfdbfe; }
-  .icon-btn { background: none; border: 1px solid var(--border2); border-radius: 6px; padding: 4px 8px; font-size: 14px; cursor: pointer; color: var(--text2); transition: all 0.15s; }
-  .icon-btn:hover { background: var(--surface2); border-color: var(--accent); color: var(--accent); }
-  .icon-btn-danger:hover { background: var(--red-light); border-color: var(--red); color: var(--red); }
   .mobile-mehr-item {
     display: flex; align-items: center; gap: 14px; width: 100%; padding: 16px;
     background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
@@ -1239,7 +1236,6 @@ onAuthStateChanged(auth, async user => {
 
   if (user) {
     currentUser = user;
-    window._currentUser = user;
     document.getElementById('loading-overlay').classList.remove('hidden');
 
     const access = await checkUserAccess(user);
@@ -1275,7 +1271,7 @@ onAuthStateChanged(auth, async user => {
     }
   } else {
     currentUser = null;
-    window._currentUser = null;
+    document.getElementById('login-screen').classList.remove('hidden');
     document.getElementById('loading-overlay').classList.add('hidden');
   }
 });
@@ -1505,10 +1501,6 @@ window.toggleMehrereZimmer = function(active) {
   panel.style.display = active ? 'block' : 'none';
   bereichGroup.style.display = active ? 'none' : 'block';
   if (active) renderZimmerPanel();
-  else {
-    const et = document.getElementById('t-zimmer-etagen');
-    if (et) et.innerHTML = '';
-  }
 };
 
 window.renderZimmerPanel = function() {
@@ -1571,17 +1563,10 @@ window.updateEtageCheckbox = function(etage) {
 
 function getSelectedZimmer() {
   const cbs = document.querySelectorAll('#t-zimmer-etagen .zimmer-cb:checked');
-  // When editing, preserve existing erledigt flags for rooms that were already in the ticket
-  const existingZimmer = (window._editId && window._editType === 'tickets')
-    ? (window.state.tickets.find(t => t.id === window._editId)?.zimmerListe || [])
-    : [];
-  return Array.from(cbs).map(cb => {
-    const existing = existingZimmer.find(z => z.bereichId === cb.dataset.id);
-    return { bereichId: cb.dataset.id, name: cb.dataset.name, erledigt: existing ? !!existing.erledigt : false };
-  });
+  return Array.from(cbs).map(cb => ({ bereichId: cb.dataset.id, name: cb.dataset.name, erledigt: false }));
 }
 
-window.resetZimmerPanel = function resetZimmerPanel() {
+function resetZimmerPanel() {
   const cb = document.getElementById('t-mehrere-zimmer');
   if (cb) cb.checked = false;
   const panel = document.getElementById('t-zimmer-panel');
@@ -1793,17 +1778,6 @@ window.toggleZimmerErledigt = async (ticketId, bereichId, erledigt) => {
   const alleErledigt = updated.every(z => z.erledigt);
   const updates = { zimmerListe: updated };
   if (alleErledigt) updates.status = 'erledigt';
-  // Remember which detail panels are open before the re-render
-  window._openZimmerDetails = new Set(
-    [...document.querySelectorAll('[id^="zimmer-detail-"]')]
-      .filter(el => el.style.display !== 'none')
-      .map(el => el.id.replace('zimmer-detail-', ''))
-  );
-  window._openZimmerDetailsMobile = new Set(
-    [...document.querySelectorAll('[id^="zimmer-mobile-"]')]
-      .filter(el => el.style.display !== 'none')
-      .map(el => el.id.replace('zimmer-mobile-', ''))
-  );
   await updateDoc(doc(db,'tickets',ticketId), updates);
   if (alleErledigt) {
     await addLog(`Ticket "${ticket.betreff}" → erledigt (alle Zimmer abgehakt, ${currentUser?.displayName||''})`, '#16a34a');
@@ -1946,7 +1920,6 @@ window.editItem = (type, id) => {
         });
       }, 50);
     } else {
-      resetZimmerPanel();
       document.getElementById('t-bereich').value=item.bereichId||'';
     }
     document.getElementById('modal-ticket').querySelector('.modal-title').textContent='Ticket bearbeiten';
@@ -2126,7 +2099,7 @@ function showPage(name, navBtn, isBack) {
   if(name==='aktivitaet') renderAktivitaet();
 }
 
-function openModal(id) { if(id==='modal-ticket') resetZimmerPanel(); populateSelects(); document.getElementById(id).classList.remove('hidden'); }
+function openModal(id) { populateSelects(); document.getElementById(id).classList.remove('hidden'); }
 function closeModal(id) {
   document.getElementById(id).classList.add('hidden');
   document.querySelectorAll(`#${id} input,#${id} textarea`).forEach(e=>{ if(e.type==='checkbox') e.checked=false; else e.value=''; });
@@ -2321,18 +2294,11 @@ function renderTickets() {
       const d=te.datum?new Date(te.datum+'T00:00:00'):null;
       const ds=d?d.toLocaleDateString('de-CH',{day:'2-digit',month:'2-digit',year:'numeric'}):'–';
       const isPast=d&&d<today0; const isToday=d&&d.getTime()===today0.getTime();
-      const col=isToday?'var(--accent)':isPast?'var(--red)':'var(--green)';
+      const col=isToday?'var(--blue)':isPast?'var(--red)':'var(--green)';
       return `<span style="display:inline-flex;align-items:center;gap:3px;"><span onclick="showTerminDetail('${te.id}')" style="cursor:pointer;color:${col};font-size:12px;font-family:'DM Mono',monospace;white-space:nowrap;" title="${_optEsc(te.titel||'')}">🗓️ ${ds}</span><span onclick="deleteTermin('${te.id}')" style="cursor:pointer;color:var(--text3);font-size:11px;line-height:1;padding:1px 3px;border-radius:3px;" title="Termin löschen" onmouseover="this.style.color='var(--red)'" onmouseout="this.style.color='var(--text3)'">✕</span></span>`;
     }).join('')}<button onclick="openTerminQuick('ticket','${t.id}','${(t.betreff||'').replace(/'/g,'\\x27')}')" class="btn btn-secondary btn-sm" style="font-size:11px;padding:2px 7px;margin-top:${linkedTermin.length?'3':'0'}px;">+ Termin</button></div>`;
     return `<tr><td><span style="font-weight:500;">${t.betreff}</span>${t.autoGenerated?` <span class="badge badge-violet">🤖 Automatisch aus Wartung</span>`:''}${hasZimmer?` <span class="badge badge-blue">🏨 Multi-Zimmer</span>`:''}${t.beschreibung?`<div style="font-size:12px;color:var(--text3);">${t.beschreibung.substring(0,60)}${t.beschreibung.length>60?'...':''}</div>`:''}</td><td>${t.geraetName||'–'}</td><td>${hasZimmer?zimmerProgress:(t.bereichName?`<span class="badge badge-blue">${t.bereichName}</span>`:'–')}</td><td><span class="badge ${pBadge[t.prioritaet]}">${pLabel[t.prioritaet]}</span></td><td><select onchange="updateTicketStatus('${t.id}',this.value)" style="border:1px solid var(--border2);border-radius:5px;padding:3px 8px;font-size:12px;background:var(--surface);"><option value="offen" ${t.status==='offen'?'selected':''}>Offen</option><option value="in_bearbeitung" ${t.status==='in_bearbeitung'?'selected':''}>In Bearbeitung</option><option value="erledigt" ${t.status==='erledigt'?'selected':''}>Erledigt</option></select></td><td style="font-size:12px;color:var(--text3);">${t.ersteller||t.gemeldet||'–'}</td><td>${t.partnerName||'–'}</td><td>${terminCell}</td><td style="white-space:nowrap;"><button class="btn btn-sm btn-edit" onclick="editItem('tickets','${t.id}')">✏️</button> <button class="btn btn-secondary btn-sm" onclick="deleteItem('tickets','${t.id}')">🗑️</button></td></tr>${zimmerRows}`;
   }).join(''):`<tr><td colspan="9"><div class="empty-state"><div class="empty-icon">🎫</div><p>Keine Tickets gefunden</p></div></td></tr>`;
-  // Restore any zimmer detail panels that were open before re-render
-  if (window._openZimmerDetails && window._openZimmerDetails.size > 0) {
-    window._openZimmerDetails.forEach(id => {
-      const row = document.getElementById('zimmer-detail-' + id);
-      if (row) row.style.display = 'table-row';
-    });
-  }
 }
 
 window.toggleZimmerDetail = function(ticketId) {
@@ -2366,7 +2332,7 @@ function renderWartungen() {
       const d=te.datum?new Date(te.datum+'T00:00:00'):null;
       const ds=d?d.toLocaleDateString('de-CH',{day:'2-digit',month:'2-digit',year:'numeric'}):'–';
       const isPast=d&&d<today0w; const isToday=d&&d.getTime()===today0w.getTime();
-      const col=isToday?'var(--accent)':isPast?'var(--red)':'var(--green)';
+      const col=isToday?'var(--blue)':isPast?'var(--red)':'var(--green)';
       return `<span style="display:inline-flex;align-items:center;gap:3px;"><span onclick="showTerminDetail('${te.id}')" style="cursor:pointer;color:${col};font-size:12px;font-family:'DM Mono',monospace;white-space:nowrap;" title="${_optEsc(te.titel||'')}">🗓️ ${ds}</span><span onclick="deleteTermin('${te.id}')" style="cursor:pointer;color:var(--text3);font-size:11px;line-height:1;padding:1px 3px;border-radius:3px;" title="Termin löschen" onmouseover="this.style.color='var(--red)'" onmouseout="this.style.color='var(--text3)'">✕</span></span>`;
     }).join('')}<button onclick="openTerminQuick('wartung','${w.id}','${(w.bezeichnung||'').replace(/'/g,'\\x27')}','${w.datum||''}')" class="btn btn-secondary btn-sm" style="font-size:11px;padding:2px 7px;margin-top:${linkedTermin.length?'3':'0'}px;">+ Termin</button></div>`;
     return `<tr><td><span style="font-weight:500;">${w.bezeichnung}</span>${w.seriesId?`<div style="font-size:10.5px;color:var(--text3);">🔁 ${w.intervall} · rolling</div>`:''}</td><td>${w.geraetName||'–'}</td><td><span class="badge badge-gray">${w.typ}</span></td><td style="font-family:'DM Mono',monospace;font-size:12px;${new Date(w.datum)<new Date()&&w.status!=='abgeschlossen'&&w.status!=='storniert'?'color:var(--red);font-weight:600;':''}">${fDate(w.datum)}</td><td>${w.partnerName||'–'}</td><td><select onchange="updateWartungStatus('${w.id}',this.value)" style="border:1px solid var(--border2);border-radius:5px;padding:3px 8px;font-size:12px;background:var(--surface);"><option value="geplant" ${w.status==='geplant'?'selected':''}>Geplant</option><option value="faellig" ${w.status==='faellig'?'selected':''}>Fällig</option><option value="abgeschlossen" ${w.status==='abgeschlossen'?'selected':''}>Abgeschlossen</option><option value="storniert" ${w.status==='storniert'?'selected':''}>Storniert</option></select></td><td>${terminCell}</td><td style="white-space:nowrap;"><button class="btn btn-sm btn-edit" onclick="editItem('wartungen','${w.id}')">✏️</button> <button class="btn btn-secondary btn-sm" onclick="deleteItem('wartungen','${w.id}')">🗑️</button></td></tr>`;
@@ -2677,13 +2643,6 @@ function renderTicketsMobile() {
     </div>
   </div>`;
   }).join('');
-  // Restore any zimmer mobile panels that were open before re-render
-  if (window._openZimmerDetailsMobile && window._openZimmerDetailsMobile.size > 0) {
-    window._openZimmerDetailsMobile.forEach(id => {
-      const el2 = document.getElementById('zimmer-mobile-' + id);
-      if (el2) el2.style.display = 'flex';
-    });
-  }
 }
 
 function renderWartungenMobile() {
@@ -3290,8 +3249,8 @@ const EXPORT_CONFIGS = {
     sheetname: 'Tickets',
     cols: ['Betreff','Priorität','Status','Gerät','Bereich','Zugewiesen an','Gemeldet von','Beschreibung','Erstellt am'],
     map: (t) => [
-      t.betreff||'', t.prioritaet||'', t.status||'', t.geraetName||'', t.bereichName||'',
-      t.partnerName||'', t.gemeldet||'', t.beschreibung||'',
+      t.betreff||'', t.prioritaet||'', t.status||'', t.geraetName||'', t.bereich||'',
+      t.partner||'', t.gemeldetVon||'', t.beschreibung||'',
       t.createdAt && t.createdAt.toDate ? t.createdAt.toDate().toLocaleDateString('de-DE') : (t.createdAt||'')
     ],
     source: () => state.tickets || []
@@ -3307,7 +3266,7 @@ const EXPORT_CONFIGS = {
     filename: 'FacilityOS_Export_Geraete.xlsx',
     sheetname: 'Geräte & Anlagen',
     cols: ['Name','Kategorie','Hersteller','Seriennummer','Standort','Baujahr','Nächste Wartung (aus Aufträgen)','Status','Notizen'],
-    map: (g) => [g.name||'', g.kategorie||'', g.hersteller||'', g.seriennummer||'', g.bereichName||g.standort||'', g.baujahr||'', getNextWartungForGeraet(g.id)||'', g.status||'', g.notizen||''],
+    map: (g) => [g.name||'', g.kategorie||'', g.hersteller||'', g.seriennummer||'', g.standort||'', g.baujahr||'', getNextWartungForGeraet(g.id)||'', g.status||'', g.notizen||''],
     source: () => state.geraete || []
   },
   partner: {
@@ -3389,7 +3348,7 @@ const TEMPLATES = {
   },
   geraete: {
     cols: ['Name','Kategorie','Hersteller','Seriennummer','Standort','Baujahr','Notizen'],
-    example: ['Aufzug OG1','aufzug','Schindler','SN-12345','1. OG','2015-06-01','Jährliche Inspektion']
+    example: ['Aufzug OG1','aufzug','Schindler','SN-12345','1. OG','2015-06-01','2025-06-01','Jährliche Inspektion']
   },
   wartung: {
     cols: ['Bezeichnung','Typ','Datum','Intervall','GerätName','PartnerName','Notizen'],
@@ -3505,8 +3464,8 @@ function renderTermine(){
     const ticketRef=t.ticketId?(window.state.tickets||[]).find(tk=>tk.id===t.ticketId):null;
     const wartungRef=t.wartungId?(window.state.wartungen||[]).find(w=>w.id===t.wartungId):null;
     let verknLink='–';
-    if(ticketRef) verknLink=`<span style="cursor:pointer;color:var(--accent);text-decoration:underline;" onclick="showPage('tickets')"># ${_optEsc(ticketRef.betreff||'Ticket')}</span>`;
-    else if(wartungRef) verknLink=`<span style="cursor:pointer;color:var(--accent);text-decoration:underline;" onclick="showPage('wartung')">🔧 ${_optEsc(wartungRef.bezeichnung||'Wartung')}</span>`;
+    if(ticketRef) verknLink=`<span style="cursor:pointer;color:var(--blue);text-decoration:underline;" onclick="showPage('tickets')"># ${_optEsc(ticketRef.betreff||'Ticket')}</span>`;
+    else if(wartungRef) verknLink=`<span style="cursor:pointer;color:var(--blue);text-decoration:underline;" onclick="showPage('wartung')">🔧 ${_optEsc(wartungRef.bezeichnung||'Wartung')}</span>`;
     return `<tr>
       <td><span style="font-weight:500;">${terminTypIcon(t.typ)} ${_optEsc(t.titel||'')}</span></td>
       <td>${dateStr} ${dateBadge}<br><span style="font-size:12px;color:var(--text3);">${zeitStr}</span></td>
@@ -3622,8 +3581,8 @@ window.showTerminDetail = function(id){
       <div><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">Typ</div><div>${terminTypLabel(t.typ)}</div></div>
       <div><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">Erstellt von</div><div>${_optEsc(t.ersteller||'–')}</div></div>
       ${t.partnerName?`<div><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">Partnerfirma</div><div>${_optEsc(t.partnerName)}</div></div>`:''}
-      ${ticketRef?`<div><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">Ticket</div><div style="color:var(--accent);cursor:pointer;" onclick="closeModal('modal-termin-detail');showPage('tickets')"># ${_optEsc(ticketRef.betreff)}</div></div>`:''}
-      ${wartungRef?`<div><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">Wartungsauftrag</div><div style="color:var(--accent);cursor:pointer;" onclick="closeModal('modal-termin-detail');showPage('wartung')">🔧 ${_optEsc(wartungRef.bezeichnung)}</div></div>`:''}
+      ${ticketRef?`<div><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">Ticket</div><div style="color:var(--blue);cursor:pointer;" onclick="closeModal('modal-termin-detail');showPage('tickets')"># ${_optEsc(ticketRef.betreff)}</div></div>`:''}
+      ${wartungRef?`<div><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">Wartungsauftrag</div><div style="color:var(--blue);cursor:pointer;" onclick="closeModal('modal-termin-detail');showPage('wartung')">🔧 ${_optEsc(wartungRef.bezeichnung)}</div></div>`:''}
     </div>
     ${t.notizen?`<div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:13.5px;color:var(--text1);white-space:pre-wrap;">${_optEsc(t.notizen)}</div>`:''}
   `;
