@@ -1141,7 +1141,7 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
 import { getFirestore, collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, getDoc, setDoc, serverTimestamp, query, orderBy } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
-import { getAuth, GoogleAuthProvider, OAuthProvider, signInWithPopup, onAuthStateChanged, signOut as fbSignOut } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
+import { getAuth, GoogleAuthProvider, OAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, onAuthStateChanged, signOut as fbSignOut } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDcfrW2Q7Q61oqZFCo9D-CcLKpQYhiIkwM",
@@ -1162,8 +1162,22 @@ msProvider.setCustomParameters({ tenant: 'common' });
 let currentUser = null;
 
 // Auth
-document.getElementById('btn-google-login').onclick = () => signInWithPopup(auth, provider).catch(e => alert('Anmeldung fehlgeschlagen: ' + e.message));
-document.getElementById('btn-ms-login').onclick = () => signInWithPopup(auth, msProvider).catch(e => alert('Microsoft-Anmeldung fehlgeschlagen: ' + e.message));
+// Auth – Popup mit automatischem Redirect-Fallback (Edge Tracking Prevention)
+async function loginWith(providerObj) {
+  try {
+    await signInWithPopup(auth, providerObj);
+  } catch(e) {
+    if (e.code === 'auth/popup-blocked' || e.code === 'auth/popup-closed-by-user' || e.code === 'auth/cancelled-popup-request') {
+      try { await signInWithRedirect(auth, providerObj); } catch(e2) { alert('Anmeldung fehlgeschlagen: ' + e2.message); }
+    } else if (e.code !== 'auth/user-cancelled') {
+      alert('Anmeldung fehlgeschlagen: ' + e.message);
+    }
+  }
+}
+// Redirect-Ergebnis nach Seitenrückkehr verarbeiten
+getRedirectResult(auth).catch(() => {});
+document.getElementById('btn-google-login').onclick = () => loginWith(provider);
+document.getElementById('btn-ms-login').onclick = () => loginWith(msProvider);
 document.getElementById('btn-logout').onclick = () => fbSignOut(auth);
 window.fbSignOutPending = () => fbSignOut(auth);
 
@@ -3327,7 +3341,7 @@ const EXPORT_CONFIGS = {
   }
 };
 
-window.exportData = function(type) {
+window.exportData = async function(type) {
   const cfg = EXPORT_CONFIGS[type];
   const resultEl = document.getElementById(`export-result-${type}`);
   if(!cfg) return;
@@ -3337,6 +3351,7 @@ window.exportData = function(type) {
     return;
   }
   try {
+    await window._loadXLSX();
     const wb = XLSX.utils.book_new();
     const data = [cfg.cols, ...rows.map(cfg.map)];
     const ws = XLSX.utils.aoa_to_sheet(data);
@@ -3355,10 +3370,11 @@ window.exportData = function(type) {
   }
 };
 
-window.exportAll = function() {
+window.exportAll = async function() {
   const types = ['tickets','wartung','geraete','partner','notfall'];
   let totalRows = 0;
   try {
+    await window._loadXLSX();
     const wb = XLSX.utils.book_new();
     for(const type of types) {
       const cfg = EXPORT_CONFIGS[type];
@@ -3398,9 +3414,10 @@ const TEMPLATES = {
   }
 };
 
-window.downloadTemplate = function(type) {
+window.downloadTemplate = async function(type) {
   const t = TEMPLATES[type];
   if(!t) return;
+  await window._loadXLSX();
   const wb = XLSX.utils.book_new();
   const ws = XLSX.utils.aoa_to_sheet([t.cols, t.example]);
   // Style header row width
@@ -3415,6 +3432,7 @@ window.handleImport = async function(input, type) {
   const resultEl = document.getElementById(`import-result-${type}`);
   resultEl.innerHTML = '<div style="color:var(--text3);font-size:13px;">⏳ Wird importiert…</div>';
   try {
+    await window._loadXLSX();
     const data = await file.arrayBuffer();
     const wb = XLSX.read(data);
     const ws = wb.Sheets[wb.SheetNames[0]];
@@ -3746,5 +3764,23 @@ window.openTerminFromWartung = function(){
   document.getElementById('modal-termin').classList.remove('hidden');
 };
 </script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script></body>
+<script>
+// XLSX lazy loader – wird nur geladen wenn Import/Export tatsächlich genutzt wird
+window._xlsxLoaded = false;
+window._loadXLSX = function() {
+  return new Promise((resolve, reject) => {
+    if (window.XLSX) { resolve(); return; }
+    if (window._xlsxLoading) { 
+      const wait = setInterval(() => { if(window.XLSX){clearInterval(wait);resolve();} }, 50);
+      return;
+    }
+    window._xlsxLoading = true;
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+    s.onload = () => { window._xlsxLoading = false; resolve(); };
+    s.onerror = () => reject(new Error('XLSX konnte nicht geladen werden. Bitte Internetverbindung prüfen.'));
+    document.head.appendChild(s);
+  });
+};
+</script></body>
 </html>
