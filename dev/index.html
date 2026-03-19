@@ -1183,8 +1183,23 @@ async function loginWith(providerObj) {
 getRedirectResult(auth).catch(() => {});
 document.getElementById('btn-google-login').onclick = () => loginWith(provider);
 document.getElementById('btn-ms-login').onclick = () => loginWith(msProvider);
-document.getElementById('btn-logout').onclick = () => fbSignOut(auth);
-window.fbSignOutPending = () => fbSignOut(auth);
+// Unsubscribe-Funktionen aller Firestore-Listener zentral speichern
+window._unsubs = [];
+function detachAllListeners() {
+  window._unsubs.forEach(fn => { try { fn(); } catch(e) {} });
+  window._unsubs = [];
+}
+
+// Logout: zuerst Listener stoppen, dann signOut
+async function doSignOut() {
+  detachAllListeners();
+  if(window._connectionTimeout) clearTimeout(window._connectionTimeout);
+  await fbSignOut(auth);
+}
+
+document.getElementById('btn-logout').onclick = () => doSignOut();
+window.fbSignOutPending = () => doSignOut();
+window.fbSignOutMobile  = () => doSignOut();
 
 // ---- ACCESS CONTROL ----
 async function checkUserAccess(user) {
@@ -1270,7 +1285,7 @@ onAuthStateChanged(auth, async user => {
         const av = document.getElementById('user-avatar'); av.src = user.photoURL; av.style.display = '';
         const avm = document.getElementById('user-avatar-mobile'); if(avm){avm.src=user.photoURL;avm.style.display='';}
       }
-      window._fbSignOut = () => fbSignOut(auth);
+      window._fbSignOut = () => doSignOut();
       window._isAdmin = (access === 'admin');
       // Show admin UI elements
       if (access === 'admin') {
@@ -1303,7 +1318,7 @@ onAuthStateChanged(auth, async user => {
 
 // ---- ADMIN: Listen to access requests ----
 function startAdminListeners() {
-  onSnapshot(query(collection(db, 'accessRequests'), orderBy('createdAt', 'desc')), snap => {
+  window._unsubs.push(onSnapshot(query(collection(db, 'accessRequests'), orderBy('createdAt', 'desc')), snap => {
     const requests = snap.docs.map(d => ({id: d.id, ...d.data()}));
     const pending = requests.filter(r => r.status === 'pending');
 
@@ -1330,9 +1345,9 @@ function startAdminListeners() {
           <button class="btn btn-sm" style="background:var(--red-light);color:var(--red);border:1px solid #fca5a5;" onclick="rejectUser('${r.id}')">🚫 Ablehnen</button>
         </div>
       </div>`).join('') : '<div class="card-body"><div class="empty-state"><div class="empty-icon">✅</div><p>Keine offenen Anfragen</p></div></div>';
-  });
+  }));
 
-  onSnapshot(query(collection(db, 'approvedUsers'), orderBy('createdAt', 'desc')), snap => {
+  window._unsubs.push(onSnapshot(query(collection(db, 'approvedUsers'), orderBy('createdAt', 'desc')), snap => {
     const users = snap.docs.map(d => ({id: d.id, ...d.data()}));
     const el = document.getElementById('approved-users-list');
     el.innerHTML = users.length ? users.map(u => `
@@ -1355,9 +1370,9 @@ function startAdminListeners() {
           <button class="btn btn-sm btn-secondary" onclick="revokeUser('${u.id}','${u.email}')">Zugang entziehen</button>
         </div>
       </div>`).join('') : '<div class="card-body"><div class="empty-state"><div class="empty-icon">👥</div><p>Noch keine genehmigten Nutzer</p></div></div>';
-  });
+  }));
 
-  onSnapshot(query(collection(db, 'admins'), orderBy('createdAt', 'desc')), snap => {
+  window._unsubs.push(onSnapshot(query(collection(db, 'admins'), orderBy('createdAt', 'desc')), snap => {
     const admins = snap.docs.map(d => ({id: d.id, ...d.data()}));
     const el = document.getElementById('admins-list');
     const myKey = currentUser?.email?.replace(/[@.]/g,'_');
@@ -1370,7 +1385,7 @@ function startAdminListeners() {
         </div>
         ${a.id !== myKey ? `<button class="btn btn-sm" style="background:var(--red-light);color:var(--red);border:1px solid #fca5a5;" onclick="removeAdmin('${a.id}','${a.email||a.id}')">Admin entfernen</button>` : '<span style="font-size:12px;color:var(--text3);">Du</span>'}
       </div>`).join('') : '<div class="card-body"><div class="empty-state"><div class="empty-icon">🛡️</div><p>Keine Admins gefunden</p></div></div>';
-  });
+  }));
 }
 
 window.makeAdmin = async (emailKey, email, name) => {
@@ -1511,15 +1526,17 @@ function startListeners() {
     }
   }, 12000);
 
-  onSnapshot(col('tickets'), s => { window.state.tickets = s.docs.map(d=>({id:d.id,...d.data()})); renderAll(); checkLoaded(); }, ()=>checkLoaded());
-  onSnapshot(col('wartungen'), s => { window.state.wartungen = s.docs.map(d=>({id:d.id,...d.data()})); renderAll(); if(!document.getElementById('page-kalender').classList.contains('page-hidden')){ if(state.calView==='jahr') renderJahreskalender(); else renderCalendar(); } checkLoaded(); }, ()=>checkLoaded());
-  onSnapshot(col('geraete'), s => { window.state.geraete = s.docs.map(d=>({id:d.id,...d.data()})); renderAll(); checkLoaded(); }, ()=>checkLoaded());
-  onSnapshot(col('partner'), s => { window.state.partner = s.docs.map(d=>({id:d.id,...d.data()})); renderAll(); checkLoaded(); }, ()=>checkLoaded());
-  onSnapshot(col('notfaelle'), s => { window.state.notfaelle = s.docs.map(d=>({id:d.id,...d.data()})); renderAll(); checkLoaded(); }, ()=>checkLoaded());
-  onSnapshot(col('dokumente'), s => { window.state.dokumente = s.docs.map(d=>({id:d.id,...d.data()})); renderAll(); checkLoaded(); }, ()=>checkLoaded());
-  onSnapshot(col('bereiche'), s => { window.state.bereiche = s.docs.map(d=>({id:d.id,...d.data()})); renderAll(); checkLoaded(); }, ()=>checkLoaded());
-  onSnapshot(col('log'), s => { window.state.log = s.docs.map(d=>({id:d.id,...d.data()})); renderAll(); checkLoaded(); }, ()=>checkLoaded());
-  onSnapshot(col('termine'), s => { window.state.termine = s.docs.map(d=>({id:d.id,...d.data()})); renderAll(); checkLoaded(); }, ()=>checkLoaded());
+  window._unsubs.push(
+    onSnapshot(col('tickets'),   s => { window.state.tickets   = s.docs.map(d=>({id:d.id,...d.data()})); renderAll(); checkLoaded(); }, ()=>checkLoaded()),
+    onSnapshot(col('wartungen'), s => { window.state.wartungen  = s.docs.map(d=>({id:d.id,...d.data()})); renderAll(); if(!document.getElementById('page-kalender').classList.contains('page-hidden')){ if(state.calView==='jahr') renderJahreskalender(); else renderCalendar(); } checkLoaded(); }, ()=>checkLoaded()),
+    onSnapshot(col('geraete'),   s => { window.state.geraete   = s.docs.map(d=>({id:d.id,...d.data()})); renderAll(); checkLoaded(); }, ()=>checkLoaded()),
+    onSnapshot(col('partner'),   s => { window.state.partner   = s.docs.map(d=>({id:d.id,...d.data()})); renderAll(); checkLoaded(); }, ()=>checkLoaded()),
+    onSnapshot(col('notfaelle'), s => { window.state.notfaelle = s.docs.map(d=>({id:d.id,...d.data()})); renderAll(); checkLoaded(); }, ()=>checkLoaded()),
+    onSnapshot(col('dokumente'), s => { window.state.dokumente = s.docs.map(d=>({id:d.id,...d.data()})); renderAll(); checkLoaded(); }, ()=>checkLoaded()),
+    onSnapshot(col('bereiche'),  s => { window.state.bereiche  = s.docs.map(d=>({id:d.id,...d.data()})); renderAll(); checkLoaded(); }, ()=>checkLoaded()),
+    onSnapshot(col('log'),       s => { window.state.log       = s.docs.map(d=>({id:d.id,...d.data()})); renderAll(); checkLoaded(); }, ()=>checkLoaded()),
+    onSnapshot(col('termine'),   s => { window.state.termine   = s.docs.map(d=>({id:d.id,...d.data()})); renderAll(); checkLoaded(); }, ()=>checkLoaded())
+  );
 
   document.getElementById('sync-dot').style.background = 'var(--green)';
   document.getElementById('sync-label').textContent = 'Live-Sync aktiv';
@@ -2112,7 +2129,7 @@ const fabActions = {
 window._currentPage = 'dashboard';
 window.handleFab = () => { const fn = fabActions[window._currentPage]; if(fn) fn(); };
 
-window.fbSignOutMobile = () => { if(window._fbSignOut) window._fbSignOut(); };
+// fbSignOutMobile wird im Modul-Script definiert
 
 function showPage(name, navBtn, isBack) {
   window._currentPage = name;
