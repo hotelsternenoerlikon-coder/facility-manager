@@ -2302,7 +2302,7 @@ function renderTickets() {
   let data=state.tickets;
   if(state.ticketFilter==='aktiv') data=data.filter(t=>t.status!=='erledigt');
   else if(state.ticketFilter!=='alle') data=data.filter(t=>t.status===state.ticketFilter);
-  if(state.ticketSearch){const q=state.ticketSearch.toLowerCase();data=data.filter(t=>(t.betreff||'').toLowerCase().includes(q)||(t.bereichName||'').toLowerCase().includes(q)||(t.ersteller||'').toLowerCase().includes(q)||(t.gemeldet||'').toLowerCase().includes(q));}
+  if(state.ticketSearch){const q=state.ticketSearch.toLowerCase();data=data.filter(t=>(t.betreff||'').toLowerCase().includes(q)||(t.bereichName||'').toLowerCase().includes(q)||(t.ersteller||'').toLowerCase().includes(q)||(t.gemeldet||'').toLowerCase().includes(q)||(t.partnerName||'').toLowerCase().includes(q));}
   const ts=state.ticketSort;
   if(ts&&ts.col){const col=ts.col,dir=ts.dir;const pOrd={kritisch:0,hoch:1,mittel:2,niedrig:3};const sOrd={offen:0,in_bearbeitung:1,erledigt:2};data=[...data].sort((a,b)=>{let av=a[col]||'',bv=b[col]||'';if(col==='prioritaet'){av=pOrd[a.prioritaet]??9;bv=pOrd[b.prioritaet]??9;return(av-bv)*dir;}if(col==='status'){av=sOrd[a.status]??9;bv=sOrd[b.status]??9;return(av-bv)*dir;}return av.toString().localeCompare(bv.toString())*dir;});}
   // update sort indicators
@@ -2644,7 +2644,7 @@ function renderTicketsMobile() {
   let data = state.tickets;
   if(state.ticketFilter==='aktiv') data=data.filter(t=>t.status!=='erledigt');
   else if(state.ticketFilter!=='alle') data=data.filter(t=>t.status===state.ticketFilter);
-  if(state.ticketSearch){const q=state.ticketSearch.toLowerCase();data=data.filter(t=>(t.betreff||'').toLowerCase().includes(q)||(t.bereichName||'').toLowerCase().includes(q)||(t.ersteller||'').toLowerCase().includes(q)||(t.gemeldet||'').toLowerCase().includes(q));}
+  if(state.ticketSearch){const q=state.ticketSearch.toLowerCase();data=data.filter(t=>(t.betreff||'').toLowerCase().includes(q)||(t.bereichName||'').toLowerCase().includes(q)||(t.ersteller||'').toLowerCase().includes(q)||(t.gemeldet||'').toLowerCase().includes(q)||(t.partnerName||'').toLowerCase().includes(q));}
   if(!data.length){el.innerHTML=`<div class="empty-state"><div class="empty-icon">🎫</div><p>Keine Tickets gefunden</p></div>`;return;}
   el.innerHTML=data.map(t=>{
     const hasZimmer = t.mehrereZimmer && t.zimmerListe && t.zimmerListe.length > 0;
@@ -2789,7 +2789,8 @@ function printTickets() {
       (t.betreff||'').toLowerCase().includes(q) ||
       (t.bereichName||'').toLowerCase().includes(q) ||
       (t.ersteller||'').toLowerCase().includes(q) ||
-      (t.gemeldet||'').toLowerCase().includes(q)
+      (t.gemeldet||'').toLowerCase().includes(q) ||
+      (t.partnerName||'').toLowerCase().includes(q)
     );
   }
   const ts = state.ticketSort;
