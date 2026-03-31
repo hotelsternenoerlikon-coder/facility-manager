@@ -81,6 +81,9 @@
   .btn-sm { padding: 5px 12px; font-size: 12.5px; }
   .btn-edit { background: var(--accent-light); border: 1px solid #bfdbfe; color: var(--accent); }
   .btn-edit:hover { background: #bfdbfe; }
+  .icon-btn { background: none; border: 1px solid var(--border2); border-radius: 6px; padding: 4px 8px; font-size: 14px; cursor: pointer; color: var(--text2); transition: all 0.15s; }
+  .icon-btn:hover { background: var(--surface2); border-color: var(--accent); color: var(--accent); }
+  .icon-btn-danger:hover { background: var(--red-light); border-color: var(--red); color: var(--red); }
   .mobile-mehr-item {
     display: flex; align-items: center; gap: 14px; width: 100%; padding: 16px;
     background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
@@ -519,7 +522,7 @@
       </div>
       <div class="card">
         <div class="card-header"><span class="card-title">Tickets & Störungsmeldungen</span><div class="search-wrap"><span class="search-icon">🔍</span><input class="search-input" placeholder="Suchen..." oninput="state.ticketSearch=this.value;renderTickets();renderTicketsMobile()"></div></div>
-        <div class="table-wrap"><table><thead><tr id="tickets-thead"><th onclick="sortTable('ticket','betreff')" style="cursor:pointer;user-select:none;">Betreff <span id="sort-ticket-betreff"></span></th><th onclick="sortTable('ticket','geraetName')" style="cursor:pointer;user-select:none;">Gerät <span id="sort-ticket-geraetName"></span></th><th onclick="sortTable('ticket','bereichName')" style="cursor:pointer;user-select:none;">Bereich <span id="sort-ticket-bereichName"></span></th><th onclick="sortTable('ticket','prioritaet')" style="cursor:pointer;user-select:none;">Priorität <span id="sort-ticket-prioritaet"></span></th><th onclick="sortTable('ticket','status')" style="cursor:pointer;user-select:none;">Status <span id="sort-ticket-status"></span></th><th onclick="sortTable('ticket','ersteller')" style="cursor:pointer;user-select:none;">Erstellt von <span id="sort-ticket-ersteller"></span></th><th onclick="sortTable('ticket','partnerName')" style="cursor:pointer;user-select:none;">Zugewiesen <span id="sort-ticket-partnerName"></span></th><th>Termin</th><th></th></tr></thead><tbody id="tickets-table"></tbody></table></div>
+        <div class="table-wrap"><table><thead><tr id="tickets-thead"><th onclick="sortTable('ticket','betreff')" style="cursor:pointer;user-select:none;">Betreff <span id="sort-ticket-betreff"></span></th><th onclick="sortTable('ticket','geraetName')" style="cursor:pointer;user-select:none;">Gerät <span id="sort-ticket-geraetName"></span></th><th onclick="sortTable('ticket','bereichName')" style="cursor:pointer;user-select:none;">Bereich <span id="sort-ticket-bereichName"></span></th><th onclick="sortTable('ticket','prioritaet')" style="cursor:pointer;user-select:none;">Priorität <span id="sort-ticket-prioritaet"></span></th><th onclick="sortTable('ticket','status')" style="cursor:pointer;user-select:none;">Status <span id="sort-ticket-status"></span></th><th onclick="sortTable('ticket','ersteller')" style="cursor:pointer;user-select:none;">Erstellt von <span id="sort-ticket-ersteller"></span></th><th onclick="sortTable('ticket','partnerName')" style="cursor:pointer;user-select:none;">Zugewiesen <span id="sort-ticket-partnerName"></span></th><th onclick="sortTable('ticket','createdAt')" style="cursor:pointer;user-select:none;">Erstellt am <span id="sort-ticket-createdAt"></span></th><th>Termin</th><th></th></tr></thead><tbody id="tickets-table"></tbody></table></div>
         <div class="mobile-card-list" id="tickets-mobile"></div>
       </div>
     </div>
@@ -1138,7 +1141,7 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
 import { getFirestore, collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, getDoc, setDoc, serverTimestamp, query, orderBy } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
-import { getAuth, GoogleAuthProvider, OAuthProvider, signInWithPopup, onAuthStateChanged, signOut as fbSignOut } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
+import { getAuth, GoogleAuthProvider, OAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, onAuthStateChanged, signOut as fbSignOut, browserSessionPersistence, setPersistence } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDcfrW2Q7Q61oqZFCo9D-CcLKpQYhiIkwM",
@@ -1152,6 +1155,11 @@ const firebaseConfig = {
 const fbApp = initializeApp(firebaseConfig);
 const db = getFirestore(fbApp);
 const auth = getAuth(fbApp);
+
+// Verwende Session-Persistence (SessionStorage statt IndexedDB) →
+// unabhängig von Edge Tracking Prevention
+setPersistence(auth, browserSessionPersistence).catch(() => {});
+
 const provider = new GoogleAuthProvider();
 const msProvider = new OAuthProvider('microsoft.com');
 msProvider.setCustomParameters({ tenant: 'common' });
@@ -1159,10 +1167,39 @@ msProvider.setCustomParameters({ tenant: 'common' });
 let currentUser = null;
 
 // Auth
-document.getElementById('btn-google-login').onclick = () => signInWithPopup(auth, provider).catch(e => alert('Anmeldung fehlgeschlagen: ' + e.message));
-document.getElementById('btn-ms-login').onclick = () => signInWithPopup(auth, msProvider).catch(e => alert('Microsoft-Anmeldung fehlgeschlagen: ' + e.message));
-document.getElementById('btn-logout').onclick = () => fbSignOut(auth);
-window.fbSignOutPending = () => fbSignOut(auth);
+// Auth – Popup mit automatischem Redirect-Fallback (Edge Tracking Prevention)
+async function loginWith(providerObj) {
+  try {
+    await signInWithPopup(auth, providerObj);
+  } catch(e) {
+    if (e.code === 'auth/popup-blocked' || e.code === 'auth/popup-closed-by-user' || e.code === 'auth/cancelled-popup-request') {
+      try { await signInWithRedirect(auth, providerObj); } catch(e2) { alert('Anmeldung fehlgeschlagen: ' + e2.message); }
+    } else if (e.code !== 'auth/user-cancelled') {
+      alert('Anmeldung fehlgeschlagen: ' + e.message);
+    }
+  }
+}
+// Redirect-Ergebnis nach Seitenrückkehr verarbeiten
+getRedirectResult(auth).catch(() => {});
+document.getElementById('btn-google-login').onclick = () => loginWith(provider);
+document.getElementById('btn-ms-login').onclick = () => loginWith(msProvider);
+// Unsubscribe-Funktionen aller Firestore-Listener zentral speichern
+window._unsubs = [];
+function detachAllListeners() {
+  window._unsubs.forEach(fn => { try { fn(); } catch(e) {} });
+  window._unsubs = [];
+}
+
+// Logout: zuerst Listener stoppen, dann signOut
+async function doSignOut() {
+  detachAllListeners();
+  if(window._connectionTimeout) clearTimeout(window._connectionTimeout);
+  await fbSignOut(auth);
+}
+
+document.getElementById('btn-logout').onclick = () => doSignOut();
+window.fbSignOutPending = () => doSignOut();
+window.fbSignOutMobile  = () => doSignOut();
 
 // ---- ACCESS CONTROL ----
 async function checkUserAccess(user) {
@@ -1229,13 +1266,14 @@ async function sendAccessRequestEmail(user) {
 }
 
 onAuthStateChanged(auth, async user => {
-  // Hide all screens first
-  document.getElementById('login-screen').classList.add('hidden');
+  // Screenwechsel vorbereiten
   document.getElementById('pending-screen').classList.remove('visible');
   document.getElementById('rejected-screen').classList.remove('visible');
 
   if (user) {
     currentUser = user;
+    window._currentUser = user;
+    document.getElementById('login-screen').classList.add('hidden');
     document.getElementById('loading-overlay').classList.remove('hidden');
 
     const access = await checkUserAccess(user);
@@ -1247,7 +1285,7 @@ onAuthStateChanged(auth, async user => {
         const av = document.getElementById('user-avatar'); av.src = user.photoURL; av.style.display = '';
         const avm = document.getElementById('user-avatar-mobile'); if(avm){avm.src=user.photoURL;avm.style.display='';}
       }
-      window._fbSignOut = () => fbSignOut(auth);
+      window._fbSignOut = () => doSignOut();
       window._isAdmin = (access === 'admin');
       // Show admin UI elements
       if (access === 'admin') {
@@ -1271,14 +1309,16 @@ onAuthStateChanged(auth, async user => {
     }
   } else {
     currentUser = null;
-    document.getElementById('login-screen').classList.remove('hidden');
+    window._currentUser = null;
     document.getElementById('loading-overlay').classList.add('hidden');
+    // Login-Screen anzeigen (nicht nur verstecken)
+    document.getElementById('login-screen').classList.remove('hidden');
   }
 });
 
 // ---- ADMIN: Listen to access requests ----
 function startAdminListeners() {
-  onSnapshot(query(collection(db, 'accessRequests'), orderBy('createdAt', 'desc')), snap => {
+  window._unsubs.push(onSnapshot(query(collection(db, 'accessRequests'), orderBy('createdAt', 'desc')), snap => {
     const requests = snap.docs.map(d => ({id: d.id, ...d.data()}));
     const pending = requests.filter(r => r.status === 'pending');
 
@@ -1305,9 +1345,9 @@ function startAdminListeners() {
           <button class="btn btn-sm" style="background:var(--red-light);color:var(--red);border:1px solid #fca5a5;" onclick="rejectUser('${r.id}')">🚫 Ablehnen</button>
         </div>
       </div>`).join('') : '<div class="card-body"><div class="empty-state"><div class="empty-icon">✅</div><p>Keine offenen Anfragen</p></div></div>';
-  });
+  }));
 
-  onSnapshot(query(collection(db, 'approvedUsers'), orderBy('createdAt', 'desc')), snap => {
+  window._unsubs.push(onSnapshot(query(collection(db, 'approvedUsers'), orderBy('createdAt', 'desc')), snap => {
     const users = snap.docs.map(d => ({id: d.id, ...d.data()}));
     const el = document.getElementById('approved-users-list');
     el.innerHTML = users.length ? users.map(u => `
@@ -1330,9 +1370,9 @@ function startAdminListeners() {
           <button class="btn btn-sm btn-secondary" onclick="revokeUser('${u.id}','${u.email}')">Zugang entziehen</button>
         </div>
       </div>`).join('') : '<div class="card-body"><div class="empty-state"><div class="empty-icon">👥</div><p>Noch keine genehmigten Nutzer</p></div></div>';
-  });
+  }));
 
-  onSnapshot(query(collection(db, 'admins'), orderBy('createdAt', 'desc')), snap => {
+  window._unsubs.push(onSnapshot(query(collection(db, 'admins'), orderBy('createdAt', 'desc')), snap => {
     const admins = snap.docs.map(d => ({id: d.id, ...d.data()}));
     const el = document.getElementById('admins-list');
     const myKey = currentUser?.email?.replace(/[@.]/g,'_');
@@ -1345,7 +1385,7 @@ function startAdminListeners() {
         </div>
         ${a.id !== myKey ? `<button class="btn btn-sm" style="background:var(--red-light);color:var(--red);border:1px solid #fca5a5;" onclick="removeAdmin('${a.id}','${a.email||a.id}')">Admin entfernen</button>` : '<span style="font-size:12px;color:var(--text3);">Du</span>'}
       </div>`).join('') : '<div class="card-body"><div class="empty-state"><div class="empty-icon">🛡️</div><p>Keine Admins gefunden</p></div></div>';
-  });
+  }));
 }
 
 window.makeAdmin = async (emailKey, email, name) => {
@@ -1462,7 +1502,7 @@ async function generateTicketsFromDueWartungen() {
   }
 }
 
-function checkLoaded() { loadedCount++; if (loadedCount >= 9) { document.getElementById('loading-overlay').classList.add('hidden'); if(!_wartungTicketGenDone){ _wartungTicketGenDone=true; generateTicketsFromDueWartungen(); } } }
+function checkLoaded() { loadedCount++; if (loadedCount >= 9) { if(window._connectionTimeout) clearTimeout(window._connectionTimeout); document.getElementById('loading-overlay').classList.add('hidden'); if(!_wartungTicketGenDone){ _wartungTicketGenDone=true; generateTicketsFromDueWartungen(); } } }
 
 // Ensure state exists before listeners render
 (function ensureState(){
@@ -1475,15 +1515,28 @@ function startListeners() {
   loadedCount = 0;
   document.getElementById('loading-overlay').classList.remove('hidden');
 
-  onSnapshot(col('tickets'), s => { window.state.tickets = s.docs.map(d=>({id:d.id,...d.data()})); renderAll(); checkLoaded(); }, ()=>checkLoaded());
-  onSnapshot(col('wartungen'), s => { window.state.wartungen = s.docs.map(d=>({id:d.id,...d.data()})); renderAll(); if(!document.getElementById('page-kalender').classList.contains('page-hidden')){ if(state.calView==='jahr') renderJahreskalender(); else renderCalendar(); } checkLoaded(); }, ()=>checkLoaded());
-  onSnapshot(col('geraete'), s => { window.state.geraete = s.docs.map(d=>({id:d.id,...d.data()})); renderAll(); checkLoaded(); }, ()=>checkLoaded());
-  onSnapshot(col('partner'), s => { window.state.partner = s.docs.map(d=>({id:d.id,...d.data()})); renderAll(); checkLoaded(); }, ()=>checkLoaded());
-  onSnapshot(col('notfaelle'), s => { window.state.notfaelle = s.docs.map(d=>({id:d.id,...d.data()})); renderAll(); checkLoaded(); }, ()=>checkLoaded());
-  onSnapshot(col('dokumente'), s => { window.state.dokumente = s.docs.map(d=>({id:d.id,...d.data()})); renderAll(); checkLoaded(); }, ()=>checkLoaded());
-  onSnapshot(col('bereiche'), s => { window.state.bereiche = s.docs.map(d=>({id:d.id,...d.data()})); renderAll(); checkLoaded(); }, ()=>checkLoaded());
-  onSnapshot(col('log'), s => { window.state.log = s.docs.map(d=>({id:d.id,...d.data()})); renderAll(); checkLoaded(); }, ()=>checkLoaded());
-  onSnapshot(col('termine'), s => { window.state.termine = s.docs.map(d=>({id:d.id,...d.data()})); renderAll(); checkLoaded(); }, ()=>checkLoaded());
+  // Timeout: falls Firestore nach 12s nicht antwortet → Hinweis anzeigen
+  window._connectionTimeout = setTimeout(() => {
+    if (loadedCount < 9) {
+      document.getElementById('loading-overlay').classList.add('hidden');
+      document.getElementById('sync-dot').style.background = 'var(--red)';
+      document.getElementById('sync-label').textContent = 'Verbindungsfehler';
+      const sdm = document.getElementById('sync-dot-mobile'); if(sdm) sdm.style.background='var(--red)';
+      alert('⚠️ Firestore konnte nicht erreicht werden.\n\nMögliche Ursachen:\n• Edge Tracking Prevention blockiert Firebase\n• Keine Internetverbindung\n\nLösung: In Edge unter "Einstellungen → Datenschutz" die Tracking Prevention auf "Einfach" stellen oder die App-URL als Ausnahme hinzufügen.');
+    }
+  }, 12000);
+
+  window._unsubs.push(
+    onSnapshot(col('tickets'),   s => { window.state.tickets   = s.docs.map(d=>({id:d.id,...d.data()})); renderAll(); checkLoaded(); }, ()=>checkLoaded()),
+    onSnapshot(col('wartungen'), s => { window.state.wartungen  = s.docs.map(d=>({id:d.id,...d.data()})); renderAll(); if(!document.getElementById('page-kalender').classList.contains('page-hidden')){ if(state.calView==='jahr') renderJahreskalender(); else renderCalendar(); } checkLoaded(); }, ()=>checkLoaded()),
+    onSnapshot(col('geraete'),   s => { window.state.geraete   = s.docs.map(d=>({id:d.id,...d.data()})); renderAll(); checkLoaded(); }, ()=>checkLoaded()),
+    onSnapshot(col('partner'),   s => { window.state.partner   = s.docs.map(d=>({id:d.id,...d.data()})); renderAll(); checkLoaded(); }, ()=>checkLoaded()),
+    onSnapshot(col('notfaelle'), s => { window.state.notfaelle = s.docs.map(d=>({id:d.id,...d.data()})); renderAll(); checkLoaded(); }, ()=>checkLoaded()),
+    onSnapshot(col('dokumente'), s => { window.state.dokumente = s.docs.map(d=>({id:d.id,...d.data()})); renderAll(); checkLoaded(); }, ()=>checkLoaded()),
+    onSnapshot(col('bereiche'),  s => { window.state.bereiche  = s.docs.map(d=>({id:d.id,...d.data()})); renderAll(); checkLoaded(); }, ()=>checkLoaded()),
+    onSnapshot(col('log'),       s => { window.state.log       = s.docs.map(d=>({id:d.id,...d.data()})); renderAll(); checkLoaded(); }, ()=>checkLoaded()),
+    onSnapshot(col('termine'),   s => { window.state.termine   = s.docs.map(d=>({id:d.id,...d.data()})); renderAll(); checkLoaded(); }, ()=>checkLoaded())
+  );
 
   document.getElementById('sync-dot').style.background = 'var(--green)';
   document.getElementById('sync-label').textContent = 'Live-Sync aktiv';
@@ -1501,6 +1554,10 @@ window.toggleMehrereZimmer = function(active) {
   panel.style.display = active ? 'block' : 'none';
   bereichGroup.style.display = active ? 'none' : 'block';
   if (active) renderZimmerPanel();
+  else {
+    const et = document.getElementById('t-zimmer-etagen');
+    if (et) et.innerHTML = '';
+  }
 };
 
 window.renderZimmerPanel = function() {
@@ -1563,10 +1620,17 @@ window.updateEtageCheckbox = function(etage) {
 
 function getSelectedZimmer() {
   const cbs = document.querySelectorAll('#t-zimmer-etagen .zimmer-cb:checked');
-  return Array.from(cbs).map(cb => ({ bereichId: cb.dataset.id, name: cb.dataset.name, erledigt: false }));
+  // When editing, preserve existing erledigt flags for rooms that were already in the ticket
+  const existingZimmer = (window._editId && window._editType === 'tickets')
+    ? (window.state.tickets.find(t => t.id === window._editId)?.zimmerListe || [])
+    : [];
+  return Array.from(cbs).map(cb => {
+    const existing = existingZimmer.find(z => z.bereichId === cb.dataset.id);
+    return { bereichId: cb.dataset.id, name: cb.dataset.name, erledigt: existing ? !!existing.erledigt : false };
+  });
 }
 
-function resetZimmerPanel() {
+window.resetZimmerPanel = function resetZimmerPanel() {
   const cb = document.getElementById('t-mehrere-zimmer');
   if (cb) cb.checked = false;
   const panel = document.getElementById('t-zimmer-panel');
@@ -1778,6 +1842,17 @@ window.toggleZimmerErledigt = async (ticketId, bereichId, erledigt) => {
   const alleErledigt = updated.every(z => z.erledigt);
   const updates = { zimmerListe: updated };
   if (alleErledigt) updates.status = 'erledigt';
+  // Remember which detail panels are open before the re-render
+  window._openZimmerDetails = new Set(
+    [...document.querySelectorAll('[id^="zimmer-detail-"]')]
+      .filter(el => el.style.display !== 'none')
+      .map(el => el.id.replace('zimmer-detail-', ''))
+  );
+  window._openZimmerDetailsMobile = new Set(
+    [...document.querySelectorAll('[id^="zimmer-mobile-"]')]
+      .filter(el => el.style.display !== 'none')
+      .map(el => el.id.replace('zimmer-mobile-', ''))
+  );
   await updateDoc(doc(db,'tickets',ticketId), updates);
   if (alleErledigt) {
     await addLog(`Ticket "${ticket.betreff}" → erledigt (alle Zimmer abgehakt, ${currentUser?.displayName||''})`, '#16a34a');
@@ -1920,6 +1995,7 @@ window.editItem = (type, id) => {
         });
       }, 50);
     } else {
+      resetZimmerPanel();
       document.getElementById('t-bereich').value=item.bereichId||'';
     }
     document.getElementById('modal-ticket').querySelector('.modal-title').textContent='Ticket bearbeiten';
@@ -2053,10 +2129,11 @@ const fabActions = {
 window._currentPage = 'dashboard';
 window.handleFab = () => { const fn = fabActions[window._currentPage]; if(fn) fn(); };
 
-window.fbSignOutMobile = () => { if(window._fbSignOut) window._fbSignOut(); };
+// fbSignOutMobile wird im Modul-Script definiert
 
 function showPage(name, navBtn, isBack) {
-  window._currentPage = name;
+  // Admin-Seite nur für Admins zugänglich
+  if (name === 'benutzer' && !window._isAdmin) return;
 
   // Track history
   if(!isBack) {
@@ -2099,7 +2176,7 @@ function showPage(name, navBtn, isBack) {
   if(name==='aktivitaet') renderAktivitaet();
 }
 
-function openModal(id) { populateSelects(); document.getElementById(id).classList.remove('hidden'); }
+function openModal(id) { if(id==='modal-ticket') resetZimmerPanel(); populateSelects(); document.getElementById(id).classList.remove('hidden'); }
 function closeModal(id) {
   document.getElementById(id).classList.add('hidden');
   document.querySelectorAll(`#${id} input,#${id} textarea`).forEach(e=>{ if(e.type==='checkbox') e.checked=false; else e.value=''; });
@@ -2268,18 +2345,18 @@ function renderDashboard() {
   const dg=document.getElementById('dash-geraete');
   dg.innerHTML=state.geraete.length?`<div style="display:flex;flex-direction:column;gap:8px;">${state.geraete.slice(0,6).map(g=>`<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--border);"><span>${kIcons[g.kategorie]||'🔧'}</span><span style="flex:1;font-size:13px;font-weight:500;">${_optEsc(g.name)}</span>${(()=>{const nw=getNextWartungForGeraet(g.id);return nw?`<span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text3);">${fDate(nw)}</span>`:''})()}<span class="status-dot dot-${g.status==='aktiv'?'green':g.status==='stoerung'?'red':'yellow'}"></span></div>`).join('')}</div>`:'<div class="empty-state"><div class="empty-icon">⚙️</div><p>Noch keine Geräte erfasst</p></div>';
   const da=document.getElementById('dash-aktivitaet');
-  da.innerHTML=state.log.length?state.log.slice(0,8).map(l=>`<div class="activity-item"><div class="activity-dot" style="background:${l.color}"></div><div><div class="activity-text">${_optEsc(l.text)}</div><div class="activity-time">${fTs(l.createdAt)}${l.user?' · '+_optEsc(l.user):''}</div></div></div>`).join(''):'<div class="empty-state"><div class="empty-icon">📋</div><p>Noch keine Aktivitäten</p></div>';
+  da.innerHTML=state.log.length?state.log.slice(0,8).map(l=>`<div class="activity-item"><div class="activity-dot" style="background:${safeColor(l.color)}"></div><div><div class="activity-text">${_optEsc(l.text)}</div><div class="activity-time">${fTs(l.createdAt)}${l.user?' · '+_optEsc(l.user):''}</div></div></div>`).join(''):'<div class="empty-state"><div class="empty-icon">📋</div><p>Noch keine Aktivitäten</p></div>';
 }
 
 function renderTickets() {
   let data=state.tickets;
   if(state.ticketFilter==='aktiv') data=data.filter(t=>t.status!=='erledigt');
   else if(state.ticketFilter!=='alle') data=data.filter(t=>t.status===state.ticketFilter);
-  if(state.ticketSearch){const q=state.ticketSearch.toLowerCase();data=data.filter(t=>(t.betreff||'').toLowerCase().includes(q)||(t.bereichName||'').toLowerCase().includes(q)||(t.ersteller||'').toLowerCase().includes(q)||(t.gemeldet||'').toLowerCase().includes(q));}
+  if(state.ticketSearch){const q=state.ticketSearch.toLowerCase();data=data.filter(t=>(t.betreff||'').toLowerCase().includes(q)||(t.bereichName||'').toLowerCase().includes(q)||(t.ersteller||'').toLowerCase().includes(q)||(t.gemeldet||'').toLowerCase().includes(q)||(t.partnerName||'').toLowerCase().includes(q));}
   const ts=state.ticketSort;
-  if(ts&&ts.col){const col=ts.col,dir=ts.dir;const pOrd={kritisch:0,hoch:1,mittel:2,niedrig:3};const sOrd={offen:0,in_bearbeitung:1,erledigt:2};data=[...data].sort((a,b)=>{let av=a[col]||'',bv=b[col]||'';if(col==='prioritaet'){av=pOrd[a.prioritaet]??9;bv=pOrd[b.prioritaet]??9;return(av-bv)*dir;}if(col==='status'){av=sOrd[a.status]??9;bv=sOrd[b.status]??9;return(av-bv)*dir;}return av.toString().localeCompare(bv.toString())*dir;});}
+  if(ts&&ts.col){const col=ts.col,dir=ts.dir;const pOrd={kritisch:0,hoch:1,mittel:2,niedrig:3};const sOrd={offen:0,in_bearbeitung:1,erledigt:2};data=[...data].sort((a,b)=>{let av=a[col]||'',bv=b[col]||'';if(col==='prioritaet'){av=pOrd[a.prioritaet]??9;bv=pOrd[b.prioritaet]??9;return(av-bv)*dir;}if(col==='status'){av=sOrd[a.status]??9;bv=sOrd[b.status]??9;return(av-bv)*dir;}if(col==='createdAt'){const ad=_tsToDate(a.createdAt),bd=_tsToDate(b.createdAt);return((ad?.getTime()||0)-(bd?.getTime()||0))*dir;}return av.toString().localeCompare(bv.toString())*dir;});}
   // update sort indicators
-  ['betreff','geraetName','bereichName','prioritaet','status','ersteller','partnerName'].forEach(c=>{const el=document.getElementById('sort-ticket-'+c);if(el)el.textContent=ts&&ts.col===c?(ts.dir===1?'▲':'▼'):'';});
+  ['betreff','geraetName','bereichName','prioritaet','status','ersteller','partnerName','createdAt'].forEach(c=>{const el=document.getElementById('sort-ticket-'+c);if(el)el.textContent=ts&&ts.col===c?(ts.dir===1?'▲':'▼'):'';});
   const tb=document.getElementById('tickets-table');
   tb.innerHTML=data.length?data.map(t=>{
     const hasZimmer = t.mehrereZimmer && t.zimmerListe && t.zimmerListe.length > 0;
@@ -2294,11 +2371,18 @@ function renderTickets() {
       const d=te.datum?new Date(te.datum+'T00:00:00'):null;
       const ds=d?d.toLocaleDateString('de-CH',{day:'2-digit',month:'2-digit',year:'numeric'}):'–';
       const isPast=d&&d<today0; const isToday=d&&d.getTime()===today0.getTime();
-      const col=isToday?'var(--blue)':isPast?'var(--red)':'var(--green)';
+      const col=isToday?'var(--accent)':isPast?'var(--red)':'var(--green)';
       return `<span style="display:inline-flex;align-items:center;gap:3px;"><span onclick="showTerminDetail('${te.id}')" style="cursor:pointer;color:${col};font-size:12px;font-family:'DM Mono',monospace;white-space:nowrap;" title="${_optEsc(te.titel||'')}">🗓️ ${ds}</span><span onclick="deleteTermin('${te.id}')" style="cursor:pointer;color:var(--text3);font-size:11px;line-height:1;padding:1px 3px;border-radius:3px;" title="Termin löschen" onmouseover="this.style.color='var(--red)'" onmouseout="this.style.color='var(--text3)'">✕</span></span>`;
     }).join('')}<button onclick="openTerminQuick('ticket','${t.id}','${(t.betreff||'').replace(/'/g,'\\x27')}')" class="btn btn-secondary btn-sm" style="font-size:11px;padding:2px 7px;margin-top:${linkedTermin.length?'3':'0'}px;">+ Termin</button></div>`;
-    return `<tr><td><span style="font-weight:500;">${t.betreff}</span>${t.autoGenerated?` <span class="badge badge-violet">🤖 Automatisch aus Wartung</span>`:''}${hasZimmer?` <span class="badge badge-blue">🏨 Multi-Zimmer</span>`:''}${t.beschreibung?`<div style="font-size:12px;color:var(--text3);">${t.beschreibung.substring(0,60)}${t.beschreibung.length>60?'...':''}</div>`:''}</td><td>${t.geraetName||'–'}</td><td>${hasZimmer?zimmerProgress:(t.bereichName?`<span class="badge badge-blue">${t.bereichName}</span>`:'–')}</td><td><span class="badge ${pBadge[t.prioritaet]}">${pLabel[t.prioritaet]}</span></td><td><select onchange="updateTicketStatus('${t.id}',this.value)" style="border:1px solid var(--border2);border-radius:5px;padding:3px 8px;font-size:12px;background:var(--surface);"><option value="offen" ${t.status==='offen'?'selected':''}>Offen</option><option value="in_bearbeitung" ${t.status==='in_bearbeitung'?'selected':''}>In Bearbeitung</option><option value="erledigt" ${t.status==='erledigt'?'selected':''}>Erledigt</option></select></td><td style="font-size:12px;color:var(--text3);">${t.ersteller||t.gemeldet||'–'}</td><td>${t.partnerName||'–'}</td><td>${terminCell}</td><td style="white-space:nowrap;"><button class="btn btn-sm btn-edit" onclick="editItem('tickets','${t.id}')">✏️</button> <button class="btn btn-secondary btn-sm" onclick="deleteItem('tickets','${t.id}')">🗑️</button></td></tr>${zimmerRows}`;
+    return `<tr><td><span style="font-weight:500;">${t.betreff}</span>${t.autoGenerated?` <span class="badge badge-violet">🤖 Automatisch aus Wartung</span>`:''}${hasZimmer?` <span class="badge badge-blue">🏨 Multi-Zimmer</span>`:''}${t.beschreibung?`<div style="font-size:12px;color:var(--text3);">${t.beschreibung.substring(0,60)}${t.beschreibung.length>60?'...':''}</div>`:''}</td><td>${t.geraetName||'–'}</td><td>${hasZimmer?zimmerProgress:(t.bereichName?`<span class="badge badge-blue">${t.bereichName}</span>`:'–')}</td><td><span class="badge ${pBadge[t.prioritaet]}">${pLabel[t.prioritaet]}</span></td><td><select onchange="updateTicketStatus('${t.id}',this.value)" style="border:1px solid var(--border2);border-radius:5px;padding:3px 8px;font-size:12px;background:var(--surface);"><option value="offen" ${t.status==='offen'?'selected':''}>Offen</option><option value="in_bearbeitung" ${t.status==='in_bearbeitung'?'selected':''}>In Bearbeitung</option><option value="erledigt" ${t.status==='erledigt'?'selected':''}>Erledigt</option></select></td><td style="font-size:12px;color:var(--text3);">${t.ersteller||t.gemeldet||'–'}</td><td>${t.partnerName||'–'}</td><td style="font-family:'DM Mono',monospace;font-size:12px;color:var(--text3);white-space:nowrap;">${fTs(t.createdAt)}</td><td>${terminCell}</td><td style="white-space:nowrap;"><button class="btn btn-sm btn-edit" onclick="editItem('tickets','${t.id}')">✏️</button> <button class="btn btn-secondary btn-sm" onclick="deleteItem('tickets','${t.id}')">🗑️</button></td></tr>${zimmerRows}`;
   }).join(''):`<tr><td colspan="9"><div class="empty-state"><div class="empty-icon">🎫</div><p>Keine Tickets gefunden</p></div></td></tr>`;
+  // Restore any zimmer detail panels that were open before re-render
+  if (window._openZimmerDetails && window._openZimmerDetails.size > 0) {
+    window._openZimmerDetails.forEach(id => {
+      const row = document.getElementById('zimmer-detail-' + id);
+      if (row) row.style.display = 'table-row';
+    });
+  }
 }
 
 window.toggleZimmerDetail = function(ticketId) {
@@ -2332,7 +2416,7 @@ function renderWartungen() {
       const d=te.datum?new Date(te.datum+'T00:00:00'):null;
       const ds=d?d.toLocaleDateString('de-CH',{day:'2-digit',month:'2-digit',year:'numeric'}):'–';
       const isPast=d&&d<today0w; const isToday=d&&d.getTime()===today0w.getTime();
-      const col=isToday?'var(--blue)':isPast?'var(--red)':'var(--green)';
+      const col=isToday?'var(--accent)':isPast?'var(--red)':'var(--green)';
       return `<span style="display:inline-flex;align-items:center;gap:3px;"><span onclick="showTerminDetail('${te.id}')" style="cursor:pointer;color:${col};font-size:12px;font-family:'DM Mono',monospace;white-space:nowrap;" title="${_optEsc(te.titel||'')}">🗓️ ${ds}</span><span onclick="deleteTermin('${te.id}')" style="cursor:pointer;color:var(--text3);font-size:11px;line-height:1;padding:1px 3px;border-radius:3px;" title="Termin löschen" onmouseover="this.style.color='var(--red)'" onmouseout="this.style.color='var(--text3)'">✕</span></span>`;
     }).join('')}<button onclick="openTerminQuick('wartung','${w.id}','${(w.bezeichnung||'').replace(/'/g,'\\x27')}','${w.datum||''}')" class="btn btn-secondary btn-sm" style="font-size:11px;padding:2px 7px;margin-top:${linkedTermin.length?'3':'0'}px;">+ Termin</button></div>`;
     return `<tr><td><span style="font-weight:500;">${w.bezeichnung}</span>${w.seriesId?`<div style="font-size:10.5px;color:var(--text3);">🔁 ${w.intervall} · rolling</div>`:''}</td><td>${w.geraetName||'–'}</td><td><span class="badge badge-gray">${w.typ}</span></td><td style="font-family:'DM Mono',monospace;font-size:12px;${new Date(w.datum)<new Date()&&w.status!=='abgeschlossen'&&w.status!=='storniert'?'color:var(--red);font-weight:600;':''}">${fDate(w.datum)}</td><td>${w.partnerName||'–'}</td><td><select onchange="updateWartungStatus('${w.id}',this.value)" style="border:1px solid var(--border2);border-radius:5px;padding:3px 8px;font-size:12px;background:var(--surface);"><option value="geplant" ${w.status==='geplant'?'selected':''}>Geplant</option><option value="faellig" ${w.status==='faellig'?'selected':''}>Fällig</option><option value="abgeschlossen" ${w.status==='abgeschlossen'?'selected':''}>Abgeschlossen</option><option value="storniert" ${w.status==='storniert'?'selected':''}>Storniert</option></select></td><td>${terminCell}</td><td style="white-space:nowrap;"><button class="btn btn-sm btn-edit" onclick="editItem('wartungen','${w.id}')">✏️</button> <button class="btn btn-secondary btn-sm" onclick="deleteItem('wartungen','${w.id}')">🗑️</button></td></tr>`;
@@ -2590,12 +2674,17 @@ function renderDokumente() {
   tb.innerHTML=state.dokumente.length?state.dokumente.map(d=>`<tr><td><span style="font-weight:500;">📄 ${_optEsc(d.name)}</span></td><td><span class="badge badge-gray">${_optEsc(d.typ)}</span></td><td>${_optEsc(d.geraetName||'–')}</td><td style="font-family:'DM Mono',monospace;font-size:12px;">${d.datum?fDate(d.datum):'–'}</td><td style="color:var(--text3);font-size:12.5px;">${_optEsc(d.notiz||'–')}</td><td style="white-space:nowrap;"><button class="btn btn-sm btn-edit" onclick="editItem('dokumente','${d.id}')">✏️</button> <button class="btn btn-secondary btn-sm" onclick="deleteItem('dokumente','${d.id}')">🗑️</button></td></tr>`).join(''):`<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">📄</div><p>Noch keine Dokumente</p></div></td></tr>`;
 }
 
+// Validiert Farben aus der DB gegen CSS-Injection
+function safeColor(c) {
+  return /^#[0-9a-fA-F]{3,8}$/.test(c) ? c : '#6b7280';
+}
+
 function renderAktivitaet() {
   const el=document.getElementById('aktivitaet-full');
   let data = state.log;
   if(state.logSearch){const q=state.logSearch.toLowerCase();data=data.filter(l=>(l.text||'').toLowerCase().includes(q)||(l.user||'').toLowerCase().includes(q));}
   document.getElementById('log-count').textContent=(state.logSearch?data.length+' von ':'')+state.log.length+' Einträge';
-  el.innerHTML=data.length?data.map(l=>`<div class="activity-item"><div class="activity-dot" style="background:${l.color}"></div><div style="flex:1;"><div class="activity-text">${_optEsc(l.text)}</div><div class="activity-time">${fTs(l.createdAt)}${l.user?' · '+_optEsc(l.user):''}</div></div></div>`).join(''):'<div class="empty-state"><div class="empty-icon">📋</div><p>Keine Einträge gefunden</p></div>';
+  el.innerHTML=data.length?data.map(l=>`<div class="activity-item"><div class="activity-dot" style="background:${safeColor(l.color)}"></div><div style="flex:1;"><div class="activity-text">${_optEsc(l.text)}</div><div class="activity-time">${fTs(l.createdAt)}${l.user?' · '+_optEsc(l.user):''}</div></div></div>`).join(''):'<div class="empty-state"><div class="empty-icon">📋</div><p>Keine Einträge gefunden</p></div>';
 }
 
 function updateBadges() {
@@ -2610,7 +2699,7 @@ function renderTicketsMobile() {
   let data = state.tickets;
   if(state.ticketFilter==='aktiv') data=data.filter(t=>t.status!=='erledigt');
   else if(state.ticketFilter!=='alle') data=data.filter(t=>t.status===state.ticketFilter);
-  if(state.ticketSearch){const q=state.ticketSearch.toLowerCase();data=data.filter(t=>(t.betreff||'').toLowerCase().includes(q)||(t.bereichName||'').toLowerCase().includes(q)||(t.ersteller||'').toLowerCase().includes(q)||(t.gemeldet||'').toLowerCase().includes(q));}
+  if(state.ticketSearch){const q=state.ticketSearch.toLowerCase();data=data.filter(t=>(t.betreff||'').toLowerCase().includes(q)||(t.bereichName||'').toLowerCase().includes(q)||(t.ersteller||'').toLowerCase().includes(q)||(t.gemeldet||'').toLowerCase().includes(q)||(t.partnerName||'').toLowerCase().includes(q));}
   if(!data.length){el.innerHTML=`<div class="empty-state"><div class="empty-icon">🎫</div><p>Keine Tickets gefunden</p></div>`;return;}
   el.innerHTML=data.map(t=>{
     const hasZimmer = t.mehrereZimmer && t.zimmerListe && t.zimmerListe.length > 0;
@@ -2643,6 +2732,13 @@ function renderTicketsMobile() {
     </div>
   </div>`;
   }).join('');
+  // Restore any zimmer mobile panels that were open before re-render
+  if (window._openZimmerDetailsMobile && window._openZimmerDetailsMobile.size > 0) {
+    window._openZimmerDetailsMobile.forEach(id => {
+      const el2 = document.getElementById('zimmer-mobile-' + id);
+      if (el2) el2.style.display = 'flex';
+    });
+  }
 }
 
 function renderWartungenMobile() {
@@ -2748,7 +2844,8 @@ function printTickets() {
       (t.betreff||'').toLowerCase().includes(q) ||
       (t.bereichName||'').toLowerCase().includes(q) ||
       (t.ersteller||'').toLowerCase().includes(q) ||
-      (t.gemeldet||'').toLowerCase().includes(q)
+      (t.gemeldet||'').toLowerCase().includes(q) ||
+      (t.partnerName||'').toLowerCase().includes(q)
     );
   }
   const ts = state.ticketSort;
@@ -2760,6 +2857,7 @@ function printTickets() {
       let av = a[col]||'', bv = b[col]||'';
       if (col === 'prioritaet') { av = pOrd[a.prioritaet]??9; bv = pOrd[b.prioritaet]??9; return (av-bv)*dir; }
       if (col === 'status') { av = sOrd[a.status]??9; bv = sOrd[b.status]??9; return (av-bv)*dir; }
+      if (col === 'createdAt') { const ad=_tsToDate(a.createdAt),bd=_tsToDate(b.createdAt); return ((ad?.getTime()||0)-(bd?.getTime()||0))*dir; }
       return av.toString().localeCompare(bv.toString())*dir;
     });
   }
@@ -3249,8 +3347,8 @@ const EXPORT_CONFIGS = {
     sheetname: 'Tickets',
     cols: ['Betreff','Priorität','Status','Gerät','Bereich','Zugewiesen an','Gemeldet von','Beschreibung','Erstellt am'],
     map: (t) => [
-      t.betreff||'', t.prioritaet||'', t.status||'', t.geraetName||'', t.bereich||'',
-      t.partner||'', t.gemeldetVon||'', t.beschreibung||'',
+      t.betreff||'', t.prioritaet||'', t.status||'', t.geraetName||'', t.bereichName||'',
+      t.partnerName||'', t.gemeldet||'', t.beschreibung||'',
       t.createdAt && t.createdAt.toDate ? t.createdAt.toDate().toLocaleDateString('de-DE') : (t.createdAt||'')
     ],
     source: () => state.tickets || []
@@ -3266,7 +3364,7 @@ const EXPORT_CONFIGS = {
     filename: 'FacilityOS_Export_Geraete.xlsx',
     sheetname: 'Geräte & Anlagen',
     cols: ['Name','Kategorie','Hersteller','Seriennummer','Standort','Baujahr','Nächste Wartung (aus Aufträgen)','Status','Notizen'],
-    map: (g) => [g.name||'', g.kategorie||'', g.hersteller||'', g.seriennummer||'', g.standort||'', g.baujahr||'', getNextWartungForGeraet(g.id)||'', g.status||'', g.notizen||''],
+    map: (g) => [g.name||'', g.kategorie||'', g.hersteller||'', g.seriennummer||'', g.bereichName||g.standort||'', g.baujahr||'', getNextWartungForGeraet(g.id)||'', g.status||'', g.notizen||''],
     source: () => state.geraete || []
   },
   partner: {
@@ -3285,7 +3383,7 @@ const EXPORT_CONFIGS = {
   }
 };
 
-window.exportData = function(type) {
+window.exportData = async function(type) {
   const cfg = EXPORT_CONFIGS[type];
   const resultEl = document.getElementById(`export-result-${type}`);
   if(!cfg) return;
@@ -3295,6 +3393,7 @@ window.exportData = function(type) {
     return;
   }
   try {
+    await window._loadXLSX();
     const wb = XLSX.utils.book_new();
     const data = [cfg.cols, ...rows.map(cfg.map)];
     const ws = XLSX.utils.aoa_to_sheet(data);
@@ -3313,10 +3412,11 @@ window.exportData = function(type) {
   }
 };
 
-window.exportAll = function() {
+window.exportAll = async function() {
   const types = ['tickets','wartung','geraete','partner','notfall'];
   let totalRows = 0;
   try {
+    await window._loadXLSX();
     const wb = XLSX.utils.book_new();
     for(const type of types) {
       const cfg = EXPORT_CONFIGS[type];
@@ -3348,7 +3448,7 @@ const TEMPLATES = {
   },
   geraete: {
     cols: ['Name','Kategorie','Hersteller','Seriennummer','Standort','Baujahr','Notizen'],
-    example: ['Aufzug OG1','aufzug','Schindler','SN-12345','1. OG','2015-06-01','2025-06-01','Jährliche Inspektion']
+    example: ['Aufzug OG1','aufzug','Schindler','SN-12345','1. OG','2015-06-01','Jährliche Inspektion']
   },
   wartung: {
     cols: ['Bezeichnung','Typ','Datum','Intervall','GerätName','PartnerName','Notizen'],
@@ -3356,9 +3456,10 @@ const TEMPLATES = {
   }
 };
 
-window.downloadTemplate = function(type) {
+window.downloadTemplate = async function(type) {
   const t = TEMPLATES[type];
   if(!t) return;
+  await window._loadXLSX();
   const wb = XLSX.utils.book_new();
   const ws = XLSX.utils.aoa_to_sheet([t.cols, t.example]);
   // Style header row width
@@ -3373,6 +3474,7 @@ window.handleImport = async function(input, type) {
   const resultEl = document.getElementById(`import-result-${type}`);
   resultEl.innerHTML = '<div style="color:var(--text3);font-size:13px;">⏳ Wird importiert…</div>';
   try {
+    await window._loadXLSX();
     const data = await file.arrayBuffer();
     const wb = XLSX.read(data);
     const ws = wb.Sheets[wb.SheetNames[0]];
@@ -3464,8 +3566,8 @@ function renderTermine(){
     const ticketRef=t.ticketId?(window.state.tickets||[]).find(tk=>tk.id===t.ticketId):null;
     const wartungRef=t.wartungId?(window.state.wartungen||[]).find(w=>w.id===t.wartungId):null;
     let verknLink='–';
-    if(ticketRef) verknLink=`<span style="cursor:pointer;color:var(--blue);text-decoration:underline;" onclick="showPage('tickets')"># ${_optEsc(ticketRef.betreff||'Ticket')}</span>`;
-    else if(wartungRef) verknLink=`<span style="cursor:pointer;color:var(--blue);text-decoration:underline;" onclick="showPage('wartung')">🔧 ${_optEsc(wartungRef.bezeichnung||'Wartung')}</span>`;
+    if(ticketRef) verknLink=`<span style="cursor:pointer;color:var(--accent);text-decoration:underline;" onclick="showPage('tickets')"># ${_optEsc(ticketRef.betreff||'Ticket')}</span>`;
+    else if(wartungRef) verknLink=`<span style="cursor:pointer;color:var(--accent);text-decoration:underline;" onclick="showPage('wartung')">🔧 ${_optEsc(wartungRef.bezeichnung||'Wartung')}</span>`;
     return `<tr>
       <td><span style="font-weight:500;">${terminTypIcon(t.typ)} ${_optEsc(t.titel||'')}</span></td>
       <td>${dateStr} ${dateBadge}<br><span style="font-size:12px;color:var(--text3);">${zeitStr}</span></td>
@@ -3581,8 +3683,8 @@ window.showTerminDetail = function(id){
       <div><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">Typ</div><div>${terminTypLabel(t.typ)}</div></div>
       <div><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">Erstellt von</div><div>${_optEsc(t.ersteller||'–')}</div></div>
       ${t.partnerName?`<div><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">Partnerfirma</div><div>${_optEsc(t.partnerName)}</div></div>`:''}
-      ${ticketRef?`<div><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">Ticket</div><div style="color:var(--blue);cursor:pointer;" onclick="closeModal('modal-termin-detail');showPage('tickets')"># ${_optEsc(ticketRef.betreff)}</div></div>`:''}
-      ${wartungRef?`<div><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">Wartungsauftrag</div><div style="color:var(--blue);cursor:pointer;" onclick="closeModal('modal-termin-detail');showPage('wartung')">🔧 ${_optEsc(wartungRef.bezeichnung)}</div></div>`:''}
+      ${ticketRef?`<div><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">Ticket</div><div style="color:var(--accent);cursor:pointer;" onclick="closeModal('modal-termin-detail');showPage('tickets')"># ${_optEsc(ticketRef.betreff)}</div></div>`:''}
+      ${wartungRef?`<div><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">Wartungsauftrag</div><div style="color:var(--accent);cursor:pointer;" onclick="closeModal('modal-termin-detail');showPage('wartung')">🔧 ${_optEsc(wartungRef.bezeichnung)}</div></div>`:''}
     </div>
     ${t.notizen?`<div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:13.5px;color:var(--text1);white-space:pre-wrap;">${_optEsc(t.notizen)}</div>`:''}
   `;
@@ -3704,5 +3806,23 @@ window.openTerminFromWartung = function(){
   document.getElementById('modal-termin').classList.remove('hidden');
 };
 </script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script></body>
+<script>
+// XLSX lazy loader – wird nur geladen wenn Import/Export tatsächlich genutzt wird
+window._xlsxLoaded = false;
+window._loadXLSX = function() {
+  return new Promise((resolve, reject) => {
+    if (window.XLSX) { resolve(); return; }
+    if (window._xlsxLoading) { 
+      const wait = setInterval(() => { if(window.XLSX){clearInterval(wait);resolve();} }, 50);
+      return;
+    }
+    window._xlsxLoading = true;
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+    s.onload = () => { window._xlsxLoading = false; resolve(); };
+    s.onerror = () => reject(new Error('XLSX konnte nicht geladen werden. Bitte Internetverbindung prüfen.'));
+    document.head.appendChild(s);
+  });
+};
+</script></body>
 </html>
